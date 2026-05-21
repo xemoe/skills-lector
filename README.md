@@ -1,8 +1,15 @@
 # Claude Skills Catalog
 
-A local web app that scans your machine for deployed **Claude Skills** and shows them in a browser dashboard — what is installed, where it came from, and when it last changed.
+A local web app that scans your machine for deployed **Claude Skills** and slash commands and shows them in a browser dashboard — what is installed, where it came from, and when it last changed.
 
 Built with Next.js 15, React 19, Tailwind CSS, and shadcn/ui. It runs entirely on your machine and makes no external calls — nothing leaves your computer.
+
+## Repository layout
+
+This is a **monorepo**:
+
+- **`apps/web`** — the Next.js web app.
+- **`packages/core`** — the shared, server-side scanning engine (filesystem scanners, parsers, git/source resolution, the data model).
 
 ## Features
 
@@ -22,7 +29,7 @@ Built with Next.js 15, React 19, Tailwind CSS, and shadcn/ui. It runs entirely o
 | `~/.claude/plugins` | Plugin |
 | Agent / Cowork session skills | Plugin |
 | `<project>/.claude/skills` (projects from `~/.claude.json`) | Project |
-| `sample-skills/` (bundled with this repo) | Local |
+| `apps/web/sample-skills/` (bundled with this repo) | Local |
 | Any directory listed in `skills-catalog.config.json` | Custom |
 
 ## Requirements
@@ -33,7 +40,7 @@ Built with Next.js 15, React 19, Tailwind CSS, and shadcn/ui. It runs entirely o
 ## Getting started
 
 ```bash
-npm install
+npm run install:all   # installs packages/core and apps/web
 npm run dev
 ```
 
@@ -41,8 +48,11 @@ Then open **http://localhost:4317**.
 
 ## Scripts
 
+Run these from the repo root; the root `package.json` delegates each into `apps/web`.
+
 | Command | Description |
 |---|---|
+| `npm run install:all` | Install dependencies for both packages |
 | `npm run dev` | Start the dev server (Turbopack) on port 4317 |
 | `npm run build` | Production build — also runs the TypeScript type-check |
 | `npm start` | Serve the production build on port 4317 |
@@ -51,7 +61,7 @@ Then open **http://localhost:4317**.
 
 All configuration is optional.
 
-- **`skills-catalog.config.json`** — copy `skills-catalog.config.example.json` to this name and edit it. Add directories to scan via `extraRoots`, and toggle `includeProjectSkills` / `includeCoworkSkills`. This file is git-ignored.
+- **`skills-catalog.config.json`** — copy `apps/web/skills-catalog.config.example.json` to `apps/web/skills-catalog.config.json` and edit it. Add directories to scan via `extraRoots`, and toggle `includeProjectSkills` / `includeCoworkSkills`. This file is git-ignored.
 - **`SKILLS_SCAN_ROOTS`** — environment variable; a `;`- or `,`-separated list of extra directories to scan.
 - **`CLAUDE_CONFIG_DIR`** — environment variable; overrides the default `~/.claude` location.
 
@@ -59,18 +69,21 @@ All configuration is optional.
 
 A Claude Skill is a directory containing a `SKILL.md` file — YAML frontmatter (`name`, `description`) followed by a Markdown body.
 
-A server-side scanner (`lib/scanner.ts`) walks every known location, parses each `SKILL.md`, determines its type and source (resolving git remotes to GitHub URLs where possible), reads usage data from `~/.claude.json`, deduplicates skills that appear in multiple places, and returns a single result.
+A server-side scanner (`packages/core/src/scanner.ts`) walks every known location, parses each `SKILL.md`, determines its type and source (resolving git remotes to GitHub URLs where possible), reads usage data from `~/.claude.json`, deduplicates skills that appear in multiple places, and returns a single result.
 
-Pages are dynamic Next.js Server Components that call the scanner directly and hand plain data to client components for in-browser search and filtering. Results are cached in-process for 8 seconds; the **Rescan** button forces a fresh scan.
+Pages in `apps/web` are dynamic Next.js Server Components that call the scanner directly and hand plain data to client components for in-browser search and filtering. Results are cached in-process for 8 seconds; the **Rescan** button forces a fresh scan.
 
 ## Project structure
 
 ```
-app/            Next.js App Router pages and the /api/skills route
-components/     shadcn/ui primitives and app-specific components
-lib/            Server-side scanner, SKILL.md parser, git/source resolution, types
-sample-skills/  Bundled example skills (so the dashboard is never empty)
-scripts/        Build tooling
+apps/web/            The Next.js app
+  app/               App Router pages and the /api routes
+  components/        shadcn/ui primitives and app-specific components
+  lib/               App-local helpers — i18n, theme, analytics, relations, utils
+  sample-skills/     Bundled example skills (so the dashboard is never empty)
+  scripts/           The exFAT build shim
+packages/core/       Shared scanning engine — SKILL.md/command parsers,
+  src/               git/source resolution, the data model
 ```
 
 ## Note: running on an exFAT volume
@@ -78,7 +91,7 @@ scripts/        Build tooling
 This repository currently lives on an exFAT drive. exFAT cannot store symlinks and makes `fs.readlink` return a non-standard error, which crashes standard Node build tooling. The project works around this:
 
 - builds use **Turbopack** (the npm scripts already pass `--turbopack`);
-- `scripts/exfat-readlink-fix.cjs` shims `fs.readlink` and is loaded via `NODE_OPTIONS`;
-- install dependencies with **npm**, not pnpm.
+- `apps/web/scripts/exfat-readlink-fix.cjs` shims `fs.readlink` and is loaded via `NODE_OPTIONS`;
+- install dependencies with **npm**, not pnpm — and the monorepo avoids npm workspaces, since both rely on symlinks.
 
 On an NTFS drive or on macOS none of this is needed — the app just runs. See [CLAUDE.md](CLAUDE.md) for details.
