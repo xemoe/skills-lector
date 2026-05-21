@@ -1,0 +1,3 @@
+[submodule "vendor/9arm-skills"]
+	path = vendor/9arm-skills
+	url = git@github.com:thananon/9arm-skills.git

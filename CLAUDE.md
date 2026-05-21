@@ -53,6 +53,14 @@ Targets Windows and macOS — always use `os.homedir()` and `path`, never hardco
 - `skills-catalog.config.json` (git-ignored; template in `skills-catalog.config.example.json`) or the `SKILLS_SCAN_ROOTS` env var add extra scan roots.
 - `CLAUDE_CONFIG_DIR` overrides the `~/.claude` location.
 
+## Vendored skills
+
+External Claude Skills are pulled in as **git submodules under `vendor/`** (e.g. `vendor/9arm-skills`). After cloning this repo, run `git submodule update --init --recursive` to populate them.
+
+A project skill at `.claude/skills/install-vendor-skill/` owns the vendor workflow: list the skills in `vendor/`, install one into `~/.claude/skills/` (personal) or `.claude/skills/` (project), and add new submodules. Its helper script is `node .claude/skills/install-vendor-skill/scripts/vendor-skills.mjs <list|install|installed>`. Installing **copies** the skill directory — exFAT cannot store symlinks.
+
+The `/vendor-install` slash command (`.claude/commands/vendor-install.md`) is a thin shortcut over that script: run it bare to list vendored skills, or `/vendor-install <skill-name>` to install one.
+
 ## Styling
 
 Tailwind CSS v4 — there is no `tailwind.config.ts`. The theme is defined entirely in `app/globals.css`: OKLCH color tokens in `:root`/`.dark`, mapped to utilities via `@theme inline`, with `@plugin "@tailwindcss/typography"` and `@custom-variant dark`. PostCSS uses `@tailwindcss/postcss`; animations come from `tw-animate-css`. shadcn/ui components (`components/ui/`) consume the tokens. A `.dark` token block exists but nothing toggles the `dark` class, so the app renders in the GitHub-style light theme. Type/status colors are plain Tailwind classes tuned for a light background.
