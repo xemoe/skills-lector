@@ -61,10 +61,26 @@ export interface Skill {
   bodyExcerpt: string;
 }
 
+/** Stable identity for a scan root's display label, so the UI can localize it. */
+export type ScanRootLabelKey =
+  | "personalSkills"
+  | "installedPlugins"
+  | "coworkSkills"
+  | "sampleSkills"
+  | "customRoot"
+  | "personalCommands"
+  | "project"
+  | "plugin";
+
 export interface ScanRoot {
   path: string;
   kind: SkillType | "auto";
+  /** Canonical English label — kept as a fallback; the UI localizes via labelKey. */
   label: string;
+  /** Translation key for the label. */
+  labelKey: ScanRootLabelKey;
+  /** Dynamic part of the label (project or plugin name), when applicable. */
+  labelArg?: string;
   maxDepth: number;
   exists: boolean;
   /** Number of catalog entries (skills or commands) found under this root. */

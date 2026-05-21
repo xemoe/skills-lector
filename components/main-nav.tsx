@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 
 const LINKS = [
-  { href: "/", label: "Skills" },
-  { href: "/commands", label: "Commands" },
-  { href: "/analytic", label: "Analytics" },
-  { href: "/graph", label: "Graph" },
-  { href: "/sources", label: "Sources" },
-];
+  { href: "/", key: "skills" },
+  { href: "/commands", key: "commands" },
+  { href: "/analytic", key: "analytics" },
+  { href: "/graph", key: "graph" },
+  { href: "/sources", key: "sources" },
+] as const;
 
 export function MainNav() {
   const pathname = usePathname();
+  const t = useT();
   return (
     <nav className="flex items-center gap-1 text-sm">
       {LINKS.map((link) => {
@@ -26,13 +28,13 @@ export function MainNav() {
             key={link.href}
             href={link.href}
             className={cn(
-              "rounded-none px-3 py-1.5 transition-colors",
+              "whitespace-nowrap rounded-none px-3 py-1.5 transition-colors",
               active
                 ? "bg-accent font-semibold text-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
-            {link.label}
+            {t.nav[link.key]}
           </Link>
         );
       })}

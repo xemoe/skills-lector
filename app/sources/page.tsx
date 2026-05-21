@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { InlineCode } from "@/components/inline-code";
+import { getServerI18n } from "@/lib/i18n/server";
 import type { Skill, SourceKind } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -30,13 +31,6 @@ interface SourceGroup {
   skills: Skill[];
 }
 
-const KIND_LABEL: Record<GroupKind, string> = {
-  github: "GitHub",
-  git: "Git remote",
-  local: "Local directory",
-  plugin: "Plugin",
-};
-
 function SourceIcon({ kind }: { kind: GroupKind }) {
   if (kind === "github") return <Github className="h-4 w-4 shrink-0" />;
   if (kind === "git") return <GitBranch className="h-4 w-4 shrink-0" />;
@@ -45,7 +39,8 @@ function SourceIcon({ kind }: { kind: GroupKind }) {
   return <FolderOpen className="h-4 w-4 shrink-0" />;
 }
 
-export default function SourcesPage() {
+export default async function SourcesPage() {
+  const { t } = await getServerI18n();
   const result = scanSkills();
 
   const groups = new Map<string, SourceGroup>();
@@ -73,10 +68,9 @@ export default function SourcesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Sources</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t.sources.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Where your deployed skills come from — GitHub repositories, plugins,
-          and local directories.
+          {t.sources.subtitle}
         </p>
       </div>
 
@@ -90,14 +84,11 @@ export default function SourcesPage() {
                   {group.title}
                 </CardTitle>
                 <span className="shrink-0 rounded-none border px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                  {KIND_LABEL[group.kind]}
+                  {t.sources.kinds[group.kind]}
                 </span>
               </div>
               <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground">
-                <span>
-                  {group.skills.length} skill
-                  {group.skills.length === 1 ? "" : "s"}
-                </span>
+                <span>{t.sources.skillCount(group.skills.length)}</span>
                 {group.url && (
                   <a
                     href={group.url}
@@ -105,7 +96,8 @@ export default function SourcesPage() {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
                   >
-                    Open repository <ExternalLink className="h-3 w-3" />
+                    {t.sources.openRepository}{" "}
+                    <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
               </div>
@@ -127,36 +119,43 @@ export default function SourcesPage() {
           </Card>
         ))}
         {sorted.length === 0 && (
-          <p className="text-sm text-muted-foreground">No sources found.</p>
+          <p className="text-sm text-muted-foreground">{t.sources.noSources}</p>
         )}
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">Scan locations</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t.sources.scanLocations}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Directories the catalog walks to discover SKILL.md files. Configure
-          extra roots in <InlineCode>skills-catalog.config.json</InlineCode>.
+          {t.sources.scanLocationsDesc1}
+          <InlineCode>skills-catalog.config.json</InlineCode>
+          {t.sources.scanLocationsDesc2}
         </p>
         <div className="ring-1 ring-foreground/10">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead>Location</TableHead>
-                <TableHead>Path</TableHead>
-                <TableHead className="w-[110px]">Type</TableHead>
-                <TableHead className="w-[90px] text-right">Skills</TableHead>
+                <TableHead>{t.sources.colLocation}</TableHead>
+                <TableHead>{t.sources.colPath}</TableHead>
+                <TableHead className="w-[110px]">{t.sources.colType}</TableHead>
+                <TableHead className="w-[90px] text-right">
+                  {t.sources.colSkills}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {result.roots.map((root) => (
                 <TableRow key={root.path} className="hover:bg-transparent">
-                  <TableCell className="font-medium">{root.label}</TableCell>
+                  <TableCell className="font-medium">
+                    {t.sources.rootLabel(root.labelKey, root.labelArg)}
+                  </TableCell>
                   <TableCell className="max-w-[420px] truncate font-mono text-xs text-muted-foreground">
                     {root.path}
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs capitalize text-muted-foreground">
-                      {root.kind}
+                    <span className="text-xs text-muted-foreground">
+                      {t.sources.rootKinds[root.kind]}
                     </span>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">

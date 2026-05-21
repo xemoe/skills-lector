@@ -4,47 +4,56 @@ import { SkillsExplorer } from "@/components/skills-explorer";
 import { InlineCode } from "@/components/inline-code";
 import { scanSkills } from "@/lib/scanner";
 import { formatDate } from "@/lib/utils";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 export const dynamic = "force-dynamic";
 
-function EmptyState({ claudeHome }: { claudeHome: string }) {
+function EmptyState({ claudeHome, t }: { claudeHome: string; t: Dictionary }) {
   return (
     <div className="rounded-none border border-dashed p-12 text-center">
-      <h3 className="text-base font-medium">No skills found</h3>
+      <h3 className="text-base font-medium">{t.dashboard.emptyTitle}</h3>
       <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-        Nothing was discovered under{" "}
-        <InlineCode>{claudeHome}</InlineCode> or the other default scan
-        locations. Point the scanner at a directory by adding an{" "}
-        <InlineCode>extraRoots</InlineCode> entry to{" "}
-        <InlineCode>skills-catalog.config.json</InlineCode>, then press Rescan.
+        {t.dashboard.empty1}
+        <InlineCode>{claudeHome}</InlineCode>
+        {t.dashboard.empty2}
+        <InlineCode>extraRoots</InlineCode>
+        {t.dashboard.empty3}
+        <InlineCode>skills-catalog.config.json</InlineCode>
+        {t.dashboard.empty4}
       </p>
     </div>
   );
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { t } = await getServerI18n();
   const result = scanSkills();
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Deployed Skills</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t.dashboard.title}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every Claude Skill discovered on this machine — where it lives,
-            where it came from, and when it last changed.
+            {t.dashboard.subtitle}
           </p>
         </div>
         <p className="tabular-nums text-xs text-muted-foreground">
-          Scanned {formatDate(result.scannedAt)} · {result.durationMs} ms ·{" "}
-          {result.platform}
+          {t.scan.line(
+            formatDate(result.scannedAt),
+            result.durationMs,
+            result.platform,
+          )}
         </p>
       </div>
 
       <StatCards result={result} />
 
       {result.skills.length === 0 ? (
-        <EmptyState claudeHome={result.claudeHome} />
+        <EmptyState claudeHome={result.claudeHome} t={t} />
       ) : (
         <SkillsExplorer skills={result.skills} />
       )}
@@ -53,7 +62,7 @@ export default function DashboardPage() {
         <details className="rounded-none border border-amber-300 bg-amber-50 p-3 text-xs">
           <summary className="flex cursor-pointer items-center gap-2 text-amber-700">
             <AlertTriangle className="h-3.5 w-3.5" />
-            {result.errors.length} path(s) could not be read during the scan
+            {t.scan.errors(result.errors.length)}
           </summary>
           <ul className="mt-2 space-y-1 font-mono text-muted-foreground">
             {result.errors.slice(0, 30).map((e, i) => (

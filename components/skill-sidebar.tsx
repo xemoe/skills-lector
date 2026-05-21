@@ -8,12 +8,14 @@ import { Input } from "@/components/ui/input";
 import { CountBadge } from "@/components/count-badge";
 import { SKILL_TYPE_META } from "@/components/skill-type";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import type { Skill, SkillType } from "@/lib/types";
 
 const TYPE_ORDER: SkillType[] = ["personal", "plugin", "project", "local"];
 
 export function SkillSidebar({ skills }: { skills: Skill[] }) {
   const pathname = usePathname();
+  const t = useT();
   const currentId =
     pathname && pathname.startsWith("/skills/")
       ? pathname.slice("/skills/".length)
@@ -52,7 +54,7 @@ export function SkillSidebar({ skills }: { skills: Skill[] }) {
           className="flex items-center gap-2 border-b px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-accent"
         >
           <LayoutDashboard className="h-4 w-4 text-primary" />
-          <span>All skills</span>
+          <span>{t.sidebar.allSkills}</span>
           <CountBadge className="ml-auto font-normal text-muted-foreground">
             {skills.length}
           </CountBadge>
@@ -62,11 +64,11 @@ export function SkillSidebar({ skills }: { skills: Skill[] }) {
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Filter skills…"
+              placeholder={t.sidebar.filterSkills}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-7"
-              aria-label="Filter skills"
+              aria-label={t.sidebar.filterSkillsAria}
             />
           </div>
         </div>
@@ -74,7 +76,7 @@ export function SkillSidebar({ skills }: { skills: Skill[] }) {
         <nav className="min-h-0 max-h-80 flex-1 overflow-y-auto p-1.5 lg:max-h-none">
           {groups.length === 0 ? (
             <p className="px-2 py-8 text-center text-xs text-muted-foreground">
-              No skills match your filter.
+              {t.sidebar.noSkillsMatch}
             </p>
           ) : (
             groups.map((g) => (
@@ -88,7 +90,7 @@ export function SkillSidebar({ skills }: { skills: Skill[] }) {
                     aria-hidden
                   />
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {SKILL_TYPE_META[g.type].label}
+                    {t.skillTypes[g.type]}
                   </span>
                   <span className="text-[11px] tabular-nums text-muted-foreground/70">
                     {g.items.length}

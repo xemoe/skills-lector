@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 
 export function RescanButton() {
   const router = useRouter();
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const [fetching, setFetching] = useState(false);
   const busy = isPending || fetching;
@@ -27,7 +29,7 @@ export function RescanButton() {
   return (
     <Button variant="outline" size="sm" onClick={rescan} disabled={busy}>
       <RefreshCw className={cn(busy && "animate-spin")} />
-      {busy ? "Scanning…" : "Rescan"}
+      {busy ? t.actions.scanning : t.actions.rescan}
     </Button>
   );
 }

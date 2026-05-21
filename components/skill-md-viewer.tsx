@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useT } from "@/lib/i18n/context";
 
 export function SkillMdViewer({
   preview,
@@ -16,6 +17,7 @@ export function SkillMdViewer({
   /** Name of the file being shown — used in the copy button's accessible label. */
   copyLabel?: string;
 }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   async function copyRaw() {
@@ -32,24 +34,24 @@ export function SkillMdViewer({
     <Tabs defaultValue="preview">
       <div className="flex items-center justify-between gap-2">
         <TabsList>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="raw">Raw</TabsTrigger>
+          <TabsTrigger value="preview">{t.viewer.preview}</TabsTrigger>
+          <TabsTrigger value="raw">{t.viewer.raw}</TabsTrigger>
         </TabsList>
         <Button
           variant="outline"
           onClick={copyRaw}
-          title={`Copy raw ${copyLabel} to clipboard`}
-          aria-label={`Copy raw ${copyLabel} to clipboard`}
+          title={t.viewer.copyRaw(copyLabel)}
+          aria-label={t.viewer.copyRaw(copyLabel)}
         >
           {copied ? (
             <>
               <Check className="text-green-600" />
-              Copied
+              {t.viewer.copied}
             </>
           ) : (
             <>
               <Copy />
-              Copy
+              {t.viewer.copy}
             </>
           )}
         </Button>

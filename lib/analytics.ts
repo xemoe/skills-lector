@@ -2,6 +2,8 @@ import { scanActivity } from "./activity";
 import { scanCommands } from "./command-scanner";
 import { scanSkills } from "./scanner";
 import { formatRelativeTime } from "./utils";
+import { type Locale, DEFAULT_LOCALE } from "./i18n/config";
+import { getDictionary } from "./i18n/dictionaries";
 
 export type ActivityWindow = "4h" | "1d" | "1w" | "all";
 export type ActivityKind = "skill" | "command";
@@ -72,7 +74,7 @@ const HOUR = 3_600_000;
 const DAY = 86_400_000;
 const WEEK = 7 * DAY;
 
-let cache: { analytics: Analytics; at: number } | null = null;
+let cache: { analytics: Analytics; at: number; locale: Locale } | null = null;
 
 /** Skill identity — the last namespace segment, lowercased (plugin prefix dropped). */
 function skillId(name: string): string {
@@ -118,11 +120,20 @@ interface Group {
  * Aggregates transcript activity against the deployed catalog: windowed top
  * lists, a recent-activity heatmap, and which skills/commands have gone unused.
  */
-export function buildAnalytics(opts: { force?: boolean } = {}): Analytics {
-  if (!opts.force && cache && Date.now() - cache.at < CACHE_TTL_MS) {
+export function buildAnalytics(
+  opts: { force?: boolean; locale?: Locale } = {},
+): Analytics {
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  if (
+    !opts.force &&
+    cache &&
+    cache.locale === locale &&
+    Date.now() - cache.at < CACHE_TTL_MS
+  ) {
     return cache.analytics;
   }
 
+  const t = getDictionary(locale);
   const activity = scanActivity(opts);
   const skills = scanSkills(opts).skills;
   const commands = scanCommands(opts).commands;
@@ -185,7 +196,7 @@ export function buildAnalytics(opts: { force?: boolean } = {}): Analytics {
       kind: g.kind,
       windows: g.windows,
       lastUsed: g.lastUsed,
-      lastUsedLabel: g.lastUsed ? formatRelativeTime(g.lastUsed) : "never",
+      lastUsedLabel: g.lastUsed ? formatRelativeTime(g.lastUsed, locale) : t.common.never,
     }))
     .sort((a, b) => b.windows.all - a.windows.all || b.lastUsed - a.lastUsed);
 
@@ -239,7 +250,7 @@ export function buildAnalytics(opts: { force?: boolean } = {}): Analytics {
         name,
         kind,
         lastUsed: null,
-        lastUsedLabel: "never",
+        lastUsedLabel: t.common.never,
         origin,
         source,
         href,
@@ -249,7 +260,7 @@ export function buildAnalytics(opts: { force?: boolean } = {}): Analytics {
         name,
         kind,
         lastUsed,
-        lastUsedLabel: formatRelativeTime(lastUsed),
+        lastUsedLabel: formatRelativeTime(lastUsed, locale),
         origin,
         source,
         href,
@@ -296,6 +307,6 @@ export function buildAnalytics(opts: { force?: boolean } = {}): Analytics {
     scannedAt: new Date().toISOString(),
   };
 
-  cache = { analytics, at: Date.now() };
+  cache = { analytics, at: Date.now(), locale };
   return analytics;
 }

@@ -28,6 +28,7 @@ import { FileText, FolderGit2, HardDrive, Package, Terminal, User } from "lucide
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CountBadge } from "@/components/count-badge";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import type {
   RelationCluster,
   RelationClusterKind,
@@ -128,6 +129,7 @@ interface HubData {
 // ---- custom nodes ----------------------------------------------------------
 
 function EntityNode({ id, data }: NodeProps) {
+  const t = useT();
   const d = data as EntityData;
   const { faded, active } = useHoverFlags(id);
   const meta = CLUSTER_META[d.variant];
@@ -159,7 +161,7 @@ function EntityNode({ id, data }: NodeProps) {
         {d.references > 0 && (
           <span
             className="ml-auto shrink-0 rounded-none bg-[#0e7490] px-1 text-[10px] font-semibold leading-tight text-white"
-            title={`Linked to ${d.references} other ${d.references === 1 ? "item" : "items"}`}
+            title={t.graph.referencesBadge(d.references)}
           >
             {d.references}
           </span>
@@ -171,6 +173,7 @@ function EntityNode({ id, data }: NodeProps) {
 }
 
 function HubNode({ id, data }: NodeProps) {
+  const t = useT();
   const d = data as HubData;
   const { faded } = useHoverFlags(id);
   const meta = CLUSTER_META[d.kind];
@@ -196,7 +199,7 @@ function HubNode({ id, data }: NodeProps) {
       <div className="min-w-0">
         <p className="truncate text-sm font-bold text-foreground">{d.label}</p>
         <p className={cn("text-[10px] font-medium uppercase tracking-wide", meta.text)}>
-          {d.kind} · {d.count} {d.count === 1 ? "item" : "items"}
+          {t.graph.hubMeta(t.skillTypes[d.kind], d.count)}
         </p>
       </div>
     </div>
@@ -434,14 +437,15 @@ function buildAdjacency(edges: Edge[]): Map<string, Set<string>> {
 // ---- legend ----------------------------------------------------------------
 
 function Legend() {
+  const t = useT();
   return (
     <div className="space-y-1.5 border bg-card/95 p-2.5 text-[11px] shadow-sm backdrop-blur">
-      <p className="font-semibold text-foreground">Legend</p>
+      <p className="font-semibold text-foreground">{t.graph.legend}</p>
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {(["plugin", "project", "personal", "local"] as RelationClusterKind[]).map((k) => (
           <span key={k} className="flex items-center gap-1 text-muted-foreground">
             <span className={cn("h-2.5 w-2.5 border", CLUSTER_META[k].border, CLUSTER_META[k].bg)} />
-            <span className="capitalize">{k}</span>
+            <span>{t.skillTypes[k]}</span>
           </span>
         ))}
       </div>
@@ -450,13 +454,13 @@ function Legend() {
           <svg width="22" height="6" aria-hidden>
             <line x1="0" y1="3" x2="22" y2="3" stroke={MEMBERSHIP_COLOR} strokeWidth="2.5" />
           </svg>
-          bundled together
+          {t.graph.bundledTogether}
         </span>
         <span className="flex items-center gap-1">
           <svg width="22" height="6" aria-hidden>
             <line x1="0" y1="3" x2="22" y2="3" stroke={REFERENCE_COLOR} strokeWidth="2.5" />
           </svg>
-          references
+          {t.graph.references}
         </span>
       </div>
     </div>
@@ -467,6 +471,7 @@ function Legend() {
 
 function RelationFlow({ graph }: { graph: RelationGraph }) {
   const router = useRouter();
+  const t = useT();
   const base = useMemo(() => computeLayout(graph), [graph]);
   const adjacency = useMemo(() => buildAdjacency(base.edges), [base]);
 
@@ -523,15 +528,15 @@ function RelationFlow({ graph }: { graph: RelationGraph }) {
           <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterKind)}>
             <TabsList>
               <TabsTrigger value="all" className="gap-1.5">
-                All
+                {t.graph.all}
                 <CountBadge>{graph.stats.skills + graph.stats.commands}</CountBadge>
               </TabsTrigger>
               <TabsTrigger value="skill" className="gap-1.5">
-                Skills
+                {t.graph.skills}
                 <CountBadge>{graph.stats.skills}</CountBadge>
               </TabsTrigger>
               <TabsTrigger value="command" className="gap-1.5">
-                Commands
+                {t.graph.commands}
                 <CountBadge>{graph.stats.commands}</CountBadge>
               </TabsTrigger>
             </TabsList>
@@ -548,6 +553,7 @@ function RelationFlow({ graph }: { graph: RelationGraph }) {
 export function RelationGraph({ graph }: { graph: RelationGraph }) {
   // React Flow measures the DOM and cannot render identically on the server,
   // so it is mounted client-side only to avoid a hydration mismatch.
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -557,7 +563,7 @@ export function RelationGraph({ graph }: { graph: RelationGraph }) {
         <RelationFlow graph={graph} />
       ) : (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Loading graph…
+          {t.common.loadingGraph}
         </div>
       )}
     </div>

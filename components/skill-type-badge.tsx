@@ -1,6 +1,9 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import type { SkillType } from "@/lib/types";
 import { SKILL_TYPE_META } from "@/components/skill-type";
+import { useT } from "@/lib/i18n/context";
 
 export function SkillTypeBadge({
   type,
@@ -9,6 +12,7 @@ export function SkillTypeBadge({
   type: SkillType;
   className?: string;
 }) {
+  const t = useT();
   const meta = SKILL_TYPE_META[type];
   return (
     <span
@@ -18,7 +22,7 @@ export function SkillTypeBadge({
         className,
       )}
     >
-      {meta.label}
+      {t.skillTypes[type]}
     </span>
   );
 }

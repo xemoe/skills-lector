@@ -32,23 +32,19 @@ import { SkillTypeBadge } from "@/components/skill-type-badge";
 import { SourceBadge } from "@/components/source-badge";
 import { CountBadge } from "@/components/count-badge";
 import { formatDate } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import type { Skill, SkillType } from "@/lib/types";
 
 type SortKey = "updated" | "name" | "usage";
 type TypeFilter = "all" | SkillType;
 
-const TABS: { key: TypeFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "plugin", label: "Plugin" },
-  { key: "personal", label: "Personal" },
-  { key: "project", label: "Project" },
-  { key: "local", label: "Local" },
-];
+const TAB_KEYS: TypeFilter[] = ["all", "plugin", "personal", "project", "local"];
 
 const PAGE_SIZE = 10;
 
 export function SkillsExplorer({ skills }: { skills: Skill[] }) {
   const router = useRouter();
+  const t = useT();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [sort, setSort] = useState<SortKey>("updated");
@@ -101,7 +97,7 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
         <div className="relative lg:max-w-xs lg:flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search skills, plugins, sources…"
+            placeholder={t.explorer.searchSkills}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -118,10 +114,10 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
           }}
         >
           <TabsList>
-            {TABS.map((t) => (
-              <TabsTrigger key={t.key} value={t.key} className="gap-1.5">
-                {t.label}
-                <CountBadge>{counts[t.key]}</CountBadge>
+            {TAB_KEYS.map((key) => (
+              <TabsTrigger key={key} value={key} className="gap-1.5">
+                {key === "all" ? t.explorer.tabAll : t.skillTypes[key]}
+                <CountBadge>{counts[key]}</CountBadge>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -138,9 +134,9 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="updated">Recently updated</SelectItem>
-            <SelectItem value="name">Name (A–Z)</SelectItem>
-            <SelectItem value="usage">Most used</SelectItem>
+            <SelectItem value="updated">{t.explorer.sortRecent}</SelectItem>
+            <SelectItem value="name">{t.explorer.sortName}</SelectItem>
+            <SelectItem value="usage">{t.explorer.sortUsage}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -149,11 +145,19 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="min-w-[260px]">Skill</TableHead>
-              <TableHead className="w-[96px]">Type</TableHead>
-              <TableHead className="min-w-[180px]">Source</TableHead>
-              <TableHead className="w-[150px]">Last updated</TableHead>
-              <TableHead className="w-[80px] text-right">Used</TableHead>
+              <TableHead className="min-w-[260px]">
+                {t.explorer.colSkill}
+              </TableHead>
+              <TableHead className="w-[96px]">{t.explorer.colType}</TableHead>
+              <TableHead className="min-w-[180px]">
+                {t.explorer.colSource}
+              </TableHead>
+              <TableHead className="w-[150px]">
+                {t.explorer.colUpdated}
+              </TableHead>
+              <TableHead className="w-[80px] text-right">
+                {t.explorer.colUsed}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -163,7 +167,7 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                   colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No skills match your filters.
+                  {t.explorer.noSkillsMatch}
                 </TableCell>
               </TableRow>
             ) : (
@@ -192,7 +196,7 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                     {s.plugin && s.source.kind === "local" ? (
                       <span
                         className="inline-flex items-center gap-1.5 text-sm"
-                        title={`Plugin: ${s.plugin.name}`}
+                        title={t.explorer.pluginTitle(s.plugin.name)}
                       >
                         <Package className="h-3.5 w-3.5 shrink-0 text-purple-600" />
                         <span className="truncate">{s.plugin.name}</span>
@@ -217,8 +221,8 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
           {filtered.length > 0
-            ? `Showing ${rangeStart}–${rangeEnd} of ${filtered.length} skills`
-            : `0 of ${skills.length} skills`}
+            ? t.explorer.showingSkills(rangeStart, rangeEnd, filtered.length)
+            : t.explorer.emptySkills(skills.length)}
         </p>
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
@@ -229,10 +233,10 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
               onClick={() => setPage(currentPage - 1)}
             >
               <ChevronLeft />
-              Previous
+              {t.actions.previous}
             </Button>
             <span className="text-xs tabular-nums text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              {t.common.page(currentPage, totalPages)}
             </span>
             <Button
               variant="outline"
@@ -240,7 +244,7 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
               disabled={currentPage >= totalPages}
               onClick={() => setPage(currentPage + 1)}
             >
-              Next
+              {t.actions.next}
               <ChevronRight />
             </Button>
           </div>

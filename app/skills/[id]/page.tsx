@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatBytes, formatDate, formatRelativeTime } from "@/lib/utils";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function SkillDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { t, locale } = await getServerI18n();
   const skill = getSkillById(id);
   if (!skill) notFound();
 
@@ -70,9 +72,9 @@ export default async function SkillDetailPage({
       <Card className="min-w-0">
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardAction>
-            <MetaRow label="Last modified">
+            <MetaRow label={t.detail.lastModified}>
                 <span title={formatDate(skill.lastUpdated)}>
-                  {formatRelativeTime(skill.lastUpdated)}
+                  {formatRelativeTime(skill.lastUpdated, locale)}
                 </span>
             </MetaRow>
           </CardAction>
@@ -90,14 +92,14 @@ export default async function SkillDetailPage({
                   <Markdown content={parsed.body} />
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    This SKILL.md has no body content.
+                    {t.detail.skillNoBody}
                   </p>
                 )
               }
             />
           ) : (
             <p className="text-sm text-muted-foreground">
-              This SKILL.md could not be read.
+              {t.detail.skillUnreadable}
             </p>
           )}
         </CardContent>
@@ -107,11 +109,11 @@ export default async function SkillDetailPage({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Workflow className="h-4 w-4" /> Pipeline
+              <Workflow className="h-4 w-4" /> {t.detail.pipeline}
               <span className="text-xs font-normal text-muted-foreground">
                 {pipeline.kind === "steps"
-                  ? "workflow steps"
-                  : "section outline"}
+                  ? t.detail.workflowSteps
+                  : t.detail.sectionOutline}
               </span>
             </CardTitle>
           </CardHeader>
@@ -124,11 +126,11 @@ export default async function SkillDetailPage({
       <div className="grid items-start gap-6 sm:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Details</CardTitle>
+            <CardTitle className="text-base">{t.detail.details}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="divide-y">
-              <MetaRow label="Source">
+              <MetaRow label={t.detail.source}>
                 <span className="flex min-w-0 items-center justify-end gap-1">
                   <SourceBadge source={skill.source} />
                   <CopyButton
@@ -139,36 +141,40 @@ export default async function SkillDetailPage({
                 </span>
               </MetaRow>
               {skill.source.branch && (
-                <MetaRow label="Branch">
+                <MetaRow label={t.detail.branch}>
                   <span className="font-mono text-xs">
                     {skill.source.branch}
                   </span>
                 </MetaRow>
               )}
-              <MetaRow label="Last modified">
+              <MetaRow label={t.detail.lastModified}>
                 <span title={formatDate(skill.lastUpdated)}>
-                  {formatRelativeTime(skill.lastUpdated)}
+                  {formatRelativeTime(skill.lastUpdated, locale)}
                 </span>
               </MetaRow>
               {committedAt && (
-                <MetaRow label="Last commit">
+                <MetaRow label={t.detail.lastCommit}>
                   <span title={formatDate(committedAt)}>
-                    {formatRelativeTime(committedAt)}
+                    {formatRelativeTime(committedAt, locale)}
                   </span>
                 </MetaRow>
               )}
-              <MetaRow label="Files">{skill.fileCount}</MetaRow>
-              <MetaRow label="Size">{formatBytes(skill.sizeBytes)}</MetaRow>
-              <MetaRow label="Used">
-                {skill.usage ? `${skill.usage.usageCount}×` : "never"}
+              <MetaRow label={t.detail.files}>{skill.fileCount}</MetaRow>
+              <MetaRow label={t.detail.size}>
+                {formatBytes(skill.sizeBytes)}
+              </MetaRow>
+              <MetaRow label={t.detail.used}>
+                {skill.usage
+                  ? t.detail.usedTimes(skill.usage.usageCount)
+                  : t.common.never}
               </MetaRow>
               {skill.usage?.lastUsedAt ? (
-                <MetaRow label="Last used">
-                  {formatRelativeTime(skill.usage.lastUsedAt)}
+                <MetaRow label={t.detail.lastUsed}>
+                  {formatRelativeTime(skill.usage.lastUsedAt, locale)}
                 </MetaRow>
               ) : null}
               {skill.allowedTools && (
-                <MetaRow label="Allowed tools">
+                <MetaRow label={t.detail.allowedTools}>
                   <span className="font-mono text-xs">
                     {skill.allowedTools}
                   </span>
@@ -182,21 +188,23 @@ export default async function SkillDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Package className="h-4 w-4" /> Plugin
+                <Package className="h-4 w-4" /> {t.detail.plugin}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="divide-y">
-                <MetaRow label="Name">{skill.plugin.name}</MetaRow>
+                <MetaRow label={t.detail.name}>{skill.plugin.name}</MetaRow>
                 {skill.plugin.version && (
-                  <MetaRow label="Version">
+                  <MetaRow label={t.detail.version}>
                     <span className="font-mono text-xs">
                       {skill.plugin.version}
                     </span>
                   </MetaRow>
                 )}
                 {skill.plugin.author && (
-                  <MetaRow label="Author">{skill.plugin.author}</MetaRow>
+                  <MetaRow label={t.detail.author}>
+                    {skill.plugin.author}
+                  </MetaRow>
                 )}
               </div>
               {skill.plugin.description && (
@@ -211,7 +219,7 @@ export default async function SkillDetailPage({
         {skill.project && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Project</CardTitle>
+              <CardTitle className="text-base">{t.detail.project}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="text-sm">{skill.project.name}</div>
@@ -224,7 +232,9 @@ export default async function SkillDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Location on disk</CardTitle>
+            <CardTitle className="text-base">
+              {t.detail.locationOnDisk}
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-start gap-2">

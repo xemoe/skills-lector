@@ -17,19 +17,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CountBadge } from "@/components/count-badge";
 import { UsageHeatmap } from "@/components/usage-heatmap";
+import { useT } from "@/lib/i18n/context";
 import type {
   ActivityWindow,
   Analytics,
   CatalogGap,
   UsageStat,
 } from "@/lib/analytics";
+import type { SkillType } from "@/lib/types";
 
-const WINDOWS: { key: ActivityWindow; label: string; long: string }[] = [
-  { key: "4h", label: "4 Hours", long: "the last 4 hours" },
-  { key: "1d", label: "24 Hours", long: "the last 24 hours" },
-  { key: "1w", label: "7 Days", long: "the last 7 days" },
-  { key: "all", label: "All Time", long: "all recorded history" },
-];
+const WINDOW_KEYS: ActivityWindow[] = ["4h", "1d", "1w", "all"];
 
 function StatCard({
   label,
@@ -71,6 +68,7 @@ function TopList({
   win: ActivityWindow;
   emptyLabel: string;
 }) {
+  const t = useT();
   const max = items.reduce((m, s) => Math.max(m, s.windows[win]), 0);
   return (
     <Card>
@@ -103,7 +101,7 @@ function TopList({
                     </span>
                     <span
                       className="shrink-0 text-xs tabular-nums text-muted-foreground"
-                      title={`last used ${s.lastUsedLabel}`}
+                      title={t.analytics.lastUsedTooltip(s.lastUsedLabel)}
                     >
                       {count}&times;
                     </span>
@@ -137,6 +135,7 @@ function GapList({
   emptyLabel: string;
   showLastUsed: boolean;
 }) {
+  const t = useT();
   const nameCounts = new Map<string, number>();
   for (const g of items) {
     const key = `${g.kind}:${g.name}`;
@@ -179,13 +178,13 @@ function GapList({
                     {duplicated && g.source && (
                       <span
                         className="max-w-[8rem] shrink-0 truncate rounded-none bg-secondary px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
-                        title={`from ${g.source}`}
+                        title={t.analytics.fromSourceTooltip(g.source)}
                       >
                         {g.source}
                       </span>
                     )}
                     <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {g.origin}
+                      {t.skillTypes[g.origin as SkillType]}
                     </span>
                     {showLastUsed && (
                       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -204,8 +203,9 @@ function GapList({
 }
 
 export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
+  const t = useT();
   const [win, setWin] = useState<ActivityWindow>("1d");
-  const windowMeta = WINDOWS.find((w) => w.key === win) ?? WINDOWS[1];
+  const windowMeta = t.analytics.windows[win];
 
   const rank = (a: UsageStat, b: UsageStat) =>
     b.windows[win] - a.windows[win] || b.lastUsed - a.lastUsed;
@@ -232,31 +232,31 @@ export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Tracked Invocations"
+          label={t.analytics.trackedInvocations}
           value={analytics.totalEvents}
           sub={
             analytics.totalEvents > 0
-              ? `across ${analytics.transcriptFiles} transcripts`
-              : "no activity recorded yet"
+              ? t.analytics.acrossTranscripts(analytics.transcriptFiles)
+              : t.analytics.noActivityYet
           }
           Icon={Activity}
         />
         <StatCard
-          label="Never Used"
+          label={t.analytics.neverUsed}
           value={analytics.neverUsed.length}
-          sub={`${neverSkills} skills · ${neverCommands} commands`}
+          sub={t.analytics.skillsCommandsBreakdown(neverSkills, neverCommands)}
           Icon={CircleSlash}
         />
         <StatCard
-          label="Idle 7+ Days"
+          label={t.analytics.idle}
           value={analytics.idle.length}
-          sub={`${idleSkills} skills · ${idleCommands} commands`}
+          sub={t.analytics.skillsCommandsBreakdown(idleSkills, idleCommands)}
           Icon={Clock}
         />
         <StatCard
-          label="Catalog Coverage"
+          label={t.analytics.catalogCoverage}
           value={`${coverage}%`}
-          sub={`${usedCatalog}/${catalogTotal} ever invoked`}
+          sub={t.analytics.coverageSub(usedCatalog, catalogTotal)}
           Icon={Target}
         />
       </div>
@@ -264,17 +264,16 @@ export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold">Most Used</h2>
+            <h2 className="text-base font-semibold">{t.analytics.mostUsed}</h2>
             <p className="text-xs text-muted-foreground">
-              {winCount} invocation{winCount === 1 ? "" : "s"} in{" "}
-              {windowMeta.long}
+              {t.analytics.invocationsIn(winCount, windowMeta.long)}
             </p>
           </div>
           <Tabs value={win} onValueChange={(v) => setWin(v as ActivityWindow)}>
             <TabsList>
-              {WINDOWS.map((w) => (
-                <TabsTrigger key={w.key} value={w.key}>
-                  {w.label}
+              {WINDOW_KEYS.map((key) => (
+                <TabsTrigger key={key} value={key}>
+                  {t.analytics.windows[key].label}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -282,18 +281,18 @@ export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <TopList
-            title="Top Skills"
+            title={t.analytics.topSkills}
             Icon={Boxes}
             items={topSkills}
             win={win}
-            emptyLabel={`No skills used in ${windowMeta.long}.`}
+            emptyLabel={t.analytics.noSkillsIn(windowMeta.long)}
           />
           <TopList
-            title="Top Commands"
+            title={t.analytics.topCommands}
             Icon={SquareTerminal}
             items={topCommands}
             win={win}
-            emptyLabel={`No commands used in ${windowMeta.long}.`}
+            emptyLabel={t.analytics.noCommandsIn(windowMeta.long)}
           />
         </div>
       </div>
@@ -301,9 +300,11 @@ export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4" />
-          <h2 className="text-base font-semibold">Activity Heatmap</h2>
+          <h2 className="text-base font-semibold">
+            {t.analytics.activityHeatmap}
+          </h2>
           <span className="text-xs text-muted-foreground">
-            last {analytics.heatDays.length} days
+            {t.analytics.lastDays(analytics.heatDays.length)}
           </span>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -311,13 +312,15 @@ export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
             <CardContent className="p-5">
               <div className="mb-4 flex items-center gap-2">
                 <Boxes className="h-4 w-4" />
-                <h3 className="text-sm font-semibold">Skills</h3>
+                <h3 className="text-sm font-semibold">{t.analytics.skills}</h3>
                 <CountBadge>{analytics.heatSkillRows.length}</CountBadge>
               </div>
               <UsageHeatmap
                 days={analytics.heatDays}
                 rows={analytics.heatSkillRows}
-                emptyLabel={`No skill activity in the last ${analytics.heatDays.length} days.`}
+                emptyLabel={t.analytics.noSkillActivity(
+                  analytics.heatDays.length,
+                )}
               />
             </CardContent>
           </Card>
@@ -325,13 +328,17 @@ export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
             <CardContent className="p-5">
               <div className="mb-4 flex items-center gap-2">
                 <SquareTerminal className="h-4 w-4" />
-                <h3 className="text-sm font-semibold">Commands</h3>
+                <h3 className="text-sm font-semibold">
+                  {t.analytics.commands}
+                </h3>
                 <CountBadge>{analytics.heatCommandRows.length}</CountBadge>
               </div>
               <UsageHeatmap
                 days={analytics.heatDays}
                 rows={analytics.heatCommandRows}
-                emptyLabel={`No command activity in the last ${analytics.heatDays.length} days.`}
+                emptyLabel={t.analytics.noCommandActivity(
+                  analytics.heatDays.length,
+                )}
               />
             </CardContent>
           </Card>
@@ -341,24 +348,24 @@ export function AnalyticsExplorer({ analytics }: { analytics: Analytics }) {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4" />
-          <h2 className="text-base font-semibold">Reminders</h2>
+          <h2 className="text-base font-semibold">{t.analytics.reminders}</h2>
           <span className="text-xs text-muted-foreground">
-            skills &amp; commands worth a fresh look
+            {t.analytics.remindersSub}
           </span>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <GapList
-            title="Never Used"
+            title={t.analytics.neverUsed}
             Icon={CircleSlash}
             items={analytics.neverUsed}
-            emptyLabel="Every deployed skill and command has been used at least once."
+            emptyLabel={t.analytics.neverUsedEmpty}
             showLastUsed={false}
           />
           <GapList
-            title="Idle 7+ Days"
+            title={t.analytics.idle}
             Icon={Clock}
             items={analytics.idle}
-            emptyLabel="Nothing has gone cold — everything was used recently."
+            emptyLabel={t.analytics.idleEmpty}
             showLastUsed
           />
         </div>

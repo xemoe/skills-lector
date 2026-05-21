@@ -1,8 +1,12 @@
+"use client";
+
 import { FolderGit2, Package, SquareTerminal, User } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { CommandScanResult } from "@/lib/types";
+import { useT } from "@/lib/i18n/context";
 
 export function CommandStatCards({ result }: { result: CommandScanResult }) {
+  const t = useT();
   const { commands, roots } = result;
 
   const pluginCommands = commands.filter((c) => c.scope === "plugin");
@@ -17,27 +21,27 @@ export function CommandStatCards({ result }: { result: CommandScanResult }) {
 
   const cards = [
     {
-      label: "Total Commands",
+      label: t.stats.totalCommands,
       value: commands.length,
-      sub: `across ${roots.length} scanned location${roots.length === 1 ? "" : "s"}`,
+      sub: t.stats.acrossLocations(roots.length),
       Icon: SquareTerminal,
     },
     {
-      label: "From Plugins",
+      label: t.stats.fromPlugins,
       value: pluginCommands.length,
-      sub: `${distinctPlugins} plugin${distinctPlugins === 1 ? "" : "s"}`,
+      sub: t.stats.pluginsShort(distinctPlugins),
       Icon: Package,
     },
     {
-      label: "Personal",
+      label: t.stats.personal,
       value: personalCommands.length,
-      sub: "available everywhere",
+      sub: t.stats.availableEverywhere,
       Icon: User,
     },
     {
-      label: "Project",
+      label: t.stats.project,
       value: projectCommands.length,
-      sub: `${distinctProjects} project${distinctProjects === 1 ? "" : "s"}`,
+      sub: t.stats.projectsCount(distinctProjects),
       Icon: FolderGit2,
     },
   ];

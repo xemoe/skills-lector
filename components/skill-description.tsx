@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 
 /**
  * The SKILL.md frontmatter `description` is written for Claude's triggering
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
  * toggle when it overflows.
  */
 export function SkillDescription({ description }: { description: string }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const textRef = useRef<HTMLParagraphElement>(null);
@@ -52,7 +54,7 @@ export function SkillDescription({ description }: { description: string }) {
           aria-controls={textId}
           className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
         >
-          {expanded ? "Show less" : "Show more"}
+          {expanded ? t.actions.showLess : t.actions.showMore}
           <ChevronDown
             className={cn(
               "h-3.5 w-3.5 transition-transform",

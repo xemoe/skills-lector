@@ -8,12 +8,14 @@ import { Input } from "@/components/ui/input";
 import { CountBadge } from "@/components/count-badge";
 import { SKILL_TYPE_META } from "@/components/skill-type";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import type { Command, CommandScope } from "@/lib/types";
 
 const SCOPE_ORDER: CommandScope[] = ["personal", "plugin", "project"];
 
 export function CommandSidebar({ commands }: { commands: Command[] }) {
   const pathname = usePathname();
+  const t = useT();
   const currentId =
     pathname && pathname.startsWith("/commands/")
       ? pathname.slice("/commands/".length)
@@ -52,7 +54,7 @@ export function CommandSidebar({ commands }: { commands: Command[] }) {
           className="flex items-center gap-2 border-b px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-accent"
         >
           <SquareTerminal className="h-4 w-4 text-primary" />
-          <span>All commands</span>
+          <span>{t.sidebar.allCommands}</span>
           <CountBadge className="ml-auto font-normal text-muted-foreground">
             {commands.length}
           </CountBadge>
@@ -62,11 +64,11 @@ export function CommandSidebar({ commands }: { commands: Command[] }) {
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Filter commands…"
+              placeholder={t.sidebar.filterCommands}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-7"
-              aria-label="Filter commands"
+              aria-label={t.sidebar.filterCommandsAria}
             />
           </div>
         </div>
@@ -74,7 +76,7 @@ export function CommandSidebar({ commands }: { commands: Command[] }) {
         <nav className="min-h-0 max-h-80 flex-1 overflow-y-auto p-1.5 lg:max-h-none">
           {groups.length === 0 ? (
             <p className="px-2 py-8 text-center text-xs text-muted-foreground">
-              No commands match your filter.
+              {t.sidebar.noCommandsMatch}
             </p>
           ) : (
             groups.map((g) => (
@@ -88,7 +90,7 @@ export function CommandSidebar({ commands }: { commands: Command[] }) {
                     aria-hidden
                   />
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {SKILL_TYPE_META[g.scope].label}
+                    {t.skillTypes[g.scope]}
                   </span>
                   <span className="text-[11px] tabular-nums text-muted-foreground/70">
                     {g.items.length}

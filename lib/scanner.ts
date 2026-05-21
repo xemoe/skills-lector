@@ -219,8 +219,20 @@ function buildSkill(
 
 function getScanRoots(config: CatalogConfig): ScanRoot[] {
   const candidates: Omit<ScanRoot, "exists" | "count">[] = [
-    { path: personalSkillsDir(), kind: "personal", label: "Personal skills", maxDepth: 3 },
-    { path: pluginsDir(), kind: "plugin", label: "Installed plugins", maxDepth: 9 },
+    {
+      path: personalSkillsDir(),
+      kind: "personal",
+      label: "Personal skills",
+      labelKey: "personalSkills",
+      maxDepth: 3,
+    },
+    {
+      path: pluginsDir(),
+      kind: "plugin",
+      label: "Installed plugins",
+      labelKey: "installedPlugins",
+      maxDepth: 9,
+    },
   ];
 
   if (config.includeCoworkSkills) {
@@ -228,6 +240,7 @@ function getScanRoots(config: CatalogConfig): ScanRoot[] {
       path: coworkSkillsDir(),
       kind: "plugin",
       label: "Agent / Cowork skills",
+      labelKey: "coworkSkills",
       maxDepth: 12,
     });
   }
@@ -238,6 +251,8 @@ function getScanRoots(config: CatalogConfig): ScanRoot[] {
         path: path.join(proj, ".claude", "skills"),
         kind: "project",
         label: `Project: ${path.basename(proj)}`,
+        labelKey: "project",
+        labelArg: path.basename(proj),
         maxDepth: 3,
       });
     }
@@ -247,11 +262,18 @@ function getScanRoots(config: CatalogConfig): ScanRoot[] {
     path: path.join(process.cwd(), "sample-skills"),
     kind: "local",
     label: "Bundled sample skills",
+    labelKey: "sampleSkills",
     maxDepth: 3,
   });
 
   for (const extra of config.extraRoots) {
-    candidates.push({ path: extra, kind: "auto", label: "Custom root", maxDepth: 12 });
+    candidates.push({
+      path: extra,
+      kind: "auto",
+      label: "Custom root",
+      labelKey: "customRoot",
+      maxDepth: 12,
+    });
   }
 
   const seen = new Set<string>();

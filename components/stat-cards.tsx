@@ -1,8 +1,12 @@
+"use client";
+
 import { Boxes, FolderOpen, Github, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ScanResult } from "@/lib/types";
+import { useT } from "@/lib/i18n/context";
 
 export function StatCards({ result }: { result: ScanResult }) {
+  const t = useT();
   const { skills, roots } = result;
 
   const pluginSkills = skills.filter((s) => s.type === "plugin");
@@ -15,27 +19,27 @@ export function StatCards({ result }: { result: ScanResult }) {
 
   const cards = [
     {
-      label: "Total Skills",
+      label: t.stats.totalSkills,
       value: skills.length,
-      sub: `across ${roots.length} scanned location${roots.length === 1 ? "" : "s"}`,
+      sub: t.stats.acrossLocations(roots.length),
       Icon: Boxes,
     },
     {
-      label: "From Plugins",
+      label: t.stats.fromPlugins,
       value: pluginSkills.length,
-      sub: `${distinctPlugins} plugin${distinctPlugins === 1 ? "" : "s"} installed`,
+      sub: t.stats.pluginsInstalled(distinctPlugins),
       Icon: Package,
     },
     {
-      label: "From GitHub",
+      label: t.stats.fromGitHub,
       value: githubSkills.length,
-      sub: `${distinctRepos} repositor${distinctRepos === 1 ? "y" : "ies"}`,
+      sub: t.stats.repositories(distinctRepos),
       Icon: Github,
     },
     {
-      label: "Local Only",
+      label: t.stats.localOnly,
       value: localSkills.length,
-      sub: "not tracked in git",
+      sub: t.stats.notTrackedInGit,
       Icon: FolderOpen,
     },
   ];

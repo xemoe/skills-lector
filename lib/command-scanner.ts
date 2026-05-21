@@ -14,6 +14,7 @@ import type {
   PluginInfo,
   ProjectInfo,
   ScanRoot,
+  ScanRootLabelKey,
 } from "./types";
 import { readProjectPaths } from "./usage";
 
@@ -26,6 +27,10 @@ interface CommandRoot {
   dir: string;
   scope: CommandScope;
   label: string;
+  /** Translation key for the label. */
+  labelKey: ScanRootLabelKey;
+  /** Dynamic part of the label (project or plugin name). */
+  labelArg?: string;
   plugin?: PluginInfo;
   project?: ProjectInfo;
 }
@@ -89,7 +94,12 @@ function getCommandRoots(errors: string[]): CommandRoot[] {
 
   const personal = personalCommandsDir();
   if (safeExists(personal)) {
-    roots.push({ dir: personal, scope: "personal", label: "Personal commands" });
+    roots.push({
+      dir: personal,
+      scope: "personal",
+      label: "Personal commands",
+      labelKey: "personalCommands",
+    });
   }
 
   const plugins = pluginsDir();
@@ -103,6 +113,8 @@ function getCommandRoots(errors: string[]): CommandRoot[] {
         dir: commandsDir,
         scope: "plugin",
         label: `Plugin: ${plugin.name}`,
+        labelKey: "plugin",
+        labelArg: plugin.name,
         plugin,
       });
     }
@@ -118,6 +130,8 @@ function getCommandRoots(errors: string[]): CommandRoot[] {
         dir: commandsDir,
         scope: "project",
         label: `Project: ${path.basename(proj)}`,
+        labelKey: "project",
+        labelArg: path.basename(proj),
         project: { name: path.basename(proj) || proj, path: proj },
       });
     }
@@ -226,6 +240,8 @@ export function scanCommands(opts: { force?: boolean } = {}): CommandScanResult 
       path: root.dir,
       kind: root.scope,
       label: root.label,
+      labelKey: root.labelKey,
+      labelArg: root.labelArg,
       maxDepth: 6,
       exists: true,
       count,

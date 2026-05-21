@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/context";
 
 export function CopyButton({
   value,
@@ -13,6 +14,7 @@ export function CopyButton({
   className?: string;
   size?: "icon-sm" | "icon-xs";
 }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -31,7 +33,7 @@ export function CopyButton({
       size={size}
       className={className}
       onClick={copy}
-      title="Copy to clipboard"
+      title={t.actions.copyToClipboard}
     >
       {copied ? (
         <Check className="text-green-600" />

@@ -1,5 +1,8 @@
+"use client";
+
 import { Boxes, SquareTerminal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import type { HeatRow } from "@/lib/analytics";
 
 const BUCKET_BG = [
@@ -35,10 +38,12 @@ export function UsageHeatmap({
   rows: HeatRow[];
   emptyLabel?: string;
 }) {
+  const t = useT();
+
   if (rows.length === 0) {
     return (
       <div className="rounded-none border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {emptyLabel ?? `No activity in the last ${days.length} days.`}
+        {emptyLabel ?? t.analytics.noActivity(days.length)}
       </div>
     );
   }
@@ -69,7 +74,7 @@ export function UsageHeatmap({
                       BUCKET_BG[b],
                       BUCKET_FG[b],
                     )}
-                    title={`${row.name} — ${days[i]}: ${count} use${count === 1 ? "" : "s"}`}
+                    title={t.analytics.heatCell(row.name, days[i], count)}
                   >
                     {count > 0 ? count : ""}
                   </div>
@@ -80,11 +85,11 @@ export function UsageHeatmap({
         ))}
       </div>
       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-        <span>Less</span>
+        <span>{t.analytics.heatLess}</span>
         {BUCKET_BG.map((bg, i) => (
           <span key={i} className={cn("h-3 w-3", bg)} />
         ))}
-        <span>More</span>
+        <span>{t.analytics.heatMore}</span>
       </div>
     </div>
   );

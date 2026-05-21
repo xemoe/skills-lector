@@ -1,5 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { type Locale } from "./i18n/config";
+import { getDictionary } from "./i18n/dictionaries";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -19,13 +21,17 @@ export function formatDate(value: string | number | undefined | null): string {
 }
 
 /** Human relative time. Uses Date.now() — only call in server components or post-mount. */
-export function formatRelativeTime(value: string | number | undefined | null): string {
-  if (value == null) return "unknown";
+export function formatRelativeTime(
+  value: string | number | undefined | null,
+  locale: Locale = "en",
+): string {
+  const t = getDictionary(locale);
+  if (value == null) return t.common.unknown;
   const ts = typeof value === "number" ? value : Date.parse(value);
-  if (!ts || Number.isNaN(ts)) return "unknown";
+  if (!ts || Number.isNaN(ts)) return t.common.unknown;
   const diff = ts - Date.now();
   const abs = Math.abs(diff);
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ["year", 31_536_000_000],
     ["month", 2_592_000_000],
@@ -37,7 +43,7 @@ export function formatRelativeTime(value: string | number | undefined | null): s
   for (const [unit, ms] of units) {
     if (abs >= ms) return rtf.format(Math.round(diff / ms), unit);
   }
-  return "just now";
+  return t.common.justNow;
 }
 
 export function formatBytes(bytes: number): string {

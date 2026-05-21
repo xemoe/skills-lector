@@ -15,6 +15,7 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import type { Pipeline } from "@/lib/pipeline";
+import { useT } from "@/lib/i18n/context";
 
 const NODE_W = 218;
 const NODE_H = 100;
@@ -142,6 +143,7 @@ function buildFlow(pipeline: Pipeline): { nodes: Node[]; edges: Edge[] } {
 
 export function NodePipeline({ pipeline }: { pipeline: Pipeline }) {
   // React Flow measures the DOM, so it is mounted client-side only.
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -176,7 +178,7 @@ export function NodePipeline({ pipeline }: { pipeline: Pipeline }) {
         </ReactFlow>
       ) : (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Loading pipeline…
+          {t.common.loadingPipeline}
         </div>
       )}
     </div>

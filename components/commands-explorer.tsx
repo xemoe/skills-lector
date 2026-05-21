@@ -32,22 +32,19 @@ import { SkillTypeBadge } from "@/components/skill-type-badge";
 import { SourceBadge } from "@/components/source-badge";
 import { CountBadge } from "@/components/count-badge";
 import { formatDate } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import type { Command, CommandScope } from "@/lib/types";
 
 type SortKey = "updated" | "name";
 type ScopeFilter = "all" | CommandScope;
 
-const TABS: { key: ScopeFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "plugin", label: "Plugin" },
-  { key: "personal", label: "Personal" },
-  { key: "project", label: "Project" },
-];
+const TAB_KEYS: ScopeFilter[] = ["all", "plugin", "personal", "project"];
 
 const PAGE_SIZE = 10;
 
 export function CommandsExplorer({ commands }: { commands: Command[] }) {
   const router = useRouter();
+  const t = useT();
   const [query, setQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
   const [sort, setSort] = useState<SortKey>("updated");
@@ -97,7 +94,7 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
         <div className="relative lg:max-w-xs lg:flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search commands, plugins, sources…"
+            placeholder={t.explorer.searchCommands}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -114,10 +111,10 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
           }}
         >
           <TabsList>
-            {TABS.map((t) => (
-              <TabsTrigger key={t.key} value={t.key} className="gap-1.5">
-                {t.label}
-                <CountBadge>{counts[t.key]}</CountBadge>
+            {TAB_KEYS.map((key) => (
+              <TabsTrigger key={key} value={key} className="gap-1.5">
+                {key === "all" ? t.explorer.tabAll : t.skillTypes[key]}
+                <CountBadge>{counts[key]}</CountBadge>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -134,8 +131,8 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="updated">Recently updated</SelectItem>
-            <SelectItem value="name">Name (A–Z)</SelectItem>
+            <SelectItem value="updated">{t.explorer.sortRecent}</SelectItem>
+            <SelectItem value="name">{t.explorer.sortName}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -144,10 +141,16 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="min-w-[260px]">Command</TableHead>
-              <TableHead className="w-[96px]">Scope</TableHead>
-              <TableHead className="min-w-[180px]">Source</TableHead>
-              <TableHead className="w-[150px]">Last updated</TableHead>
+              <TableHead className="min-w-[260px]">
+                {t.explorer.colCommand}
+              </TableHead>
+              <TableHead className="w-[96px]">{t.explorer.colScope}</TableHead>
+              <TableHead className="min-w-[180px]">
+                {t.explorer.colSource}
+              </TableHead>
+              <TableHead className="w-[150px]">
+                {t.explorer.colUpdated}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -157,7 +160,7 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
                   colSpan={4}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No commands match your filters.
+                  {t.explorer.noCommandsMatch}
                 </TableCell>
               </TableRow>
             ) : (
@@ -186,7 +189,7 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
                     {c.plugin && c.source.kind === "local" ? (
                       <span
                         className="inline-flex items-center gap-1.5 text-sm"
-                        title={`Plugin: ${c.plugin.name}`}
+                        title={t.explorer.pluginTitle(c.plugin.name)}
                       >
                         <Package className="h-3.5 w-3.5 shrink-0 text-purple-600" />
                         <span className="truncate">{c.plugin.name}</span>
@@ -208,8 +211,8 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
           {filtered.length > 0
-            ? `Showing ${rangeStart}–${rangeEnd} of ${filtered.length} commands`
-            : `0 of ${commands.length} commands`}
+            ? t.explorer.showingCommands(rangeStart, rangeEnd, filtered.length)
+            : t.explorer.emptyCommands(commands.length)}
         </p>
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
@@ -220,10 +223,10 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
               onClick={() => setPage(currentPage - 1)}
             >
               <ChevronLeft />
-              Previous
+              {t.actions.previous}
             </Button>
             <span className="text-xs tabular-nums text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              {t.common.page(currentPage, totalPages)}
             </span>
             <Button
               variant="outline"
@@ -231,7 +234,7 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
               disabled={currentPage >= totalPages}
               onClick={() => setPage(currentPage + 1)}
             >
-              Next
+              {t.actions.next}
               <ChevronRight />
             </Button>
           </div>
