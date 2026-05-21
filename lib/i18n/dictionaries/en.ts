@@ -23,6 +23,11 @@ export const en = {
     label: "Language",
   },
 
+  theme: {
+    toLight: "Switch to light mode",
+    toDark: "Switch to dark mode",
+  },
+
   actions: {
     rescan: "Rescan",
     scanning: "Scanning…",

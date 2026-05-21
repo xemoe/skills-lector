@@ -20,6 +20,11 @@ export const th: Dictionary = {
     label: "ภาษา",
   },
 
+  theme: {
+    toLight: "สลับเป็นโหมดสว่าง",
+    toDark: "สลับเป็นโหมดมืด",
+  },
+
   actions: {
     rescan: "สแกนใหม่",
     scanning: "กำลังสแกน…",
