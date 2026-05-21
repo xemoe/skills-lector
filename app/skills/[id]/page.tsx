@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, FileText, Package } from "lucide-react";
+import { FileText, Package } from "lucide-react";
 import { getSkillById } from "@/lib/scanner";
 import { parseSkillMd } from "@/lib/skill-parser";
 import { lastCommitDate } from "@/lib/git";
@@ -49,13 +48,6 @@ export default async function SkillDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to dashboard
-      </Link>
-
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">{skill.name}</h1>
@@ -66,8 +58,8 @@ export default async function SkillDetailPage({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="min-w-0 lg:col-span-2">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card className="min-w-0 xl:col-span-2">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText className="h-4 w-4" /> SKILL.md
