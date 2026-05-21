@@ -4,6 +4,7 @@ import { getSkillById } from "@/lib/scanner";
 import { parseSkillMd } from "@/lib/skill-parser";
 import { lastCommitDate } from "@/lib/git";
 import { Markdown } from "@/components/markdown";
+import { SkillDescription } from "@/components/skill-description";
 import { SkillTypeBadge } from "@/components/skill-type-badge";
 import { SourceBadge } from "@/components/source-badge";
 import { CopyButton } from "@/components/copy-button";
@@ -48,14 +49,14 @@ export default async function SkillDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">{skill.name}</h1>
           <SkillTypeBadge type={skill.type} />
         </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          {skill.description}
-        </p>
+        {skill.description?.trim() && (
+          <SkillDescription description={skill.description} />
+        )}
       </div>
 
       <Card className="min-w-0">
