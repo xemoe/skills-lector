@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   const result = scanSkills();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">

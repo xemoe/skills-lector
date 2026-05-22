@@ -206,7 +206,7 @@ export const en = {
   graphPage: {
     title: "Relationship Graph",
     subtitle:
-      "How your deployed skills and commands fit together — clustered around the plugin or project that bundles them, and linked wherever one names another. Hover a node to trace its connections; click to open it.",
+      "How your deployed skills and commands fit together — clustered around the plugin or project that bundles them, and linked wherever one names another.",
     emptyTitle: "Nothing to graph yet",
     empty1:
       "No skills or commands were discovered, so there are no relationships to draw. Deploy a skill or add a command file, then press ",

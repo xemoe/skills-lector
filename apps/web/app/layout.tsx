@@ -43,11 +43,11 @@ export default async function RootLayout({
         theme === "dark" && "dark",
       )}
     >
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className="flex min-h-screen flex-col font-sans antialiased">
         <LanguageProvider initialLocale={locale}>
           <TooltipProvider>
             <SiteHeader initialTheme={theme} />
-            <main className="container mx-auto max-w-7xl px-4 py-8">
+            <main className="container mx-auto w-full max-w-7xl flex-1 border-x bg-background px-4 py-8">
               {children}
             </main>
           </TooltipProvider>

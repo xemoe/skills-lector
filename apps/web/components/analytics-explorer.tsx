@@ -50,12 +50,12 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardContent className="flex items-center gap-4 p-5">
+      <CardContent className="flex items-center gap-5 p-2 px-5">
         <div className="rounded-none bg-secondary p-2.5">
-          <Icon className="h-5 w-5" />
+          <Icon className="h-6 w-6" />
         </div>
         <div className="min-w-0">
-          <div className="text-2xl font-bold tabular-nums">{value}</div>
+          <div className="text-4xl font-bold tabular-nums">{value}</div>
           <div className="text-sm font-medium">{label}</div>
           <div className="truncate text-xs text-muted-foreground">{sub}</div>
         </div>
@@ -81,7 +81,7 @@ function TopList({
   const max = items.reduce((m, s) => Math.max(m, s.windows[win]), 0);
   return (
     <Card>
-      <CardContent className="p-5">
+      <CardContent className="p-5 py-2">
         <div className="mb-4 flex items-center gap-2">
           <Icon className="h-4 w-4" />
           <h3 className="text-sm font-semibold">{title}</h3>
@@ -152,7 +152,7 @@ function GapList({
   }
   return (
     <Card>
-      <CardContent className="p-5">
+      <CardContent className="p-5 py-2">
         <div className="mb-3 flex items-center gap-2">
           <Icon className="h-4 w-4" />
           <h3 className="text-sm font-semibold">{title}</h3>
@@ -262,7 +262,7 @@ export function AnalyticsExplorer({
 
   return (
     <div
-      className={`space-y-8 transition-opacity ${isPending ? "opacity-60" : ""}`}
+      className={`space-y-6 transition-opacity ${isPending ? "opacity-60" : ""}`}
     >
       {projects.length > 0 && (
         <div className="flex items-center justify-end gap-2">
@@ -365,7 +365,7 @@ export function AnalyticsExplorer({
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
-            <CardContent className="p-5">
+            <CardContent className="p-5 py-2">
               <div className="mb-4 flex items-center gap-2">
                 <Boxes className="h-4 w-4" />
                 <h3 className="text-sm font-semibold">{t.analytics.skills}</h3>
@@ -381,7 +381,7 @@ export function AnalyticsExplorer({
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-5">
+            <CardContent className="p-5 py-2">
               <div className="mb-4 flex items-center gap-2">
                 <SquareTerminal className="h-4 w-4" />
                 <h3 className="text-sm font-semibold">

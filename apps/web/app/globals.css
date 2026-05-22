@@ -39,6 +39,12 @@
   --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
   --sidebar-border: oklch(0.925 0.005 214.3);
   --sidebar-ring: oklch(0.723 0.014 214.4);
+
+  /* Page backdrop gradient — light purple → white → yellow → light blue */
+  --gradient-1: oklch(0.9 0.055 305);
+  --gradient-2: oklch(1 0 0);
+  --gradient-3: oklch(0.96 0.085 100);
+  --gradient-4: oklch(0.9 0.055 235);
 }
 
 .dark {
@@ -74,6 +80,12 @@
   --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.56 0.021 213.5);
+
+  /* Page backdrop gradient — darkened variant for the dark theme */
+  --gradient-1: oklch(0.22 0.05 305);
+  --gradient-2: oklch(0.148 0.004 228.8);
+  --gradient-3: oklch(0.24 0.05 100);
+  --gradient-4: oklch(0.22 0.05 235);
 }
 
 @theme inline {
@@ -119,6 +131,14 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(
+      135deg,
+      var(--gradient-1) 0%,
+      var(--gradient-2) 35%,
+      var(--gradient-3) 65%,
+      var(--gradient-4) 100%
+    );
+    background-attachment: fixed;
   }
 }
