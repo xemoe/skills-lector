@@ -11,10 +11,10 @@ export const LOCALE_COOKIE = "skills-catalog-locale";
 
 /** Short labels for the language switcher. */
 export const LOCALE_LABELS: Record<Locale, string> = {
-  en: "EN",
-  th: "ไทย",
+    en: "EN",
+    th: "ไทย",
 };
 
 export function isLocale(value: unknown): value is Locale {
-  return value === "en" || value === "th";
+    return value === "en" || value === "th";
 }

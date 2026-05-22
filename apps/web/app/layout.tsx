@@ -11,48 +11,48 @@ import { THEME_COOKIE, DEFAULT_THEME, isTheme } from "@/lib/theme";
 
 const raleway = Raleway({ subsets: ["latin"], variable: "--font-raleway" });
 const notoSansThai = Noto_Sans_Thai({
-  subsets: ["thai"],
-  variable: "--font-noto-thai",
+    subsets: ["thai"],
+    variable: "--font-noto-thai",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getServerI18n();
-  return {
-    title: t.meta.title,
-    description: t.meta.description,
-  };
+    const { t } = await getServerI18n();
+    return {
+        title: t.meta.title,
+        description: t.meta.description,
+    };
 }
 
 export default async function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  const { locale } = await getServerI18n();
-  const themeCookie = (await cookies()).get(THEME_COOKIE)?.value;
-  const theme = isTheme(themeCookie) ? themeCookie : DEFAULT_THEME;
+    const { locale } = await getServerI18n();
+    const themeCookie = (await cookies()).get(THEME_COOKIE)?.value;
+    const theme = isTheme(themeCookie) ? themeCookie : DEFAULT_THEME;
 
-  return (
-    <html
-      lang={locale}
-      suppressHydrationWarning
-      className={cn(
-        "font-sans",
-        raleway.variable,
-        notoSansThai.variable,
-        theme === "dark" && "dark",
-      )}
-    >
-      <body className="flex min-h-screen flex-col font-sans antialiased">
-        <LanguageProvider initialLocale={locale}>
-          <TooltipProvider>
-            <SiteHeader initialTheme={theme} />
-            <main className="container mx-auto w-full max-w-7xl flex-1 border-x bg-background px-4 py-8">
-              {children}
-            </main>
-          </TooltipProvider>
-        </LanguageProvider>
-      </body>
-    </html>
-  );
+    return (
+        <html
+            lang={locale}
+            suppressHydrationWarning
+            className={cn(
+                "font-sans",
+                raleway.variable,
+                notoSansThai.variable,
+                theme === "dark" && "dark",
+            )}
+        >
+            <body className="flex min-h-screen flex-col font-sans antialiased">
+                <LanguageProvider initialLocale={locale}>
+                    <TooltipProvider>
+                        <SiteHeader initialTheme={theme} />
+                        <main className="container mx-auto w-full max-w-7xl flex-1 border-x bg-background px-4 py-8">
+                            {children}
+                        </main>
+                    </TooltipProvider>
+                </LanguageProvider>
+            </body>
+        </html>
+    );
 }

@@ -6,23 +6,23 @@ import { SKILL_TYPE_META } from "@/components/skill-type";
 import { useT } from "@/lib/i18n/context";
 
 export function SkillTypeBadge({
-  type,
-  className,
+    type,
+    className,
 }: {
-  type: SkillType;
-  className?: string;
+    type: SkillType;
+    className?: string;
 }) {
-  const t = useT();
-  const meta = SKILL_TYPE_META[type];
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-none border px-2 py-0.5 text-xs font-medium",
-        meta.badge,
-        className,
-      )}
-    >
-      {t.skillTypes[type]}
-    </span>
-  );
+    const t = useT();
+    const meta = SKILL_TYPE_META[type];
+    return (
+        <span
+            className={cn(
+                "inline-flex items-center rounded-none border px-2 py-0.5 text-xs font-medium",
+                meta.badge,
+                className,
+            )}
+        >
+            {t.skillTypes[type]}
+        </span>
+    );
 }

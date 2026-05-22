@@ -7,5 +7,5 @@ export type { Dictionary };
 const dictionaries: Record<Locale, Dictionary> = { en, th };
 
 export function getDictionary(locale: Locale): Dictionary {
-  return dictionaries[locale];
+    return dictionaries[locale];
 }

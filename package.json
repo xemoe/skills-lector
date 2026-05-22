@@ -1,13 +1,13 @@
 {
-  "name": "claude-skills-catalog",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Monorepo for the Claude Skills Catalog: the web app (apps/web) and the shared scanning engine (packages/core).",
-  "scripts": {
-    "dev": "cd apps/web && npm run dev",
-    "build": "cd apps/web && npm run build",
-    "start": "cd apps/web && npm run start",
-    "lint": "cd apps/web && npm run lint",
-    "install:all": "npm install --prefix packages/core && npm install --prefix apps/web"
-  }
+    "name": "claude-skills-catalog",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Monorepo for the Claude Skills Catalog: the web app (apps/web) and the shared scanning engine (packages/core).",
+    "scripts": {
+        "dev": "cd apps/web && npm run dev",
+        "build": "cd apps/web && npm run build",
+        "start": "cd apps/web && npm run start",
+        "lint": "cd apps/web && npm run lint",
+        "install:all": "npm install --prefix packages/core && npm install --prefix apps/web"
+    }
 }

@@ -8,5 +8,5 @@ export const DEFAULT_THEME: Theme = "light";
 export const THEME_COOKIE = "skills-catalog-theme";
 
 export function isTheme(value: unknown): value is Theme {
-  return value === "light" || value === "dark";
+    return value === "light" || value === "dark";
 }

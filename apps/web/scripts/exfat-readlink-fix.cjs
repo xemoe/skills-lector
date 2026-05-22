@@ -23,50 +23,50 @@
 const fs = require("fs");
 
 if (!fs.__exfatReadlinkPatched) {
-  fs.__exfatReadlinkPatched = true;
+    fs.__exfatReadlinkPatched = true;
 
-  const remap = (err) => {
-    if (err && err.code === "EISDIR" && err.syscall === "readlink") {
-      const fixed = new Error(
-        String(err.message || "EISDIR: illegal operation").replace(
-          "EISDIR",
-          "EINVAL",
-        ),
-      );
-      fixed.code = "EINVAL";
-      fixed.errno = -4071; // UV_EINVAL on Windows
-      fixed.syscall = "readlink";
-      if (err.path !== undefined) fixed.path = err.path;
-      return fixed;
-    }
-    return err;
-  };
-
-  const readlinkSync = fs.readlinkSync;
-  fs.readlinkSync = function patchedReadlinkSync(...args) {
-    try {
-      return readlinkSync.apply(fs, args);
-    } catch (err) {
-      throw remap(err);
-    }
-  };
-
-  const readlink = fs.readlink;
-  fs.readlink = function patchedReadlink(...args) {
-    const last = args.length - 1;
-    if (typeof args[last] === "function") {
-      const cb = args[last];
-      args[last] = (err, ...rest) => cb(remap(err), ...rest);
-    }
-    return readlink.apply(fs, args);
-  };
-
-  if (fs.promises && fs.promises.readlink) {
-    const readlinkPromise = fs.promises.readlink;
-    fs.promises.readlink = function patchedReadlinkPromise(...args) {
-      return readlinkPromise.apply(fs.promises, args).catch((err) => {
-        throw remap(err);
-      });
+    const remap = (err) => {
+        if (err && err.code === "EISDIR" && err.syscall === "readlink") {
+            const fixed = new Error(
+                String(err.message || "EISDIR: illegal operation").replace(
+                    "EISDIR",
+                    "EINVAL",
+                ),
+            );
+            fixed.code = "EINVAL";
+            fixed.errno = -4071; // UV_EINVAL on Windows
+            fixed.syscall = "readlink";
+            if (err.path !== undefined) fixed.path = err.path;
+            return fixed;
+        }
+        return err;
     };
-  }
+
+    const readlinkSync = fs.readlinkSync;
+    fs.readlinkSync = function patchedReadlinkSync(...args) {
+        try {
+            return readlinkSync.apply(fs, args);
+        } catch (err) {
+            throw remap(err);
+        }
+    };
+
+    const readlink = fs.readlink;
+    fs.readlink = function patchedReadlink(...args) {
+        const last = args.length - 1;
+        if (typeof args[last] === "function") {
+            const cb = args[last];
+            args[last] = (err, ...rest) => cb(remap(err), ...rest);
+        }
+        return readlink.apply(fs, args);
+    };
+
+    if (fs.promises && fs.promises.readlink) {
+        const readlinkPromise = fs.promises.readlink;
+        fs.promises.readlink = function patchedReadlinkPromise(...args) {
+            return readlinkPromise.apply(fs.promises, args).catch((err) => {
+                throw remap(err);
+            });
+        };
+    }
 }

@@ -6,40 +6,40 @@ import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/context";
 
 export function CopyButton({
-  value,
-  className,
-  size = "icon-sm",
+    value,
+    className,
+    size = "icon-sm",
 }: {
-  value: string;
-  className?: string;
-  size?: "icon-sm" | "icon-xs";
+    value: string;
+    className?: string;
+    size?: "icon-sm" | "icon-xs";
 }) {
-  const t = useT();
-  const [copied, setCopied] = useState(false);
+    const t = useT();
+    const [copied, setCopied] = useState(false);
 
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable */
+    async function copy() {
+        try {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch {
+            /* clipboard unavailable */
+        }
     }
-  }
 
-  return (
-    <Button
-      variant="ghost"
-      size={size}
-      className={className}
-      onClick={copy}
-      title={t.actions.copyToClipboard}
-    >
-      {copied ? (
-        <Check className="text-green-600" />
-      ) : (
-        <Copy />
-      )}
-    </Button>
-  );
+    return (
+        <Button
+            variant="ghost"
+            size={size}
+            className={className}
+            onClick={copy}
+            title={t.actions.copyToClipboard}
+        >
+            {copied ? (
+                <Check className="text-green-600" />
+            ) : (
+                <Copy />
+            )}
+        </Button>
+    );
 }

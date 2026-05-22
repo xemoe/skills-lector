@@ -13,11 +13,11 @@ import { SkillTypeBadge } from "@/components/skill-type-badge";
 import { SourceBadge } from "@/components/source-badge";
 import { CopyButton } from "@/components/copy-button";
 import {
-  Card,
-  CardContent,
-  CardAction,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardAction,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { formatBytes, formatDate, formatRelativeTime } from "@/lib/utils";
 import { getServerI18n } from "@/lib/i18n/server";
@@ -25,227 +25,227 @@ import { getServerI18n } from "@/lib/i18n/server";
 export const dynamic = "force-dynamic";
 
 function MetaRow({
-  label,
-  children,
+    label,
+    children,
 }: {
-  label: string;
-  children: React.ReactNode;
+    label: string;
+    children: React.ReactNode;
 }) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-2 text-sm">
-      <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-right">{children}</span>
-    </div>
-  );
+    return (
+        <div className="flex items-start justify-between gap-4 py-2 text-sm">
+            <span className="shrink-0 text-muted-foreground">{label}</span>
+            <span className="min-w-0 text-right">{children}</span>
+        </div>
+    );
 }
 
 export default async function SkillDetailPage({
-  params,
+    params,
 }: {
-  params: Promise<{ id: string }>;
+    params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const { t, locale } = await getServerI18n();
-  const skill = getSkillById(id);
-  if (!skill) notFound();
+    const { id } = await params;
+    const { t, locale } = await getServerI18n();
+    const skill = getSkillById(id);
+    if (!skill) notFound();
 
-  const parsed = parseSkillMd(skill.skillMdPath);
-  const pipeline = extractPipeline(parsed.body);
-  const rawSkillMd =
-    parsed.raw.charCodeAt(0) === 0xfeff ? parsed.raw.slice(1) : parsed.raw;
-  const committedAt = skill.source.repoRoot
-    ? lastCommitDate(skill.source.repoRoot, skill.path)
-    : null;
+    const parsed = parseSkillMd(skill.skillMdPath);
+    const pipeline = extractPipeline(parsed.body);
+    const rawSkillMd =
+        parsed.raw.charCodeAt(0) === 0xfeff ? parsed.raw.slice(1) : parsed.raw;
+    const committedAt = skill.source.repoRoot
+        ? lastCommitDate(skill.source.repoRoot, skill.path)
+        : null;
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">{skill.name}</h1>
-          <SkillTypeBadge type={skill.type} />
+    return (
+        <div className="space-y-6">
+            <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-2xl font-bold tracking-tight">{skill.name}</h1>
+                    <SkillTypeBadge type={skill.type} />
+                </div>
+                {skill.description?.trim() && (
+                    <SkillDescription description={skill.description} />
+                )}
+            </div>
+
+            <Card className="min-w-0">
+                <CardHeader className="flex-row items-center justify-between space-y-0">
+                    <CardAction>
+                        <MetaRow label={t.detail.lastModified}>
+                                <span title={formatDate(skill.lastUpdated)}>
+                                    {formatRelativeTime(skill.lastUpdated, locale)}
+                                </span>
+                        </MetaRow>
+                    </CardAction>
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                        <FileText className="h-4 w-4" /> SKILL.md
+                    </CardTitle>
+                </CardHeader>
+                <Separator className={'border-b border-dotted border-gray-200'} />
+                <CardContent>
+                    {rawSkillMd ? (
+                        <SkillMdViewer
+                            raw={rawSkillMd}
+                            preview={
+                                parsed.body ? (
+                                    <Markdown content={parsed.body} />
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t.detail.skillNoBody}
+                                    </p>
+                                )
+                            }
+                        />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            {t.detail.skillUnreadable}
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
+
+            {pipeline.steps.length >= 2 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <Workflow className="h-4 w-4" /> {t.detail.pipeline}
+                            <span className="text-xs font-normal text-muted-foreground">
+                                {pipeline.kind === "steps"
+                                    ? t.detail.workflowSteps
+                                    : t.detail.sectionOutline}
+                            </span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <NodePipeline pipeline={pipeline} />
+                    </CardContent>
+                </Card>
+            )}
+
+            <div className="grid items-start gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">{t.detail.details}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="divide-y">
+                            <MetaRow label={t.detail.source}>
+                                <span className="flex min-w-0 items-center justify-end gap-1">
+                                    <SourceBadge source={skill.source} />
+                                    <CopyButton
+                                        value={skill.source.url ?? skill.source.label}
+                                        size="icon-xs"
+                                        className="shrink-0"
+                                    />
+                                </span>
+                            </MetaRow>
+                            {skill.source.branch && (
+                                <MetaRow label={t.detail.branch}>
+                                    <span className="font-mono text-xs">
+                                        {skill.source.branch}
+                                    </span>
+                                </MetaRow>
+                            )}
+                            <MetaRow label={t.detail.lastModified}>
+                                <span title={formatDate(skill.lastUpdated)}>
+                                    {formatRelativeTime(skill.lastUpdated, locale)}
+                                </span>
+                            </MetaRow>
+                            {committedAt && (
+                                <MetaRow label={t.detail.lastCommit}>
+                                    <span title={formatDate(committedAt)}>
+                                        {formatRelativeTime(committedAt, locale)}
+                                    </span>
+                                </MetaRow>
+                            )}
+                            <MetaRow label={t.detail.files}>{skill.fileCount}</MetaRow>
+                            <MetaRow label={t.detail.size}>
+                                {formatBytes(skill.sizeBytes)}
+                            </MetaRow>
+                            <MetaRow label={t.detail.used}>
+                                {skill.usage
+                                    ? t.detail.usedTimes(skill.usage.usageCount)
+                                    : t.common.never}
+                            </MetaRow>
+                            {skill.usage?.lastUsedAt ? (
+                                <MetaRow label={t.detail.lastUsed}>
+                                    {formatRelativeTime(skill.usage.lastUsedAt, locale)}
+                                </MetaRow>
+                            ) : null}
+                            {skill.allowedTools && (
+                                <MetaRow label={t.detail.allowedTools}>
+                                    <span className="font-mono text-xs">
+                                        {skill.allowedTools}
+                                    </span>
+                                </MetaRow>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {skill.plugin && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Package className="h-4 w-4" /> {t.detail.plugin}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <div className="divide-y">
+                                <MetaRow label={t.detail.name}>{skill.plugin.name}</MetaRow>
+                                {skill.plugin.version && (
+                                    <MetaRow label={t.detail.version}>
+                                        <span className="font-mono text-xs">
+                                            {skill.plugin.version}
+                                        </span>
+                                    </MetaRow>
+                                )}
+                                {skill.plugin.author && (
+                                    <MetaRow label={t.detail.author}>
+                                        {skill.plugin.author}
+                                    </MetaRow>
+                                )}
+                            </div>
+                            {skill.plugin.description && (
+                                <p className="mt-3 text-xs text-muted-foreground">
+                                    {skill.plugin.description}
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {skill.project && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">{t.detail.project}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <div className="text-sm">{skill.project.name}</div>
+                            <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                                {skill.project.path}
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">
+                            {t.detail.locationOnDisk}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="flex items-start gap-2">
+                            <code className="min-w-0 flex-1 break-all rounded-none bg-secondary p-2 text-xs">
+                                {skill.path}
+                            </code>
+                            <CopyButton value={skill.path} />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
-        {skill.description?.trim() && (
-          <SkillDescription description={skill.description} />
-        )}
-      </div>
-
-      <Card className="min-w-0">
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardAction>
-            <MetaRow label={t.detail.lastModified}>
-                <span title={formatDate(skill.lastUpdated)}>
-                  {formatRelativeTime(skill.lastUpdated, locale)}
-                </span>
-            </MetaRow>
-          </CardAction>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <FileText className="h-4 w-4" /> SKILL.md
-          </CardTitle>
-        </CardHeader>
-        <Separator className={'border-b border-dotted border-gray-200'} />
-        <CardContent>
-          {rawSkillMd ? (
-            <SkillMdViewer
-              raw={rawSkillMd}
-              preview={
-                parsed.body ? (
-                  <Markdown content={parsed.body} />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {t.detail.skillNoBody}
-                  </p>
-                )
-              }
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {t.detail.skillUnreadable}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {pipeline.steps.length >= 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Workflow className="h-4 w-4" /> {t.detail.pipeline}
-              <span className="text-xs font-normal text-muted-foreground">
-                {pipeline.kind === "steps"
-                  ? t.detail.workflowSteps
-                  : t.detail.sectionOutline}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <NodePipeline pipeline={pipeline} />
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid items-start gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t.detail.details}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="divide-y">
-              <MetaRow label={t.detail.source}>
-                <span className="flex min-w-0 items-center justify-end gap-1">
-                  <SourceBadge source={skill.source} />
-                  <CopyButton
-                    value={skill.source.url ?? skill.source.label}
-                    size="icon-xs"
-                    className="shrink-0"
-                  />
-                </span>
-              </MetaRow>
-              {skill.source.branch && (
-                <MetaRow label={t.detail.branch}>
-                  <span className="font-mono text-xs">
-                    {skill.source.branch}
-                  </span>
-                </MetaRow>
-              )}
-              <MetaRow label={t.detail.lastModified}>
-                <span title={formatDate(skill.lastUpdated)}>
-                  {formatRelativeTime(skill.lastUpdated, locale)}
-                </span>
-              </MetaRow>
-              {committedAt && (
-                <MetaRow label={t.detail.lastCommit}>
-                  <span title={formatDate(committedAt)}>
-                    {formatRelativeTime(committedAt, locale)}
-                  </span>
-                </MetaRow>
-              )}
-              <MetaRow label={t.detail.files}>{skill.fileCount}</MetaRow>
-              <MetaRow label={t.detail.size}>
-                {formatBytes(skill.sizeBytes)}
-              </MetaRow>
-              <MetaRow label={t.detail.used}>
-                {skill.usage
-                  ? t.detail.usedTimes(skill.usage.usageCount)
-                  : t.common.never}
-              </MetaRow>
-              {skill.usage?.lastUsedAt ? (
-                <MetaRow label={t.detail.lastUsed}>
-                  {formatRelativeTime(skill.usage.lastUsedAt, locale)}
-                </MetaRow>
-              ) : null}
-              {skill.allowedTools && (
-                <MetaRow label={t.detail.allowedTools}>
-                  <span className="font-mono text-xs">
-                    {skill.allowedTools}
-                  </span>
-                </MetaRow>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {skill.plugin && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Package className="h-4 w-4" /> {t.detail.plugin}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="divide-y">
-                <MetaRow label={t.detail.name}>{skill.plugin.name}</MetaRow>
-                {skill.plugin.version && (
-                  <MetaRow label={t.detail.version}>
-                    <span className="font-mono text-xs">
-                      {skill.plugin.version}
-                    </span>
-                  </MetaRow>
-                )}
-                {skill.plugin.author && (
-                  <MetaRow label={t.detail.author}>
-                    {skill.plugin.author}
-                  </MetaRow>
-                )}
-              </div>
-              {skill.plugin.description && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {skill.plugin.description}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {skill.project && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t.detail.project}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-sm">{skill.project.name}</div>
-              <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
-                {skill.project.path}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              {t.detail.locationOnDisk}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-start gap-2">
-              <code className="min-w-0 flex-1 break-all rounded-none bg-secondary p-2 text-xs">
-                {skill.path}
-              </code>
-              <CopyButton value={skill.path} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+    );
 }
