@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { cookies } from "next/headers";
 import { SiteHeader } from "@/components/site-header";
+import { LowPolyBackground } from "@/components/lowpoly-background";
 import { Raleway, Noto_Sans_Thai } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -44,10 +45,11 @@ export default async function RootLayout({
             )}
         >
             <body className="flex min-h-screen flex-col font-sans antialiased">
+                <LowPolyBackground />
                 <LanguageProvider initialLocale={locale}>
                     <TooltipProvider>
                         <SiteHeader initialTheme={theme} />
-                        <main className="container mx-auto w-full max-w-7xl flex-1 border-x bg-background px-4 py-8">
+                        <main className="container mx-auto w-full max-w-7xl flex-1 border-x bg-background px-4 py-8 dark:bg-background/74 dark:backdrop-blur">
                             {children}
                         </main>
                     </TooltipProvider>
