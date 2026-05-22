@@ -30,7 +30,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SkillTypeBadge } from "@/components/skill-type-badge";
+import { SkillTypeDot } from "@/components/skill-type-dot";
+import { SKILL_TYPE_META } from "@/components/skill-type";
 import { SourceBadge } from "@/components/source-badge";
 import { CountBadge } from "@/components/count-badge";
 import { ModelInvocationBadge } from "@/components/model-invocation-badge";
@@ -133,7 +134,15 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
                         {TAB_KEYS.map((key) => (
                             <TabsTrigger key={key} value={key} className="gap-1.5">
                                 {key === "all" ? t.explorer.tabAll : t.skillTypes[key]}
-                                <CountBadge>{counts[key]}</CountBadge>
+                                <CountBadge
+                                    className={
+                                        key === "all"
+                                            ? undefined
+                                            : SKILL_TYPE_META[key].text
+                                    }
+                                >
+                                    {counts[key]}
+                                </CountBadge>
                             </TabsTrigger>
                         ))}
                     </TabsList>
@@ -211,12 +220,14 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[80px] text-center">
+                                {t.explorer.colScope}
+                            </TableHead>
+                            <TableHead className="w-[80px] text-center">
+                                {t.explorer.colInvocation}
+                            </TableHead>
                             <TableHead className="min-w-[260px]">
                                 {t.explorer.colCommand}
-                            </TableHead>
-                            <TableHead className="w-[96px]">{t.explorer.colScope}</TableHead>
-                            <TableHead className="w-[150px]">
-                                {t.explorer.colInvocation}
                             </TableHead>
                             <TableHead className="min-w-[180px]">
                                 {t.explorer.colSource}
@@ -243,6 +254,14 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
                                     className="cursor-pointer hover:bg-accent"
                                     onClick={() => router.push(`/commands/${c.id}`)}
                                 >
+                                    <TableCell className="text-center">
+                                        <SkillTypeDot type={c.scope} />
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <ModelInvocationBadge
+                                            disabled={c.disableModelInvocation}
+                                        />
+                                    </TableCell>
                                     <TableCell className="whitespace-normal">
                                         <Link
                                             href={`/commands/${c.id}`}
@@ -254,14 +273,6 @@ export function CommandsExplorer({ commands }: { commands: Command[] }) {
                                         <p className="line-clamp-1 text-xs text-muted-foreground">
                                             {c.description}
                                         </p>
-                                    </TableCell>
-                                    <TableCell>
-                                        <SkillTypeBadge type={c.scope} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <ModelInvocationBadge
-                                            disabled={c.disableModelInvocation}
-                                        />
                                     </TableCell>
                                     <TableCell className="max-w-[240px]">
                                         {c.plugin && c.source.kind === "local" ? (

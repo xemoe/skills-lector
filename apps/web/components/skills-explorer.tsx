@@ -30,7 +30,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SkillTypeBadge } from "@/components/skill-type-badge";
+import { SkillTypeDot } from "@/components/skill-type-dot";
+import { SKILL_TYPE_META } from "@/components/skill-type";
 import { SourceBadge } from "@/components/source-badge";
 import { CountBadge } from "@/components/count-badge";
 import { ModelInvocationBadge } from "@/components/model-invocation-badge";
@@ -136,7 +137,15 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                         {TAB_KEYS.map((key) => (
                             <TabsTrigger key={key} value={key} className="gap-1.5">
                                 {key === "all" ? t.explorer.tabAll : t.skillTypes[key]}
-                                <CountBadge>{counts[key]}</CountBadge>
+                                <CountBadge
+                                    className={
+                                        key === "all"
+                                            ? undefined
+                                            : SKILL_TYPE_META[key].text
+                                    }
+                                >
+                                    {counts[key]}
+                                </CountBadge>
                             </TabsTrigger>
                         ))}
                     </TabsList>
@@ -215,12 +224,14 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[80px] text-center">
+                                {t.explorer.colType}
+                            </TableHead>
+                            <TableHead className="w-[80px] text-center">
+                                {t.explorer.colInvocation}
+                            </TableHead>
                             <TableHead className="min-w-[260px]">
                                 {t.explorer.colSkill}
-                            </TableHead>
-                            <TableHead className="w-[96px]">{t.explorer.colType}</TableHead>
-                            <TableHead className="w-[150px]">
-                                {t.explorer.colInvocation}
                             </TableHead>
                             <TableHead className="min-w-[180px]">
                                 {t.explorer.colSource}
@@ -250,6 +261,14 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                                     className="cursor-pointer hover:bg-accent"
                                     onClick={() => router.push(`/skills/${s.id}`)}
                                 >
+                                    <TableCell className="text-center">
+                                        <SkillTypeDot type={s.type} />
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <ModelInvocationBadge
+                                            disabled={s.disableModelInvocation}
+                                        />
+                                    </TableCell>
                                     <TableCell className="whitespace-normal">
                                         <Link
                                             href={`/skills/${s.id}`}
@@ -261,14 +280,6 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                                         <p className="line-clamp-1 text-xs text-muted-foreground">
                                             {s.description}
                                         </p>
-                                    </TableCell>
-                                    <TableCell>
-                                        <SkillTypeBadge type={s.type} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <ModelInvocationBadge
-                                            disabled={s.disableModelInvocation}
-                                        />
                                     </TableCell>
                                     <TableCell className="max-w-[240px]">
                                         {s.plugin && s.source.kind === "local" ? (

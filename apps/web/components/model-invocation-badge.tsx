@@ -6,9 +6,8 @@ import { useT } from "@/lib/i18n/context";
 
 /**
  * Status indicator for the `disable-model-invocation` frontmatter of a skill or
- * command. "Slash-only" stays an amber labelled pill so the restriction reads
- * loudly; the default state is a teal bot icon — Claude invokes it on its own —
- * kept icon-only so the common case does not shout on every row.
+ * command. Both states are icon-only pills: an amber slash icon when the skill
+ * is slash-only, a teal bot icon when Claude can invoke it on its own.
  */
 export function ModelInvocationBadge({
     disabled,
@@ -24,15 +23,16 @@ export function ModelInvocationBadge({
     if (disabled === true) {
         return (
             <span
+                role="img"
+                aria-label={t.explorer.invocationSlashOnly}
                 title={t.explorer.invocationSlashOnlyHint}
                 className={cn(
                     chip,
-                    "px-2 border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",
+                    "px-1.5 border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",
                     className,
                 )}
             >
-                <SquareSlash className="h-3 w-3 shrink-0" />
-                {t.explorer.invocationSlashOnly}
+                <SquareSlash className="h-4 w-4 shrink-0" />
             </span>
         );
     }
