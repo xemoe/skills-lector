@@ -279,6 +279,10 @@ export const th: Dictionary = {
         argumentHint: "คำใบ้อาร์กิวเมนต์",
         model: "โมเดล",
         modelInvocation: "การเรียกใช้โดยโมเดล",
+        modelInvocationHint:
+            "รันคำสั่ง /model-invocation ใน Claude Code เพื่อเปลี่ยนค่านี้:",
+        modelInvocationEnable: "เปิด — ให้ Claude เรียกใช้เองอัตโนมัติ",
+        modelInvocationDisable: "ปิด — ให้เรียกผ่านสแลชเท่านั้น",
         pipeline: "ไปป์ไลน์",
         workflowSteps: "ขั้นตอนเวิร์กโฟลว์",
         sectionOutline: "โครงร่างหัวข้อ",

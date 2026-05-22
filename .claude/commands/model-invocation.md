@@ -1,6 +1,6 @@
 ---
 description: Change whether a Claude Skill or slash command can be invoked by the model on its own, or only by the user via `/` — one item, or all of them at once for an audit. Run it without arguments to list every skill and command with its current setting.
-argument-hint: "[name|all] [on|off|toggle]"
+argument-hint: "[name|path|all] [on|off|toggle]"
 allowed-tools: Bash(node:*)
 disable-model-invocation: true
 ---
@@ -29,14 +29,23 @@ Interpret the arguments against that list:
   - Map the intent to `<value>`: `off`/`disable` → `true` (everything becomes slash-only); `on`/`enable` → `unset` (everything model-invokable again).
   - Always show the dry-run preview before applying. If `all` was given with no on/off intent, ask which way first.
   - After disabling everything, the user re-enables the vetted ones one at a time with the per-name `set` form below — that is the point of the audit.
-- **A name and an on/off intent were given** — apply it with the helper script:
-  `node .claude/skills/set-model-invocation/scripts/set-model-invocation.mjs set <name> <value>`
+- **A name or file path, with an on/off intent, were given** — apply it with the
+  helper script:
+  `node .claude/skills/set-model-invocation/scripts/set-model-invocation.mjs set <name-or-path> <value>`
   Map the intent to `<value>`:
   - `on`, `enable`, "let the model invoke it" → `unset` (removes the key — the default, model-invokable)
   - `off`, `disable`, "slash-only", "stop the model invoking it" → `true`
   - `toggle`, "flip", "the opposite" → `toggle`
   - A literal `true`, `false`, or `unset` → pass it straight through.
-  - If the name is not in the list above, do not guess — tell the user and show the available names.
+  - **A file path** (the argument contains a `/` or `\`, or ends in `.md`) goes
+    straight to the script, which edits that file in place. This handles skills
+    and commands outside the personal and project directories — the list above
+    does not include them. The catalog offers this path-form example for
+    **bundled/local** items. A **plugin** file can be edited the same way, but a
+    plugin update overwrites it, so warn the user and suggest copying the skill
+    into their personal directory for a lasting change.
+  - A bare **name not in the list above** — do not guess. Tell the user and show
+    the available names, or ask for the file path to its SKILL.md / command file.
   - If the script reports the name is ambiguous, re-run it with `--type skill` or `--type command`, or the full file path it printed.
 - **Only a name was given** — show that item's current setting from the list, ask whether to turn model invocation `on` or `off`, then apply it.
 - **No arguments were given** — show the list above and ask which skill or command to change, and to what.

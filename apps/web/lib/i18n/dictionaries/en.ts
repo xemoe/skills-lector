@@ -300,6 +300,10 @@ export const en = {
         argumentHint: "Argument hint",
         model: "Model",
         modelInvocation: "Model invocation",
+        modelInvocationHint:
+            "Run the /model-invocation command in Claude Code to change it:",
+        modelInvocationEnable: "Enable — let Claude invoke it automatically",
+        modelInvocationDisable: "Disable — make it slash-only",
         pipeline: "Pipeline",
         workflowSteps: "workflow steps",
         sectionOutline: "section outline",

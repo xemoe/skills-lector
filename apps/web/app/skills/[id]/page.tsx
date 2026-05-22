@@ -12,6 +12,7 @@ import { SkillDescription } from "@/components/skill-description";
 import { SkillTypeBadge } from "@/components/skill-type-badge";
 import { SourceBadge } from "@/components/source-badge";
 import { ModelInvocationBadge } from "@/components/model-invocation-badge";
+import { ModelInvocationExamples } from "@/components/model-invocation-examples";
 import { CopyButton } from "@/components/copy-button";
 import {
     Card,
@@ -123,6 +124,13 @@ export default async function SkillDetailPage({
                     </CardContent>
                 </Card>
             )}
+
+            <ModelInvocationExamples
+                name={skill.name}
+                filePath={skill.skillMdPath}
+                type={skill.type}
+                disabled={skill.disableModelInvocation}
+            />
 
             <div className="grid items-start gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 <Card>
