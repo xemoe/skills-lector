@@ -50,7 +50,8 @@ export function normalizeGitUrl(raw: string): { kind: "github" | "git"; label: s
     }
 
     repoPath = repoPath.replace(/\.git$/, "");
-    if (host.toLowerCase().includes("github.com")) {
+    const lowerHost = host.toLowerCase();
+    if (lowerHost === "github.com" || lowerHost.endsWith(".github.com")) {
         return { kind: "github", label: repoPath, url: `https://github.com/${repoPath}` };
     }
     return { kind: "git", label: host ? `${host}/${repoPath}` : repoPath };
