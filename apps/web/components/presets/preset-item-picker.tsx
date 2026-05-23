@@ -50,6 +50,7 @@ export function PresetItemPicker({
                 initiallySelected.map((s) => `${s.kind}::${s.identifier}`),
             ),
         );
+        setHiddenCount(0);
         // Fetch personal-scope items from existing catalog endpoints
         Promise.all([
             fetch("/api/skills").then((r) => r.json()),
