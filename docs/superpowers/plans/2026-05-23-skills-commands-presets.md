@@ -123,7 +123,6 @@ ROADMAP.md                                            MODIFY — note shipped fe
     "description": "Preset engine — SQLite-backed bundles of skills + commands that can be activated to toggle disable-model-invocation in the personal scope. The only mutating surface in the project.",
     "type": "module",
     "dependencies": {
-        "@lector/core": "file:../core",
         "better-sqlite3": "^11.5.0",
         "gray-matter": "^4.0.3",
         "zod": "^3.23.8"
@@ -136,7 +135,7 @@ ROADMAP.md                                            MODIFY — note shipped fe
 }
 ```
 
-Note: `@lector/core` is listed as a `file:` dep purely so npm install creates a symlink-free copy resolution; the actual import path used in `apps/web` is the TS path alias `@lector/core/*`. On exFAT, `file:` deps install as a directory copy (no symlink), which is what we want.
+Note: `@lector/core` is **NOT** listed as an npm dep. exFAT cannot store symlinks and `npm install` of a `file:` dep tries to create one (`EISDIR` on exFAT). The TS path alias `@lector/core/*` in `tsconfig.json` is what makes imports work at compile time; Turbopack handles resolution at build/dev time via its `monorepoRoot` config in `apps/web/next.config.mjs`. No npm-side wiring is needed.
 
 - [ ] **Step 2: Create tsconfig.json**
 
