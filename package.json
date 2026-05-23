@@ -1,6 +1,6 @@
 {
     "name": "skills-lector",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "private": true,
     "description": "Monorepo for Skills Lector: the web app (apps/web) and the shared scanning engine (packages/core).",
     "repository": {
@@ -9,9 +9,10 @@
     },
     "scripts": {
         "dev": "cd apps/web && npm run dev",
+        "dev:autoport": "cd apps/web && npm run dev:autoport",
         "build": "cd apps/web && npm run build",
         "start": "cd apps/web && npm run start",
         "lint": "cd apps/web && npm run lint",
-        "install:all": "npm install --prefix packages/core && npm install --prefix apps/web"
+        "install:all": "npm install --prefix packages/core && npm install --prefix packages/presets && npm install --prefix apps/web"
     }
 }
