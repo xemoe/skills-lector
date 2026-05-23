@@ -80,11 +80,11 @@ export function PresetsExplorer() {
                 </div>
             ) : null}
 
-            <div className="flex items-center justify-between gap-3">
-                <Tabs
-                    value={tab}
-                    onValueChange={(v) => setTab(v as "active" | "archived")}
-                >
+            <Tabs
+                value={tab}
+                onValueChange={(v) => setTab(v as "active" | "archived")}
+            >
+                <div className="flex items-center justify-between gap-3 mb-4">
                     <TabsList>
                         <TabsTrigger value="active">
                             Active ({active.data?.presets.length ?? 0})
@@ -93,13 +93,11 @@ export function PresetsExplorer() {
                             Archived ({archived.data?.presets.length ?? 0})
                         </TabsTrigger>
                     </TabsList>
-                </Tabs>
-                <Link href="/presets/new">
-                    <Button>+ New preset</Button>
-                </Link>
-            </div>
+                    <Link href="/presets/new">
+                        <Button>+ New preset</Button>
+                    </Link>
+                </div>
 
-            <Tabs value={tab}>
                 <TabsContent value="active">
                     {active.data?.presets.length === 0 ? (
                         <p className="py-6 text-center text-sm text-muted-foreground">
