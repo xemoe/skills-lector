@@ -63,7 +63,7 @@ export function PresetsExplorer() {
         <div className="space-y-4">
             {activePreset ? (
                 <div className="rounded-sm border border-lime-400 bg-lime-300/50 dark:bg-lime-300 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-y-5">
                         <div>
                             <div className="text-xs font-semibold uppercase text-muted-foreground dark:text-black">
                                 Active
@@ -102,7 +102,7 @@ export function PresetsExplorer() {
                         </TabsTrigger>
                     </TabsList>
                     <Link href="/presets/new">
-                        <Button variant="default" size="lg" className={'rounded-sm text-md border dark:border-cyan-600'}>+ New preset</Button>
+                        <Button variant="default" size="lg" className={'bg-indigo-600 rounded-sm text-md border dark:border-indigo-200'}>+ New preset</Button>
                     </Link>
                 </div>
 

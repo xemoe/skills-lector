@@ -59,7 +59,7 @@ export function PluginScopeNotice({ count, dismissKey }: Props) {
     }
 
     return (
-        <div className="relative rounded-sm border border-amber-400  dark:border-amber-300 bg-amber-100/30 dark:bg-amber-400 p-3 text-sm text-black dark:text-black/90">
+        <div className="relative rounded-sm border border-amber-400  dark:border-amber-300 bg-amber-100/30 dark:bg-amber-400 p-2.5 text-sm text-black dark:text-black/90">
             {dismissKey ? (
                 <Button
                     variant="ghost"
@@ -71,9 +71,8 @@ export function PluginScopeNotice({ count, dismissKey }: Props) {
                     <X />
                 </Button>
             ) : null}
-            <div className="flex items-start gap-2 pr-7">
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground dark:text-black/90" />
-                <div className="space-y-1">
+            <div className="p-2">
+                <div className="space-y-2.5">
                     <p className="font-medium">{header}</p>
                     <p className="text-muted-foreground dark:text-black/90">
                         {t.pluginScopeNotice.body}

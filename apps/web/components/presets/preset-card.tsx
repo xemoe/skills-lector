@@ -17,12 +17,12 @@ export function PresetCard({
 }) {
     return (
         <Link href={`/presets/${preset.id}`} className="block">
-            <Card className={`rounded-xs shadow-none transition-colors hover:bg-accent/40 ${isActive && "border border-lime-400"}`}>
+            <Card className={`rounded-md min-h-30 shadow-none transition-colors hover:bg-accent/40 ${isActive && "border border-lime-500 dark:border-lime-700"}`}>
                 <CardHeader className="pb-2">
                     <div className="flex items-center justify-between gap-2">
                         <CardTitle className="text-base font-semibold">{preset.name}</CardTitle>
                         {isActive ? (
-                            <Badge variant="default" className="rounded-sm text-xs">● ACTIVE</Badge>
+                            <Badge variant="ghost" className="rounded-4xl p-1.5 text-md text-lime-400 bg-lime-100/50 dark:bg-lime-900/30 shadow-lime-300">●</Badge>
                         ) : null}
                         {preset.archivedAt ? (
                             <Badge variant="secondary">archived</Badge>
