@@ -3,6 +3,8 @@ import { StatCards } from "@/components/stat-cards";
 import { SkillsExplorer } from "@/components/skills-explorer";
 import { InlineCode } from "@/components/inline-code";
 import { scanSkills } from "@lector/core/scanner";
+import { loadPresetMembership } from "@lector/presets/membership";
+import { parsePresetId } from "@/lib/preset-query";
 import { formatDate } from "@/lib/utils";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -26,9 +28,20 @@ function EmptyState({ claudeHome, t }: { claudeHome: string; t: Dictionary }) {
     );
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ preset?: string }>;
+}) {
     const { t } = await getServerI18n();
+    const { preset: presetParam } = await searchParams;
     const result = scanSkills();
+    const membership = loadPresetMembership();
+    const rawPresetId = parsePresetId(presetParam);
+    const initialPresetId =
+        rawPresetId != null && membership.presets.some((p) => p.id === rawPresetId)
+            ? rawPresetId
+            : null;
 
     return (
         <div className="space-y-4">
@@ -55,7 +68,14 @@ export default async function DashboardPage() {
             {result.skills.length === 0 ? (
                 <EmptyState claudeHome={result.claudeHome} t={t} />
             ) : (
-                <SkillsExplorer skills={result.skills} />
+                <SkillsExplorer
+                    skills={result.skills}
+                    presetFilter={{
+                        presets: membership.presets,
+                        initialPresetId,
+                        itemsByPreset: membership.itemsByPreset,
+                    }}
+                />
             )}
 
             {result.errors.length > 0 && (

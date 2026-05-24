@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { FileText, Package, Workflow } from "lucide-react";
+import { ChevronLeft, FileText, Package, Workflow } from "lucide-react";
+import Link from "next/link";
 import { Separator } from "@/components/ui/separator"
 import { getSkillById } from "@lector/core/scanner";
 import { parseSkillMd } from "@lector/core/skill-parser";
@@ -23,6 +24,8 @@ import {
 } from "@/components/ui/card";
 import { formatBytes, formatDate, formatRelativeTime } from "@/lib/utils";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getPreset } from "@lector/presets/presets";
+import { parsePresetId } from "@/lib/preset-query";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +46,19 @@ function MetaRow({
 
 export default async function SkillDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ preset?: string }>;
 }) {
     const { id } = await params;
+    const { preset: presetParam } = await searchParams;
     const { t, locale } = await getServerI18n();
     const skill = getSkillById(id);
     if (!skill) notFound();
+
+    const presetId = parsePresetId(presetParam);
+    const preset = presetId != null ? getPreset(presetId) : null;
 
     const parsed = parseSkillMd(skill.skillMdPath);
     const pipeline = extractPipeline(parsed.body);
@@ -61,6 +70,15 @@ export default async function SkillDetailPage({
 
     return (
         <div className="space-y-4">
+            {preset && (
+                <Link
+                    href={`/?preset=${preset.id}`}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    {t.detail.backToPreset(preset.name)}
+                </Link>
+            )}
             <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-2xl font-bold tracking-tight">{skill.name}</h1>

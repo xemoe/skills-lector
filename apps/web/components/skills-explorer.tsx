@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
     ArrowUpDown,
     ChevronLeft,
     ChevronRight,
     Folder,
+    Layers,
     Package,
     Search,
     Sparkles,
@@ -39,6 +40,7 @@ import { PluginScopeNotice } from "@/components/plugin-scope-notice";
 import { formatDate } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
 import type { Skill, SkillType } from "@lector/core/types";
+import type { Preset } from "@lector/presets/types";
 
 type SortKey = "updated" | "name" | "usage";
 type TypeFilter = "all" | SkillType;
@@ -48,16 +50,41 @@ const TAB_KEYS: TypeFilter[] = ["all", "plugin", "personal", "project", "local"]
 
 const PAGE_SIZE = 10;
 
-export function SkillsExplorer({ skills }: { skills: Skill[] }) {
+type PresetFilter = {
+    presets: Preset[];
+    initialPresetId: number | null;
+    itemsByPreset: Record<string, string[]>;
+};
+
+export function SkillsExplorer({
+    skills,
+    presetFilter,
+}: {
+    skills: Skill[];
+    presetFilter?: PresetFilter;
+}) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const t = useT();
     const [query, setQuery] = useState("");
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
     const [projectFilter, setProjectFilter] = useState("all");
     const [invocationFilter, setInvocationFilter] =
         useState<InvocationFilter>("all");
+    const [presetId, setPresetId] = useState<number | null>(
+        presetFilter?.initialPresetId ?? null,
+    );
     const [sort, setSort] = useState<SortKey>("updated");
     const [page, setPage] = useState(1);
+
+    const membership = useMemo(() => {
+        const map = new Map<number, Set<string>>();
+        if (!presetFilter) return map;
+        for (const [pid, keys] of Object.entries(presetFilter.itemsByPreset)) {
+            map.set(Number(pid), new Set(keys));
+        }
+        return map;
+    }, [presetFilter]);
 
     const counts = useMemo(() => {
         const c: Record<TypeFilter, number> = {
@@ -87,6 +114,11 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                 return false;
             if (invocationFilter === "slash-only" && !s.disableModelInvocation)
                 return false;
+            if (presetId != null) {
+                const set = membership.get(presetId);
+                if (!set) return false;
+                if (!set.has(`skill::${s.name}`)) return false;
+            }
             if (!q) return true;
             return (
                 s.name.toLowerCase().includes(q) ||
@@ -101,7 +133,7 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                 return (b.usage?.usageCount ?? 0) - (a.usage?.usageCount ?? 0);
             return Date.parse(b.lastUpdated) - Date.parse(a.lastUpdated);
         });
-    }, [skills, query, typeFilter, projectFilter, invocationFilter, sort]);
+    }, [skills, query, typeFilter, projectFilter, invocationFilter, presetId, membership, sort]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
@@ -202,6 +234,37 @@ export function SkillsExplorer({ skills }: { skills: Skill[] }) {
                         </SelectItem>
                     </SelectContent>
                 </Select>
+                {presetFilter && presetFilter.presets.length > 0 && (
+                    <Select
+                        value={presetId == null ? "all" : String(presetId)}
+                        onValueChange={(v) => {
+                            const next = v === "all" ? null : Number(v);
+                            setPresetId(next);
+                            setPage(1);
+                            const params = new URLSearchParams(searchParams.toString());
+                            if (next == null) params.delete("preset");
+                            else params.set("preset", String(next));
+                            const qs = params.toString();
+                            router.replace(qs ? `?${qs}` : "?", { scroll: false });
+                        }}
+                    >
+                        <SelectTrigger
+                            className="gap-1.5 lg:w-[180px] rounded-sm"
+                            aria-label={t.explorer.filterPreset}
+                        >
+                            <Layers className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t.explorer.presetAll}</SelectItem>
+                            {presetFilter.presets.map((p) => (
+                                <SelectItem key={p.id} value={String(p.id)}>
+                                    {p.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
                 <Select
                     value={sort}
                     onValueChange={(v) => {

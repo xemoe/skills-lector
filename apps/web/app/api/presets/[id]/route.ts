@@ -7,6 +7,7 @@ import {
     SlugCollisionError,
     updatePreset,
 } from "@lector/presets/presets";
+import { enrichPresetItems } from "@lector/presets/enrich";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,8 @@ export async function GET(
     const preset = getPreset(id);
     if (!preset) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const items = listPresetItems(id);
-    return NextResponse.json({ preset, items });
+    const enriched = await enrichPresetItems(items);
+    return NextResponse.json({ preset, items: enriched });
 }
 
 export async function PATCH(
