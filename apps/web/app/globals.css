@@ -120,8 +120,17 @@
     }
     html {
         background-color: var(--background);
+        scrollbar-gutter: stable;
     }
     body {
         @apply text-foreground;
+    }
+    /* react-remove-scroll (used by Radix Select/Dialog) sets margin-right
+       on the body to compensate for the disappearing scrollbar. Because
+       html already reserves the gutter via scrollbar-gutter, this extra
+       margin would visibly shrink the page. Higher specificity than the
+       library's !important rule. */
+    html body[data-scroll-locked] {
+        margin-right: 0 !important;
     }
 }

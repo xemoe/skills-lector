@@ -215,7 +215,7 @@ export function HooksExplorer({ hooks }: { hooks: Hook[] }) {
                         label={t.explorer.sortBy}
                         currentValue={sortLabel[sort]}
                     />
-                    <SelectContent>
+                    <SelectContent position="popper">
                         <SelectItem value="updated">{t.explorer.sortRecent}</SelectItem>
                         <SelectItem value="event">{t.explorer.sortEvent}</SelectItem>
                     </SelectContent>
