@@ -232,7 +232,7 @@ export function SkillsExplorer({
                         label={t.explorer.filterInvocation}
                         currentValue={invocationLabel[invocationFilter]}
                     />
-                    <SelectContent>
+                    <SelectContent position="popper">
                         <SelectItem value="all">
                             {t.explorer.invocationAll}
                         </SelectItem>
@@ -287,7 +287,7 @@ export function SkillsExplorer({
                         label={t.explorer.sortBy}
                         currentValue={sortLabel[sort]}
                     />
-                    <SelectContent>
+                    <SelectContent position="popper">
                         <SelectItem value="updated">{t.explorer.sortRecent}</SelectItem>
                         <SelectItem value="name">{t.explorer.sortName}</SelectItem>
                         <SelectItem value="usage">{t.explorer.sortUsage}</SelectItem>
