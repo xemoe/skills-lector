@@ -34,6 +34,9 @@ skills-lector.config.json
 # discover skill output (cached top-10 GitHub results)
 .discover/
 
+# codegraph index (local per-machine code graph database)
+.codegraph/
+
 # editors
 .idea/
 .vscode/
