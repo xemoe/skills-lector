@@ -1,4 +1,4 @@
-import { scanActivity } from "@lector/core/activity";
+import { scanActivity, type InvocationOrigin } from "@lector/core/activity";
 import { scanCommands } from "@lector/core/command-scanner";
 import { scanSkills } from "@lector/core/scanner";
 import { listPresetItems } from "@lector/presets/presets";
@@ -9,12 +9,37 @@ import { getDictionary } from "./i18n/dictionaries";
 export type ActivityWindow = "4h" | "1d" | "1w" | "all";
 export type ActivityKind = "skill" | "command";
 
+export type { InvocationOrigin };
+
+/** Origins in display order; also the accepted values for the origin filter. */
+export const INVOCATION_ORIGINS: InvocationOrigin[] = [
+    "main",
+    "subagent",
+    "workflow",
+];
+
+/** Narrows an untrusted query value to a valid origin, else null (= all). */
+export function parseOriginParam(
+    value: string | null | undefined,
+): InvocationOrigin | null {
+    return typeof value === "string" &&
+        (INVOCATION_ORIGINS as string[]).includes(value)
+        ? (value as InvocationOrigin)
+        : null;
+}
+
 export interface UsageStat {
     /** Display name — bare for skills, "/name" for commands. */
     name: string;
     kind: ActivityKind;
     /** Invocation counts per time window. */
     windows: Record<ActivityWindow, number>;
+    /**
+     * All-time invocation counts split by execution origin, within the active
+     * project/preset scope but independent of the origin filter — so a row's
+     * badge shows its full cross-origin breakdown even while filtering.
+     */
+    origins: Record<InvocationOrigin, number>;
     /** Newest invocation, epoch ms. */
     lastUsed: number;
     /** Human "x ago" label for lastUsed. */
@@ -67,6 +92,14 @@ export interface Analytics {
     scannedAt: string;
     /** Distinct project names across the full catalog, for the project filter. */
     projects: string[];
+    /**
+     * Event totals by execution origin within the active project/preset scope,
+     * counted *before* the origin filter — so the filter UI can always show how
+     * much subagent / workflow activity exists. Drives the origin filter.
+     */
+    originTotals: Record<InvocationOrigin, number>;
+    /** Origin filter applied to this result, or null when showing all origins. */
+    origin: InvocationOrigin | null;
 }
 
 const CACHE_TTL_MS = 8000;
@@ -83,6 +116,7 @@ let cache: {
     locale: Locale;
     project: string;
     presetId: number | null;
+    origin: InvocationOrigin | null;
 } | null = null;
 
 /** Skill identity — the last namespace segment, lowercased (plugin prefix dropped). */
@@ -116,10 +150,15 @@ function emptyWindows(): Record<ActivityWindow, number> {
     return { "4h": 0, "1d": 0, "1w": 0, all: 0 };
 }
 
+function emptyOrigins(): Record<InvocationOrigin, number> {
+    return { main: 0, subagent: 0, workflow: 0 };
+}
+
 interface Group {
     name: string;
     kind: ActivityKind;
     windows: Record<ActivityWindow, number>;
+    origins: Record<InvocationOrigin, number>;
     lastUsed: number;
     /** Per-dayKey counts, used to build the heatmap. */
     days: Map<string, number>;
@@ -135,17 +174,20 @@ export function buildAnalytics(
         locale?: Locale;
         project?: string;
         presetId?: number | null;
+        origin?: InvocationOrigin | null;
     } = {},
 ): Analytics {
     const locale = opts.locale ?? DEFAULT_LOCALE;
     const project = opts.project ?? "";
     const presetId = opts.presetId ?? null;
+    const origin = opts.origin ?? null;
     if (
         !opts.force &&
         cache &&
         cache.locale === locale &&
         cache.project === project &&
         cache.presetId === presetId &&
+        cache.origin === origin &&
         Date.now() - cache.at < CACHE_TTL_MS
     ) {
         return cache.analytics;
@@ -214,6 +256,10 @@ export function buildAnalytics(
     /** Most recent use per catalog key — drives never-used / idle detection. */
     const usedSkill = new Map<string, number>();
     const usedCommand = new Map<string, number>();
+    /** Scoped event totals per origin, counted before the origin filter. */
+    const originTotals = emptyOrigins();
+    /** Per-identity origin breakdown, also counted before the origin filter. */
+    const originsByIdentity = new Map<string, Record<InvocationOrigin, number>>();
 
     for (const ev of activity.events) {
         let kind: ActivityKind;
@@ -238,6 +284,19 @@ export function buildAnalytics(
                     : commandKeySet.has(matchKey);
             if (!inScope) continue;
         }
+        // Tally every in-scope event by origin *before* the origin filter —
+        // both the page-wide totals and a per-row breakdown — so the filter UI
+        // and each row's badge stay complete even when the view is narrowed to
+        // a single origin.
+        const breakdownKey = `${kind}:${matchKey}`;
+        let originBreakdown = originsByIdentity.get(breakdownKey);
+        if (!originBreakdown) {
+            originBreakdown = emptyOrigins();
+            originsByIdentity.set(breakdownKey, originBreakdown);
+        }
+        originBreakdown[ev.origin]++;
+        originTotals[ev.origin]++;
+        if (origin && ev.origin !== origin) continue;
         const display = kind === "skill" ? matchKey : `/${matchKey}`;
         const identity = `${kind}\u0000${matchKey}`;
 
@@ -247,6 +306,10 @@ export function buildAnalytics(
                 name: display,
                 kind,
                 windows: emptyWindows(),
+                // Shared reference with originsByIdentity — it keeps
+                // accumulating across the loop, so it ends up holding the full
+                // cross-origin counts regardless of the active origin filter.
+                origins: originBreakdown,
                 lastUsed: 0,
                 days: new Map(),
             };
@@ -271,6 +334,7 @@ export function buildAnalytics(
             name: g.name,
             kind: g.kind,
             windows: g.windows,
+            origins: g.origins,
             lastUsed: g.lastUsed,
             lastUsedLabel: g.lastUsed ? formatRelativeTime(g.lastUsed, locale) : t.common.never,
         }))
@@ -382,8 +446,10 @@ export function buildAnalytics(
         transcriptFiles: activity.fileCount,
         scannedAt: new Date().toISOString(),
         projects,
+        originTotals,
+        origin,
     };
 
-    cache = { analytics, at: Date.now(), locale, project, presetId };
+    cache = { analytics, at: Date.now(), locale, project, presetId, origin };
     return analytics;
 }

@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { AnalyticsExplorer } from "@/components/analytics-explorer";
-import { buildAnalytics } from "@/lib/analytics";
+import { buildAnalytics, parseOriginParam } from "@/lib/analytics";
 import { loadPresetMembership } from "@lector/presets/membership";
 import { parsePresetId } from "@/lib/preset-query";
 import { formatDate } from "@/lib/utils";
@@ -11,11 +11,16 @@ export const dynamic = "force-dynamic";
 export default async function AnalyticPage({
     searchParams,
 }: {
-    searchParams: Promise<{ project?: string; preset?: string }>;
+    searchParams: Promise<{ project?: string; preset?: string; origin?: string }>;
 }) {
     const { t, locale } = await getServerI18n();
-    const { project: projectParam, preset: presetParam } = await searchParams;
+    const {
+        project: projectParam,
+        preset: presetParam,
+        origin: originParam,
+    } = await searchParams;
     const project = typeof projectParam === "string" ? projectParam : "";
+    const origin = parseOriginParam(originParam);
 
     const membership = loadPresetMembership();
     const rawPresetId = parsePresetId(presetParam);
@@ -28,6 +33,7 @@ export default async function AnalyticPage({
         locale,
         project,
         presetId: initialPresetId,
+        origin,
     });
 
     return (
@@ -53,6 +59,7 @@ export default async function AnalyticPage({
                 analytics={analytics}
                 projects={analytics.projects}
                 selectedProject={project}
+                selectedOrigin={origin}
                 presetFilter={{
                     presets: membership.presets,
                     initialPresetId,

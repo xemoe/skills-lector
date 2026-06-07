@@ -14,6 +14,7 @@ import {
     Layers,
     SquareTerminal,
     Target,
+    Workflow,
     type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +33,7 @@ import type {
     ActivityWindow,
     Analytics,
     CatalogGap,
+    InvocationOrigin,
     UsageStat,
 } from "@/lib/analytics";
 import type { SkillType } from "@lector/core/types";
@@ -43,6 +45,9 @@ type PresetFilter = {
 };
 
 const WINDOW_KEYS: ActivityWindow[] = ["4h", "1d", "1w", "all"];
+// Origin filter order. Kept client-side so this component never pulls the
+// server-only @/lib/analytics runtime into the browser bundle.
+const ORIGIN_KEYS: InvocationOrigin[] = ["main", "subagent", "workflow"];
 
 function StatCard({
     label,
@@ -103,6 +108,7 @@ function TopList({
                         {items.map((s, i) => {
                             const count = s.windows[win];
                             const pct = max > 0 ? Math.max((count / max) * 100, 3) : 0;
+                            const nested = s.origins.subagent + s.origins.workflow;
                             return (
                                 <li key={s.name} className="space-y-1">
                                     <div className="flex items-baseline gap-2">
@@ -115,6 +121,18 @@ function TopList({
                                         >
                                             {s.name}
                                         </span>
+                                        {nested > 0 && (
+                                            <span
+                                                className="inline-flex shrink-0 items-center gap-0.5 self-center rounded-none bg-secondary px-1 py-0.5 text-[10px] leading-none tabular-nums text-muted-foreground"
+                                                title={t.analytics.originBadgeTooltip(
+                                                    s.origins.workflow,
+                                                    s.origins.subagent,
+                                                )}
+                                            >
+                                                <Workflow className="h-2.5 w-2.5" />
+                                                {nested}
+                                            </span>
+                                        )}
                                         <span
                                             className="shrink-0 text-xs tabular-nums text-muted-foreground"
                                             title={t.analytics.lastUsedTooltip(s.lastUsedLabel)}
@@ -222,11 +240,13 @@ export function AnalyticsExplorer({
     analytics,
     projects,
     selectedProject,
+    selectedOrigin,
     presetFilter,
 }: {
     analytics: Analytics;
     projects: string[];
     selectedProject: string;
+    selectedOrigin: InvocationOrigin | null;
     presetFilter?: PresetFilter;
 }) {
     const t = useT();
@@ -241,11 +261,24 @@ export function AnalyticsExplorer({
         presetFilter && presetFilter.initialPresetId != null
             ? String(presetFilter.initialPresetId)
             : "all";
+    const originValue = selectedOrigin ?? "all";
+    // Offer the origin filter once some activity ran inside a subagent or
+    // workflow — and always keep it visible while a filter is active, so it
+    // can never become applied-but-hidden (e.g. after switching to a project
+    // with no nested activity) and is always clearable.
+    const hasNestedActivity =
+        analytics.originTotals.subagent + analytics.originTotals.workflow > 0;
+    const showOriginFilter = hasNestedActivity || originValue !== "all";
 
-    const pushFilters = (nextProject: string, nextPreset: string) => {
+    const pushFilters = (
+        nextProject: string,
+        nextPreset: string,
+        nextOrigin: string,
+    ) => {
         const params = new URLSearchParams();
         if (nextProject !== "all") params.set("project", nextProject);
         if (nextPreset !== "all") params.set("preset", nextPreset);
+        if (nextOrigin !== "all") params.set("origin", nextOrigin);
         const qs = params.toString();
         startTransition(() => {
             router.push(qs ? `/analytic?${qs}` : "/analytic");
@@ -253,11 +286,21 @@ export function AnalyticsExplorer({
     };
 
     const onProjectChange = (value: string) => {
-        pushFilters(value, presetValue);
+        pushFilters(value, presetValue, originValue);
     };
 
     const onPresetChange = (value: string) => {
-        pushFilters(projectValue, value);
+        pushFilters(projectValue, value, originValue);
+    };
+
+    const onOriginChange = (value: string) => {
+        pushFilters(projectValue, presetValue, value);
+    };
+
+    const originLabels: Record<InvocationOrigin, string> = {
+        main: t.analytics.originMain,
+        subagent: t.analytics.originSubagent,
+        workflow: t.analytics.originWorkflow,
     };
 
     const rank = (a: UsageStat, b: UsageStat) =>
@@ -286,8 +329,30 @@ export function AnalyticsExplorer({
             className={`space-y-6 transition-opacity ${isPending ? "opacity-60" : ""}`}
         >
             {(projects.length > 0 ||
+                showOriginFilter ||
                 (presetFilter && presetFilter.presets.length > 0)) && (
                 <div className="flex flex-wrap items-center justify-end gap-2">
+                    {showOriginFilter && (
+                        <Select value={originValue} onValueChange={onOriginChange}>
+                            <SelectTrigger
+                                className="gap-1.5 lg:w-[200px]"
+                                aria-label={t.analytics.filterByOrigin}
+                            >
+                                <Workflow className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    {t.analytics.originAll}
+                                </SelectItem>
+                                {ORIGIN_KEYS.map((o) => (
+                                    <SelectItem key={o} value={o}>
+                                        {`${originLabels[o]} (${analytics.originTotals[o]})`}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                     {presetFilter && presetFilter.presets.length > 0 && (
                         <Select value={presetValue} onValueChange={onPresetChange}>
                             <SelectTrigger

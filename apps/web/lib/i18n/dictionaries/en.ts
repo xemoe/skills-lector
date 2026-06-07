@@ -503,6 +503,13 @@ That feature ships in **v0.3.0** — until it lands, browse the \`vendor/\` dire
         idleEmpty: "Nothing has gone cold — everything was used recently.",
         lastUsedTooltip: (label: string) => `last used ${label}`,
         fromSourceTooltip: (source: string) => `from ${source}`,
+        filterByOrigin: "Filter by origin",
+        originAll: "All origins",
+        originMain: "Main session",
+        originSubagent: "Subagents",
+        originWorkflow: "Workflows",
+        originBadgeTooltip: (workflow: number, subagent: number) =>
+            `${workflow} from workflows · ${subagent} from subagents`,
         heatLess: "Less",
         heatMore: "More",
         heatCell: (name: string, day: string, count: number) =>

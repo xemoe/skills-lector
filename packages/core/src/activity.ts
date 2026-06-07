@@ -6,6 +6,13 @@ import { safeExists } from "./scanner";
 /** How an invocation reached Claude Code. */
 export type InvocationVia = "skill-tool" | "slash";
 
+/**
+ * Where an invocation ran: the top-level session ("main"), inside an Agent-tool
+ * subagent ("subagent"), or inside a dynamic Workflow agent ("workflow").
+ * Recovered from the transcript's location on disk, not its contents.
+ */
+export type InvocationOrigin = "main" | "subagent" | "workflow";
+
 /** A single skill/command invocation recovered from a session transcript. */
 export interface ActivityEvent {
     /** Raw invocation name as it appears in the transcript. */
@@ -13,6 +20,8 @@ export interface ActivityEvent {
     /** Epoch milliseconds. */
     ts: number;
     via: InvocationVia;
+    /** Execution context the invocation ran in. */
+    origin: InvocationOrigin;
 }
 
 export interface ActivityResult {
@@ -59,8 +68,23 @@ function findTranscripts(root: string, errors: string[]): string[] {
     return out;
 }
 
+/**
+ * Classifies a transcript by where its events ran. Subagent transcripts live
+ * under a `subagents` directory in the session; workflow agents nest one level
+ * deeper, inside `subagents/workflows/<wf-id>`. Matched on the path *relative to
+ * the scan root* so a root that itself contains a `subagents` segment (e.g. a
+ * `CLAUDE_CONFIG_DIR` override) can't misclassify every transcript. Path-segment
+ * based so it holds on both POSIX and Windows separators.
+ */
+function originOf(file: string, root: string): InvocationOrigin {
+    const segments = path.relative(root, file).split(path.sep);
+    const idx = segments.indexOf("subagents");
+    if (idx === -1) return "main";
+    return segments.slice(idx + 1).includes("workflows") ? "workflow" : "subagent";
+}
+
 /** Extracts skill/command invocations from one parsed transcript line. */
-function eventsFromLine(obj: any): ActivityEvent[] {
+function eventsFromLine(obj: any, origin: InvocationOrigin): ActivityEvent[] {
     const ts = Date.parse(obj?.timestamp);
     if (!ts || Number.isNaN(ts)) return [];
     const content = obj?.message?.content;
@@ -72,7 +96,7 @@ function eventsFromLine(obj: any): ActivityEvent[] {
             if (block?.type === "tool_use" && block?.name === "Skill") {
                 const skill = block?.input?.skill;
                 if (typeof skill === "string" && skill.trim()) {
-                    out.push({ name: skill.trim(), ts, via: "skill-tool" });
+                    out.push({ name: skill.trim(), ts, via: "skill-tool", origin });
                 }
             }
         }
@@ -80,7 +104,7 @@ function eventsFromLine(obj: any): ActivityEvent[] {
         // A typed slash invocation is wrapped in a <command-name> tag.
         const m = content.match(COMMAND_RE);
         if (m && m[1].trim()) {
-            out.push({ name: m[1].trim(), ts, via: "slash" });
+            out.push({ name: m[1].trim(), ts, via: "slash", origin });
         }
     }
     return out;
@@ -117,6 +141,7 @@ export function scanActivity(opts: { force?: boolean } = {}): ActivityResult {
                 if (fs.statSync(f).size > MAX_FILE_BYTES) continue;
                 const text = fs.readFileSync(f, "utf8");
                 fileCount++;
+                const origin = originOf(f, root);
                 for (const line of text.split("\n")) {
                     if (!line) continue;
                     let obj: any;
@@ -125,7 +150,7 @@ export function scanActivity(opts: { force?: boolean } = {}): ActivityResult {
                     } catch {
                         continue;
                     }
-                    for (const ev of eventsFromLine(obj)) events.push(ev);
+                    for (const ev of eventsFromLine(obj, origin)) events.push(ev);
                 }
             } catch (e) {
                 errors.push(`read ${f}: ${(e as Error).message}`);
