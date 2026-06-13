@@ -220,6 +220,15 @@ function buildSkill(
                     ? `project:${classified.project.path}:${name}`
                     : `local:${skillMdPath}`;
 
+    // Claude Code keys plugin-skill usage as `<plugin>:<name>` (e.g.
+    // `superpowers:writing-skills`); personal/project skills are keyed by bare
+    // name. Look up the prefixed key for plugins, falling back to the bare name
+    // for legacy entries recorded before the prefix convention.
+    const skillUsage =
+        type === "plugin" && classified.plugin
+            ? usage[`${classified.plugin.name}:${name}`] ?? usage[name]
+            : usage[name];
+
     return {
         id: crypto.createHash("sha1").update(idBasis).digest("hex").slice(0, 12),
         name,
@@ -233,7 +242,7 @@ function buildSkill(
         source,
         plugin: classified.plugin,
         project: classified.project,
-        usage: usage[name],
+        usage: skillUsage,
         allowedTools: parsed.allowedTools,
         disableModelInvocation: parsed.disableModelInvocation,
         bodyExcerpt: excerpt(parsed.body, 240),
