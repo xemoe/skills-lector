@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScanOverlay } from "@/components/scan-overlay";
 import { useInvalidateScannerQueries } from "@/components/scanner/use-scanner-queries";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
@@ -35,9 +36,12 @@ export function RescanButton() {
     }
 
     return (
-        <Button className={'rounded-sm'} variant="outline" size="sm" onClick={rescan} disabled={busy}>
-            <RefreshCw className={cn(busy && "animate-spin")} />
-            {busy ? t.actions.scanning : t.actions.rescan}
-        </Button>
+        <>
+            <Button className={'rounded-sm'} variant="outline" size="sm" onClick={rescan} disabled={busy}>
+                <RefreshCw className={cn(busy && "animate-spin")} />
+                {busy ? t.actions.scanning : t.actions.rescan}
+            </Button>
+            <ScanOverlay show={busy} />
+        </>
     );
 }

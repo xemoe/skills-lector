@@ -32,6 +32,7 @@ export const th: Dictionary = {
     actions: {
         rescan: "สแกนใหม่",
         scanning: "กำลังสแกน…",
+        scanningHint: "กำลังรีเฟรชสกิล คำสั่ง ฮุก และกิจกรรม…",
         copy: "คัดลอก",
         copied: "คัดลอกแล้ว",
         copyToClipboard: "คัดลอกไปยังคลิปบอร์ด",

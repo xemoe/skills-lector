@@ -35,6 +35,7 @@ export const en = {
     actions: {
         rescan: "Rescan",
         scanning: "Scanning…",
+        scanningHint: "Refreshing skills, commands, hooks & activity…",
         copy: "Copy",
         copied: "Copied",
         copyToClipboard: "Copy to clipboard",
