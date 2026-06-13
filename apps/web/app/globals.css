@@ -134,3 +134,14 @@
         margin-right: 0 !important;
     }
 }
+
+/* WaveSpinner — a grid of dots sharing one keyframe; each dot's negative
+   animation-delay is derived from its grid position so the wave loads
+   mid-motion and loops seamlessly. See components/wave-spinner.tsx. */
+@keyframes wave-spinner {
+    0%, 100% { opacity: 0; transform: scale(1) translateY(0); }
+    50%      { opacity: 1; transform: scale(1.3) translateY(-2px); }
+}
+.wave-spinner-dot {
+    animation: wave-spinner 1.4s ease-in-out infinite;
+}
