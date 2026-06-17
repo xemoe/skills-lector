@@ -1,42 +1,42 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) working in this repository.
 
 ## Project
 
-Skills Lector — a local Next.js web app that scans the machine for deployed Claude Skills (`SKILL.md` files) and slash commands and shows them in a browser dashboard: what is deployed, when it last changed, and where it came from (a GitHub repo or a local directory).
+Skills Lector — a local Next.js dashboard that scans the machine for everything Claude Code has deployed — **Skills** (`SKILL.md`), slash **Commands**, **Hooks**, and prompt **Cheats** mined from session history — showing what's installed, when it changed, and where it came from (GitHub repo or local dir). It also **manages** state: **Presets** toggle which skills/commands Claude may auto-invoke.
 
-The repository is a **monorepo** with two packages:
+Monorepo = one app + two packages:
 
-- **`apps/web`** — the Next.js web app (UI, pages, API routes, app-local helpers).
-- **`packages/core`** — the server-side scanning engine (filesystem scanners, parsers, git/source resolution, the shared data model). The app imports it as `@lector/core/*`.
+- **`apps/web`** — the Next.js app (UI, pages, `/api` routes, app-local helpers). Consumes the packages via TS path aliases `@lector/core/*` and `@lector/presets/*`.
+- **`packages/core`** — pure **read** engine: filesystem scanners, parsers, git/source resolution, shared types.
+- **`packages/presets`** — the **only mutating** surface: SQLite-backed presets, pins, and the Cheats store; writes skill frontmatter.
 
 ## Monorepo layout
 
 ```
 package.json            Root orchestrator — delegates dev/build/start/lint to apps/web
-tsconfig.base.json      Shared TypeScript compiler options (both packages extend it)
-apps/web/               The Next.js application
+tsconfig.base.json      Shared compiler options (all packages extend it)
+apps/web/
   app/                  App Router pages + /api routes
-  components/           shadcn/ui primitives and app components
-  lib/                  App-local helpers: utils (cn), i18n, theme, analytics, relations
-  sample-skills/        Bundled example skills (so the dashboard is never empty)
+  components/           shadcn/ui primitives + app components (scanner/, presets/, cheats/)
+  lib/                  Client-safe helpers: utils, i18n, theme, analytics, relations, cheats-filter
+  sample-skills/        Bundled examples (dashboard is never empty)
   scripts/              exfat-readlink-fix.cjs (the exFAT build shim)
-packages/core/          The shared scanning engine
-  src/                  scanner, command-scanner, parsers, git, usage, config,
-                        claude-paths, activity, types, pipeline
-.claude/                This repo's own project skills + slash commands
+packages/core/src/      scanner, command-scanner, hook-scanner, discover, parsers, git, usage, types
+packages/presets/src/   presets, pinned, cheats, activate, diff, membership, db, migrations/
+.claude/                This repo's own skills + slash commands
 vendor/                 External skills repos as git submodules
 ```
 
-The root **deliberately does not use npm workspaces** — workspaces link packages with symlinks/junctions, which the exFAT volume cannot store (see below). Each package has its own `node_modules`; `apps/web` consumes `packages/core` through the TypeScript path alias `@lector/core/*` (configured in `apps/web/tsconfig.json`), and `apps/web/next.config.mjs` sets `turbopack.root` to the monorepo root so Turbopack resolves the sibling package.
+**No npm workspaces** (they need symlinks/junctions exFAT can't store) — packages are wired by TS path aliases, and `apps/web/next.config.mjs` sets `turbopack.root` to the repo root so Turbopack resolves the siblings. Each package keeps its own `node_modules`.
 
 ## Commands
 
 Run from the repo root (the root `package.json` delegates each script into `apps/web`):
 
 ```bash
-npm run install:all   # install deps for packages/core and apps/web
+npm run install:all   # install deps for packages/core, packages/presets, and apps/web
 npm run dev           # dev server (Turbopack) — http://localhost:4317
 npm run dev:autoport  # dev server on the next free port (no fixed -p)
 npm run dev:portless  # dev server behind portless — https://lector-dev.local
@@ -46,94 +46,69 @@ npm run start:autoport  # production server on the next free port
 npm run start:portless  # production server behind portless — https://lector-prod.local
 ```
 
-After a fresh clone, run `npm run install:all` — a plain root `npm install` only covers the orchestrator, which has no dependencies. You can also run `dev`/`build`/`start` directly inside `apps/web`.
+After a fresh clone, run `npm run install:all` — a plain root `npm install` only covers the orchestrator, which has no dependencies.
 
-There is no test suite. `npm run build` is the type-correctness check; `npm run dev` is the normal feedback loop. (`npm run lint` exists but ESLint is not configured.)
+No test suite. `npm run build` is the type-correctness check; `npm run dev` is the feedback loop. (`npm run lint` exists but ESLint is not configured.)
 
 ### Portless (HTTPS local URLs)
 
-`dev:portless` and `start:portless` wrap the autoport variants with [portless](https://github.com/vercel-labs/portless), giving the app stable HTTPS URLs without a fixed port. Two distinct app names (`lector-dev`, `lector-prod`) keep dev and prod from colliding when both are running. The proxy itself must already be running (`portless proxy start`) and the local CA trusted once (`portless trust`). On this machine portless runs in LAN mode, so the URLs use the **`.local`** TLD (resolvable from other devices on the same WiFi) — not `.localhost`. Don't disable LAN mode.
+`dev:portless` / `start:portless` wrap the autoport variants with [portless](https://github.com/vercel-labs/portless) for stable HTTPS URLs without a fixed port. Distinct app names (`lector-dev`, `lector-prod`) keep dev and prod from colliding. The proxy must already be running (`portless proxy start`) and the CA trusted once (`portless trust`). On this machine portless runs in **LAN mode**, so URLs use the **`.local`** TLD (reachable from other devices on the WiFi) — not `.localhost`. Don't disable LAN mode. **`dev:portless` is the normal way the dev server runs here** — restart with it, not plain `dev`.
 
 ## Critical: exFAT build constraint
 
-This project sits on an exFAT volume (the `E:` drive). exFAT cannot store symlinks, and on it `fs.readlink` throws `EISDIR` instead of the POSIX `EINVAL` — which crashes standard Node build tooling with errors like `EISDIR: illegal operation ... readlink`. Consequences:
+This project sits on an exFAT volume. exFAT cannot store symlinks, and on it `fs.readlink` throws `EISDIR` instead of POSIX `EINVAL`, crashing standard Node tooling (`EISDIR: illegal operation ... readlink`). Consequences:
 
-- **Build with Turbopack only** (`next build --turbopack`). The webpack builder crashes here; the npm scripts already pass `--turbopack`.
-- **Do not remove `apps/web/scripts/exfat-readlink-fix.cjs`** — it shims `fs.readlink` (`EISDIR`→`EINVAL`) and is loaded via `NODE_OPTIONS=--require` in every `apps/web` npm script.
-- **Use npm, not pnpm** — pnpm's symlink/rename steps also fail on exFAT.
-- **No npm workspaces** — workspaces also rely on symlinks/junctions. This monorepo wires the packages together with a TypeScript path alias instead (see "Monorepo layout").
+- **Build with Turbopack only** (`next build --turbopack`). The webpack builder crashes; the npm scripts already pass `--turbopack`.
+- **Do not remove `apps/web/scripts/exfat-readlink-fix.cjs`** — it shims `fs.readlink` (`EISDIR`→`EINVAL`), loaded via `NODE_OPTIONS=--require` in every `apps/web` npm script.
+- **Use npm, not pnpm**; **no npm workspaces** — both rely on symlinks/renames that fail on exFAT.
 
-Moving the project to an NTFS drive would make all of the above unnecessary.
+Moving to an NTFS drive would make all of the above unnecessary.
 
 ## Architecture
 
-The app is a thin UI (`apps/web`) over three parallel **server-side filesystem scanners** in `packages/core` — one for Skills, one for slash Commands, one for Hooks. Everything in `packages/core/src/` is server-only (uses `fs` / `child_process`) — never import it from a client component. `apps/web/lib/` holds app-local helpers, some of which (`i18n`, `utils`) are client-safe.
+`packages/core` = read, `packages/presets` = read+write, `apps/web` = thin UI. Everything in `packages/*/src` is server-only (`fs` / `child_process` / SQLite) — never import it from a client component. `apps/web/lib/` is the client-safe layer.
 
-### Scan pipeline — `packages/core/src/scanner.ts`
+### Readers — `packages/core`
 
-`scanSkills()` is the single entry point, used by every page and the API route:
+Four readers, each cached in-process for 8s (`{ force: true }` bypasses) and returning a typed `*Result` from `types.ts`. Parse failures degrade into each result's `errors` list instead of crashing.
 
-1. Resolves scan roots (`packages/core/src/claude-paths.ts`, `packages/core/src/config.ts`): personal `~/.claude/skills`, plugins `~/.claude/plugins`, Agent/Cowork session skills, project `.claude/skills` dirs (read from `~/.claude.json`), the bundled `apps/web/sample-skills/`, plus any configured extra roots.
-2. Recursively finds every `SKILL.md`; parses frontmatter (`skill-parser.ts` — deliberately lenient, recovers fields from malformed YAML); classifies each skill as `personal | plugin | project | local`; resolves its source via git remotes (`git.ts` → GitHub repo / other git remote / local directory); attaches usage counts from `~/.claude.json` (`usage.ts`).
-3. Deduplicates by logical identity (the same plugin+skill found across multiple Cowork sessions collapses to the newest) and returns a `ScanResult` (shape defined in `packages/core/src/types.ts`).
+- **`scanSkills()`** (`scanner.ts`) — walks every `SKILL.md` under personal `~/.claude/skills`, plugins, Agent/Cowork sessions, project `.claude/skills`, bundled `sample-skills/`, and configured roots; lenient frontmatter parse (`skill-parser.ts`); classifies `personal | plugin | project | local`; resolves source via git remotes (`git.ts`); attaches usage from `~/.claude.json` (`usage.ts`); dedupes by logical identity.
+- **`scanCommands()`** (`command-scanner.ts`) — every `.md` under personal/plugin/project `commands/`; subdirectories become a `:` namespace.
+- **`scanHooks()`** (`hook-scanner.ts`) — the `hooks` key of personal/plugin/project `settings.json` + `settings.local.json` (the `local` scope); flattens `{ event → matcher → command }` into one record each.
+- **`readDiscoverManifest()`** (`discover.ts`) — reads `.discover/results.json` (written by the discover skill, not the server) and annotates each entry vendored / not.
 
-Results are cached in-process for 8 seconds; pass `{ force: true }` to bypass.
+Scan roots + OS-specific locations live in `claude-paths.ts` / `config.ts`.
 
-### Command scan pipeline — `packages/core/src/command-scanner.ts`
+### Presets + Cheats — `packages/presets`
 
-`scanCommands()` mirrors `scanSkills()` for Claude Code slash commands. It scans three kinds of root: personal `~/.claude/commands`, each installed plugin's `commands/` directory, and project `.claude/commands` dirs (known projects from `~/.claude.json` plus the current working directory). Every `.md` file is a command — its name is the path relative to the `commands/` dir, with subdirectories becoming a `:` namespace. Frontmatter is parsed by `command-parser.ts`; the lenient YAML helpers shared with `skill-parser.ts` live in `frontmatter.ts`. Returns a `CommandScanResult`; cached for 8 seconds like the skill scan.
+The mutating package. SQLite at `~/.skills-lector/presets.db` (override via `SKILLS_LECTOR_PRESETS_DB` env or `dbPath` in config; file + parent auto-created). Forward-only, idempotent migrations in `migrations/`.
 
-### Hook scan pipeline — `packages/core/src/hook-scanner.ts`
+- **Presets** — `applyPreset()` scans personal-scope items, diffs with the pure `computeApplyDiff()`, then atomically writes each item's `disable-model-invocation` frontmatter (temp file + rename, exFAT-safe). Partial-success: per-file errors are logged and status set to `partial`; there's no global fs+DB transaction, so the next apply re-converges from the filesystem. Pinned items always stay enabled. Logged in `apply_log*`; `active_preset` is a singleton row. (Same frontmatter field as the `set-model-invocation` skill, but bulk/runtime vs per-item/authoring.)
+- **Cheats** — `cheats.ts` is the read side + the single `setFavorite` mutation; the bulk writer is `scripts/import-cheats.mjs`, run by the `cheats` skill / `/cheats` command (it mines reusable prompts from session history). Schema in migrations `002_cheats.sql`, `003_cheats_provenance.sql`.
 
-`scanHooks()` is the third scanner — it mirrors `scanCommands()` but reads a single JSON file per scope instead of walking a directory. It looks at four kinds of `settings.json`: personal `~/.claude/settings.json`, each installed plugin's `settings.json`, per-project `.claude/settings.json`, and per-project `.claude/settings.local.json` (the git-ignored, machine-specific scope, which surfaces as the `local` `HookScope`). Each file is read by `hook-parser.ts`, which parses **only** the `hooks` key — every other settings field is ignored — and flattens its nested `{ event → matcher group → command entry }` shape into one `Hook` record per `{ event, matcher, command }`, tagged with its source file's mtime and size. JSON parse failures and unknown event names degrade into the result's `errors` list rather than crashing the scan. Returns a `HookScanResult`; cached for 8 seconds, same as the skill and command scans.
+### Web UI — `apps/web`
 
-### Preset engine — `packages/presets/src/`
+Pages are `dynamic = "force-dynamic"` Server Components: they call the readers / SQLite directly, seed a per-request TanStack `QueryClient` (`setQueryData` + `<HydrationBoundary>`), and render client explorers — **no client fetch on first paint**. Client components then subscribe via `components/{scanner,presets,cheats}/use-*-queries.ts`; the matching `/api/*` routes back the `?force=1` Rescan and mutations (favorite, preset apply, pins), which optimistically patch the cache then invalidate.
 
-`packages/presets` is the **only mutating surface** in the project; `packages/core` stays pure read.
-`applyPreset()` reads SQLite for preset definitions + pinned items, scans personal-scope items via `packages/core`, computes a diff with the pure `computeApplyDiff()`, then writes each item's `disable-model-invocation` frontmatter atomically (temp file + rename — exFAT-safe). The apply is logged in `apply_log` / `apply_log_items`, and `active_preset` (a singleton row, `CHECK(id=1)`) is updated.
-
-Storage location: `~/.skills-lector/presets.db` by default. Overridable via `SKILLS_LECTOR_PRESETS_DB` env var or `dbPath` in `skills-lector.config.json`. Personal-scope apply target overridable via `SKILLS_LECTOR_PERSONAL_ROOT` (defaults to `~/.claude`); to point the scanner at the same root, also set `CLAUDE_CONFIG_DIR` (read by `packages/core`). The DB file and its parent directory are auto-created on first open. Schema migrations live in `packages/presets/src/migrations/`; forward-only, idempotent at the version level, each wrapped in BEGIN/COMMIT.
-
-Apply behaviour is partial-success — per-file errors are logged in `apply_log_items.action='error'` and do not abort the apply; status is set to `partial`. There is no global fs+DB transaction: on server crash mid-apply, the next apply re-scans the filesystem (the source of truth) and converges. Pinned items override preset membership (an item that is both pinned and in the new preset stays enabled; an item that is pinned but not in the new preset also stays enabled). The `enable` write removes the `disable-model-invocation` key entirely rather than setting it to `false`, to keep the file as close to its original default as possible.
-
-Relationship to the `set-model-invocation` skill (under `.claude/skills/`): both manipulate the same frontmatter field, but the skill is per-item / authoring-time and the preset engine is bulk / runtime. Either path is valid; they share no code.
-
-### Discover manifest reader — `packages/core/src/discover.ts`
-
-`readDiscoverManifest()` is the third reader, but it does not crawl the filesystem — it consumes a JSON file written by the `discover-popular-skills` Claude Code skill (see "Discover popular skills" below). It walks up from `cwd` to find the repo root (the web app's cwd is `apps/web/`), reads `.discover/results.json` if it exists, validates each entry leniently (a malformed row is reported in `errors` rather than crashing the read), then cross-references `.gitmodules` to annotate each entry with `vendored` / `vendorPath`. Returns a `DiscoverResult` (shape in `types.ts`); cached for 8 seconds, invalidated whenever the manifest's mtime changes. The manifest schema is `schemaVersion: 1`; bump that field on any breaking change to keep the skill and the reader in lockstep.
-
-### UI data flow
-
-Pages are dynamic Server Components (`export const dynamic = "force-dynamic"`) that call `scanSkills()` / `scanCommands()` / `scanHooks()` / `readDiscoverManifest()` directly and hand plain, serializable data to client components — there is no client-side fetching for the initial render. `apps/web/components/skills-explorer.tsx`, `commands-explorer.tsx`, and `hooks-explorer.tsx` are the stateful client components (search / filter / sort, all in-browser). The Skills catalog lives at `/` and `/skills/[id]`; the Commands catalog mirrors it at `/commands` and `/commands/[id]`; the Hooks catalog at `/hooks` and `/hooks/[id]`; the Discover view is a single page at `/discover`. `apps/web/app/api/skills/route.ts`, `app/api/commands/route.ts`, `app/api/hooks/route.ts`, and `app/api/discover/route.ts` return the corresponding results as JSON; the Rescan button force-refreshes all of them (plus activity) with `?force=1` then calls `router.refresh()`.
-
-`apps/web/lib/` holds the app-only modules that depend on React/Next or i18n and therefore stay out of `packages/core`: `analytics.ts` and `relations.ts` (view-model builders for the analytics and graph pages), `i18n/` (locale context + dictionaries), `theme.ts`, and `utils.ts` (the shadcn `cn` helper and locale-aware formatting).
+Catalogs (list + `/[id]` detail): **Skills** `/` & `/skills/[id]`, **Commands** `/commands`, **Hooks** `/hooks`, **Cheats** `/cheats`. Other pages: **Presets** `/presets` (+ `/presets/new`, `/presets/[id]`, `/presets/log`), **Discover** `/discover`, plus `/analytic`, `/graph`, `/sources`, `/usecase`. Explorer filter/sort/page state lives in the **URL** — the Cheats explorer shares `lib/cheats-filter.ts` between its list and the detail page's prev/next/back nav so both walk the identical filtered list.
 
 ### Cross-platform
 
-Targets Windows and macOS — always use `os.homedir()` and `path`, never hardcoded separators. `packages/core/src/claude-paths.ts` centralizes OS-specific locations (the Agent/Cowork skills directory differs between AppData / Application Support / `.config`).
+Targets Windows + macOS — always `os.homedir()` and `path`, never hardcoded separators. `claude-paths.ts` centralizes OS-specific locations (the Agent/Cowork dir differs across AppData / Application Support / `.config`).
 
 ## Configuration
 
-- `skills-lector.config.json` (git-ignored; template in `apps/web/skills-lector.config.example.json`) or the `SKILLS_SCAN_ROOTS` env var add extra scan roots. The scanner reads the config from the current working directory — when started via the npm scripts that is `apps/web/`, so place a real `skills-lector.config.json` there.
-- `CLAUDE_CONFIG_DIR` overrides the `~/.claude` location.
+- `skills-lector.config.json` (git-ignored; template `skills-lector.config.example.json`) or `SKILLS_SCAN_ROOTS` add extra scan roots. Read from cwd = `apps/web/` under the npm scripts, so place it there.
+- `CLAUDE_CONFIG_DIR` overrides `~/.claude`; `SKILLS_LECTOR_PERSONAL_ROOT` overrides the preset apply target.
 
 ## Vendored skills
 
-External Claude Skills are pulled in as **git submodules under `vendor/`** (e.g. `vendor/9arm-skills`). After cloning this repo, run `git submodule update --init --recursive` to populate them.
-
-A project skill at `.claude/skills/install-vendor-skill/` owns the vendor workflow: list the skills in `vendor/`, install one into `~/.claude/skills/` (personal) or `.claude/skills/` (project), and add new submodules. Its helper script is `node .claude/skills/install-vendor-skill/scripts/vendor-skills.mjs <list|install|installed>`. Installing **copies** the skill directory — exFAT cannot store symlinks.
-
-The `/vendor-install` slash command (`.claude/commands/vendor-install.md`) is a thin shortcut over that script: run it bare to list vendored skills, or `/vendor-install <skill-name>` to install one.
+External skills are **git submodules under `vendor/`** — run `git submodule update --init --recursive` after cloning. The `install-vendor-skill` skill (and `/vendor-install` command) list/install them into `~/.claude/skills` or `.claude/skills`; installing **copies** the directory (exFAT has no symlinks). Helper: `node .claude/skills/install-vendor-skill/scripts/vendor-skills.mjs <list|install|installed>`.
 
 ## Discover popular skills
 
-The discovery loop has two halves that integrate **only through a JSON file on disk** — the web app makes no GitHub calls.
-
-- **Claude Code side** — the `.claude/skills/discover-popular-skills/` skill (helper at `scripts/discover.mjs`) and its `/discover-skills` slash command. `node .claude/skills/discover-popular-skills/scripts/discover.mjs <search|clone|status>` queries the GitHub search API for the most popular Claude-Skills repositories, writes the ranked top 10 to `.discover/results.json` at the repo root, and on confirmation runs `git submodule add … vendor/<name>` for the chosen repos. It prefers `gh api` when the GitHub CLI is available (5000 req/hr); falls back to unauthenticated `fetch` (~10 req/min for search) and reports `rateLimited` in the manifest when GitHub throttles a run. The outbound network call lives **only** in this script — never in the Next.js server.
-- **Web side** — the `/discover` page in `apps/web` reads the manifest via `readDiscoverManifest()` and shows the ranked list with each entry marked *vendored* / *not vendored*. When no manifest exists yet (fresh clone, skill never run), it shows an empty state pointing the user at `/discover-skills`.
-
-`.discover/results.json` is git-ignored — it is a local discovery cache. Its shape is documented in the `DiscoverManifest` / `DiscoverEntry` types in `packages/core/src/types.ts`; the discover skill's `SKILL.md` carries the canonical JSON sample.
+Two halves joined only by `.discover/results.json` (git-ignored cache) — the web app makes **no** GitHub calls. The `discover-popular-skills` skill (`/discover-skills`, helper `scripts/discover.mjs`) queries GitHub for popular Claude-Skills repos, writes the ranked top 10, and on confirmation runs `git submodule add`. The `/discover` page just reads the manifest.
 
 ## Styling
 
-Tailwind CSS v4 — there is no `tailwind.config.ts`. The theme is defined entirely in `apps/web/app/globals.css`: OKLCH color tokens in `:root`/`.dark`, mapped to utilities via `@theme inline`, with `@plugin "@tailwindcss/typography"` and `@custom-variant dark`. PostCSS uses `@tailwindcss/postcss`; animations come from `tw-animate-css`. shadcn/ui components (`apps/web/components/ui/`) consume the tokens. The site header has a light/dark theme toggle.
+Tailwind CSS v4, no config file — the theme lives entirely in `apps/web/app/globals.css` (OKLCH tokens in `:root`/`.dark`, mapped via `@theme inline`, `@plugin "@tailwindcss/typography"`, `@custom-variant dark`). shadcn/ui (`components/ui/`) consume the tokens; `tw-animate-css` handles animation; the header has a light/dark toggle. **Use semantic tokens (e.g. `border-border`), not hardcoded palette values like `border-gray-200`, so dark mode stays correct.**
