@@ -1,7 +1,13 @@
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CopyButton } from "@/components/copy-button";
 import { CheatDetailNav } from "@/components/cheats/cheat-detail-nav";
@@ -11,7 +17,13 @@ import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
+function MetaRow({
+    label,
+    children,
+}: {
+    label: string;
+    children: React.ReactNode;
+}) {
     return (
         <div className="flex items-start justify-between gap-4 py-2 text-sm">
             <span className="shrink-0 text-muted-foreground">{label}</span>
@@ -31,7 +43,8 @@ export default async function CheatDetailPage({
     const { show } = await searchParams;
     const { t } = await getServerI18n();
     const cheatId = Number(id);
-    const cheat = Number.isInteger(cheatId) && cheatId > 0 ? getCheat(cheatId) : null;
+    const cheat =
+        Number.isInteger(cheatId) && cheatId > 0 ? getCheat(cheatId) : null;
     if (!cheat) notFound();
 
     // Mirror the list's display preference: lead with the version the user was
@@ -40,18 +53,26 @@ export default async function CheatDetailPage({
 
     const improvedCard = (
         <Card className="rounded-sm">
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base">{t.cheatsPage.improvedLabel}</CardTitle>
-                {cheat.improved && <CopyButton value={cheat.improved} />}
+            <CardHeader>
+                <CardTitle className="text-base">
+                    {t.cheatsPage.improvedLabel}
+                </CardTitle>
+                {cheat.improved && (
+                    <CardAction>
+                        <CopyButton value={cheat.improved} />
+                    </CardAction>
+                )}
             </CardHeader>
-            <Separator className="border-b border-dotted border-border" />
-            <CardContent className="pt-4">
+            <Separator className="border-b border-dotted border-border m-0" />
+            <CardContent className="p-0">
                 {cheat.improved ? (
                     <pre className="whitespace-pre-wrap break-words rounded-none bg-secondary p-3 text-sm">
                         {cheat.improved}
                     </pre>
                 ) : (
-                    <p className="text-sm text-muted-foreground">{t.cheatsPage.noImproved}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {t.cheatsPage.noImproved}
+                    </p>
                 )}
             </CardContent>
         </Card>
@@ -59,12 +80,16 @@ export default async function CheatDetailPage({
 
     const originalCard = (
         <Card className="rounded-sm">
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base">{t.cheatsPage.originalLabel}</CardTitle>
-                <CopyButton value={cheat.original} />
+            <CardHeader>
+                <CardTitle className="text-base">
+                    {t.cheatsPage.originalLabel}
+                </CardTitle>
+                <CardAction>
+                    <CopyButton value={cheat.original} />
+                </CardAction>
             </CardHeader>
-            <Separator className="border-b border-dotted border-border" />
-            <CardContent className="pt-4">
+            <Separator className="border-b border-dotted border-border m-0" />
+            <CardContent className="p-0">
                 <pre className="whitespace-pre-wrap break-words rounded-none bg-secondary p-3 text-sm">
                     {cheat.original}
                 </pre>
@@ -77,7 +102,6 @@ export default async function CheatDetailPage({
             <CheatDetailNav cheatId={cheat.id} />
 
             <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight">{t.cheatsPage.title}</h1>
                 {cheat.favorite && (
                     <Badge variant="outline" className="gap-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />
@@ -100,7 +124,9 @@ export default async function CheatDetailPage({
 
             <Card className="rounded-sm">
                 <CardHeader>
-                    <CardTitle className="text-base">{t.detail.details}</CardTitle>
+                    <CardTitle className="text-base">
+                        {t.detail.details}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
                     <div className="divide-y">
@@ -113,14 +139,20 @@ export default async function CheatDetailPage({
                         </MetaRow>
                         {cheat.intent && (
                             <MetaRow label={t.cheatsPage.intentLabel}>
-                                <span className="font-mono text-xs">{cheat.intent}</span>
+                                <span className="font-mono text-xs">
+                                    {cheat.intent}
+                                </span>
                             </MetaRow>
                         )}
                         {cheat.tags.length > 0 && (
                             <MetaRow label={t.cheatsPage.tagsLabel}>
                                 <span className="flex flex-wrap justify-end gap-1">
                                     {cheat.tags.map((tag) => (
-                                        <Badge key={tag} variant="secondary" className="text-xs">
+                                        <Badge
+                                            key={tag}
+                                            variant="secondary"
+                                            className="text-xs"
+                                        >
                                             {tag}
                                         </Badge>
                                     ))}
@@ -129,19 +161,30 @@ export default async function CheatDetailPage({
                         )}
                         {typeof cheat.reuseScore === "number" && (
                             <MetaRow label={t.cheatsPage.reuseLabel}>
-                                <span className="tabular-nums">{cheat.reuseScore}</span>
+                                <span className="tabular-nums">
+                                    {cheat.reuseScore}
+                                </span>
                             </MetaRow>
                         )}
                         <MetaRow label={t.cheatsPage.occurrencesLabel}>
-                            <span className="tabular-nums">{cheat.occurrences}</span>
+                            <span className="tabular-nums">
+                                {cheat.occurrences}
+                            </span>
                         </MetaRow>
                         {cheat.project && (
                             <MetaRow label={t.cheatsPage.projectLabel}>
-                                <span className="break-all font-mono text-xs">{cheat.project}</span>
+                                <span className="break-all font-mono text-xs">
+                                    {cheat.project}
+                                </span>
                             </MetaRow>
                         )}
                         <MetaRow label={t.cheatsPage.colUpdated}>
-                            <span>{t.cheatsPage.seenRange(formatDate(cheat.firstSeenAt), formatDate(cheat.lastSeenAt))}</span>
+                            <span>
+                                {t.cheatsPage.seenRange(
+                                    formatDate(cheat.firstSeenAt),
+                                    formatDate(cheat.lastSeenAt),
+                                )}
+                            </span>
                         </MetaRow>
                     </div>
                 </CardContent>
