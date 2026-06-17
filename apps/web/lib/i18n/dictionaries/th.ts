@@ -294,6 +294,8 @@ export const th: Dictionary = {
         showOriginal: "ต้นฉบับ",
         showImproved: "ปรับปรุง",
         displayModeLabel: "เวอร์ชันพรอมต์",
+        switchToOriginal: "กำลังแสดงฉบับปรับปรุง — สลับไปต้นฉบับ",
+        switchToImproved: "กำลังแสดงต้นฉบับ — สลับไปฉบับปรับปรุง",
         viewModeLabel: "โหมดมุมมอง",
         backToList: "กลับไปหน้าพรอมต์",
         itemPosition: (current, total) => `${current} จาก ${total}`,

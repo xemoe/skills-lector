@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
+    ArrowLeftRight,
     ArrowUpDown,
     ChevronLeft,
     ChevronRight,
@@ -15,6 +16,8 @@ import {
     ShieldCheck,
     Star,
 } from "lucide-react";
+import { SlotText } from "slot-text/react";
+import "slot-text/style.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,6 +51,7 @@ import {
     filterSortCheats,
     parseCheatFilters,
     type CheatFilters,
+    type ShowMode,
     type SortKey,
 } from "@/lib/cheats-filter";
 
@@ -58,6 +62,32 @@ function basename(p: string): string {
 }
 
 const SEARCH_DEBOUNCE_MS = 250;
+
+// slot-text renders one span per character, and the card prompt only shows a
+// single clipped line — so cap how much we hand it. The full prompt still backs
+// the copy button. ponytail: fixed cap, not width-aware; bump if cards widen.
+const SLOT_MAX_CHARS = 160;
+const SLOT_OPTS = { direction: "up", duration: 280, stagger: 6 } as const;
+const SLOT_OPTS_REDUCED = { direction: "up", duration: 0, stagger: 0 } as const;
+
+/** Collapse a prompt to a single capped line for the slot-text display. */
+function toSingleLine(text: string): string {
+    const flat = text.replace(/\s+/g, " ").trim();
+    return flat.length > SLOT_MAX_CHARS ? `${flat.slice(0, SLOT_MAX_CHARS).trimEnd()}…` : flat;
+}
+
+/** Tracks the OS "reduce motion" setting so slot-text can snap instead of roll. */
+function usePrefersReducedMotion(): boolean {
+    const [reduced, setReduced] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+        setReduced(mq.matches);
+        const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
+    }, []);
+    return reduced;
+}
 
 export function CheatsExplorer() {
     const router = useRouter();
@@ -70,6 +100,28 @@ export function CheatsExplorer() {
     const { data } = useCheatsList();
     const cheats = useMemo(() => data?.cheats ?? [], [data]);
     const toggleFav = useToggleFavorite();
+
+    const prefersReducedMotion = usePrefersReducedMotion();
+    const slotOpts = prefersReducedMotion ? SLOT_OPTS_REDUCED : SLOT_OPTS;
+
+    // Per-card prompt-version override (card view only). Only ONE card may
+    // deviate from the global `show` filter at a time: toggling a different card
+    // replaces this, so the previously-toggled card snaps back to the filter set.
+    const [override, setOverride] = useState<{ id: number; show: ShowMode } | null>(null);
+    // Re-baseline when the global default changes — the top radio owns the baseline.
+    useEffect(() => setOverride(null), [filters.show]);
+    const showFor = useCallback(
+        (id: number): ShowMode => (override?.id === id ? override.show : filters.show),
+        [override, filters.show],
+    );
+    const toggleShow = useCallback(
+        (id: number) =>
+            setOverride((prev) => {
+                const current = prev?.id === id ? prev.show : filters.show;
+                return { id, show: current === "original" ? "improved" : "original" };
+            }),
+        [filters.show],
+    );
 
     // URL is the single source of truth for filters. Replace (not push) so
     // tweaking filters doesn't flood browser history.
@@ -436,11 +488,13 @@ export function CheatsExplorer() {
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {paged.map((c) => {
                         const isFav = c.favorite;
-                        const text = displayedPrompt(c, filters.show);
+                        const show = showFor(c.id);
+                        const text = displayedPrompt(c, show);
+                        const improvedActive = show === "improved";
                         return (
                             <Card
                                 key={c.id}
-                                className="group flex cursor-pointer flex-col rounded-sm transition-colors hover:bg-accent"
+                                className="cheat-card group flex cursor-pointer flex-col overflow-visible rounded-sm transition-colors hover:bg-accent"
                                 onClick={() => router.push(detailHref(c.id))}
                             >
                                 <CardContent className="flex h-full flex-col gap-3 p-4">
@@ -472,6 +526,34 @@ export function CheatsExplorer() {
                                             className="-mr-1.5 flex items-center"
                                             onClick={(e) => e.stopPropagation()}
                                         >
+                                            {c.improved && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-pressed={improvedActive}
+                                                    aria-label={
+                                                        improvedActive
+                                                            ? t.cheatsPage.switchToOriginal
+                                                            : t.cheatsPage.switchToImproved
+                                                    }
+                                                    title={
+                                                        improvedActive
+                                                            ? t.cheatsPage.switchToOriginal
+                                                            : t.cheatsPage.switchToImproved
+                                                    }
+                                                    onClick={() => toggleShow(c.id)}
+                                                >
+                                                    <ArrowLeftRight
+                                                        aria-hidden="true"
+                                                        className={cn(
+                                                            "h-4 w-4",
+                                                            improvedActive
+                                                                ? "text-primary"
+                                                                : "text-muted-foreground",
+                                                        )}
+                                                    />
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="icon-sm"
@@ -502,7 +584,15 @@ export function CheatsExplorer() {
                                             <CopyButton value={text} size="icon-sm" />
                                         </div>
                                     </div>
-                                    <p className="line-clamp-4 flex-1 text-sm">{text}</p>
+                                    <div className="flex-1">
+                                        <div className="cheat-prompt-line overflow-hidden">
+                                            <SlotText
+                                                text={toSingleLine(text)}
+                                                options={slotOpts}
+                                                className="text-sm"
+                                            />
+                                        </div>
+                                    </div>
                                     {c.tags.length > 0 && (
                                         <div className="flex flex-wrap gap-1">
                                             {c.tags.slice(0, 4).map((tag) => (

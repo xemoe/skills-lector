@@ -145,3 +145,82 @@
 .wave-spinner-dot {
     animation: wave-spinner 1.4s ease-in-out infinite;
 }
+
+/* Cheat card hover treatment — rainbow border ring + soft glow that spin on
+   hover. The angle is a registered custom property so it can be animated (a
+   bare conic-gradient angle can't transition). Two pseudo-elements share the
+   gradient: ::before is masked to a thin ring (border), ::after is blurred and
+   sits behind the opaque card so only the halo bleeds out the edges. The card
+   itself must be overflow-visible (see the explorer's card className) or the
+   glow gets clipped. */
+@property --rainbow-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+@keyframes rainbow-spin {
+    to {
+        --rainbow-angle: 360deg;
+    }
+}
+.cheat-card {
+    position: relative;
+    --rainbow: conic-gradient(
+        from var(--rainbow-angle),
+        oklch(70% 0.2 0),
+        oklch(72% 0.2 60),
+        oklch(72% 0.2 120),
+        oklch(70% 0.2 180),
+        oklch(72% 0.2 240),
+        oklch(70% 0.2 300),
+        oklch(70% 0.2 360)
+    );
+}
+.cheat-card::before,
+.cheat-card::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit;
+    background: var(--rainbow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+}
+/* Border ring: full-bleed gradient masked to a 1.5px edge. */
+.cheat-card::before {
+    inset: 0;
+    padding: 1.5px;
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+/* Glow: blurred copy, pushed behind the card so only the halo shows. */
+.cheat-card::after {
+    inset: -2px;
+    z-index: -1;
+    filter: blur(13px);
+}
+.cheat-card:hover::before {
+    opacity: 1;
+    animation: rainbow-spin 4s linear infinite;
+}
+.cheat-card:hover::after {
+    opacity: 0.55;
+    animation: rainbow-spin 4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .cheat-card:hover::before,
+    .cheat-card:hover::after {
+        animation: none;
+    }
+}
+
+/* Single-line slot-text prompt: clip the overflow and fade the right edge to
+   signal the text continues (text-overflow:ellipsis can't apply to slot-text's
+   per-character spans). */
+.cheat-prompt-line {
+    -webkit-mask-image: linear-gradient(to right, #000 80%, transparent);
+    mask-image: linear-gradient(to right, #000 80%, transparent);
+}

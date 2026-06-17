@@ -27,6 +27,7 @@
         "react-dom": "^19.0.0",
         "react-markdown": "^9.0.3",
         "remark-gfm": "^4.0.1",
+        "slot-text": "^0.1.1",
         "tailwind-merge": "^2.6.1",
         "three": "^0.184.0",
         "three-spritetext": "^1.10.0",

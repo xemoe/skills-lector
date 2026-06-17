@@ -302,6 +302,8 @@ export const en = {
         showOriginal: "Original",
         showImproved: "Improved",
         displayModeLabel: "Prompt version",
+        switchToOriginal: "Showing improved — switch to original",
+        switchToImproved: "Showing original — switch to improved",
         viewModeLabel: "View mode",
         backToList: "Back to prompts",
         itemPosition: (current: number, total: number) => `${current} of ${total}`,
