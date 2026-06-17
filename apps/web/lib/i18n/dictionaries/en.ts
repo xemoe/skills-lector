@@ -285,6 +285,8 @@ export const en = {
         intentLabel: "Intent",
         seenRange: (first: string, last: string) => `First seen ${first} · last ${last}`,
         favoritedBadge: "Favorite",
+        viewTable: "Table view",
+        viewCards: "Card view",
         statTotal: "Total Prompts",
         statFavorites: "Favorites",
         statProjects: "Projects",

@@ -3,7 +3,17 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpDown, ChevronLeft, ChevronRight, Search, Star } from "lucide-react";
+import {
+    ArrowUpDown,
+    ChevronLeft,
+    ChevronRight,
+    Gauge,
+    LayoutGrid,
+    List,
+    Repeat2,
+    Search,
+    Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,12 +35,15 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CountBadge } from "@/components/count-badge";
 import { CopyButton } from "@/components/copy-button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatDate } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
 import type { Cheat } from "@lector/presets/types";
 
 type SortKey = "recent" | "reuse" | "used";
 type TabKey = "all" | "favorites";
+type ViewMode = "table" | "cards";
 
 const PAGE_SIZE = 10;
 
@@ -49,6 +62,7 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
     const [intentFilter, setIntentFilter] = useState("all");
     const [sort, setSort] = useState<SortKey>("recent");
     const [page, setPage] = useState(1);
+    const [view, setView] = useState<ViewMode>("table");
     const [favIds, setFavIds] = useState<Set<number>>(
         () => new Set(cheats.filter((c) => c.favorite).map((c) => c.id)),
     );
@@ -226,9 +240,34 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                         <SelectItem value="used">{t.cheatsPage.sortUsed}</SelectItem>
                     </SelectContent>
                 </Select>
+                <div className="flex items-center self-start rounded-md border lg:ml-auto lg:self-auto">
+                    <Button
+                        type="button"
+                        variant={view === "table" ? "secondary" : "ghost"}
+                        size="icon-sm"
+                        aria-label={t.cheatsPage.viewTable}
+                        aria-pressed={view === "table"}
+                        title={t.cheatsPage.viewTable}
+                        onClick={() => setView("table")}
+                    >
+                        <List className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={view === "cards" ? "secondary" : "ghost"}
+                        size="icon-sm"
+                        aria-label={t.cheatsPage.viewCards}
+                        aria-pressed={view === "cards"}
+                        title={t.cheatsPage.viewCards}
+                        onClick={() => setView("cards")}
+                    >
+                        <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
-            <div className="ring-1 ring-foreground/10">
+            {view === "table" ? (
+                <div className="ring-1 ring-foreground/10">
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
@@ -322,7 +361,112 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                         )}
                     </TableBody>
                 </Table>
-            </div>
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="rounded-sm border border-dashed p-10 text-center text-sm text-muted-foreground">
+                    {t.cheatsPage.noMatch}
+                </div>
+            ) : (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {paged.map((c) => {
+                        const isFav = favIds.has(c.id);
+                        return (
+                            <Card
+                                key={c.id}
+                                className="group flex cursor-pointer flex-col rounded-sm transition-colors hover:bg-accent"
+                                onClick={() => router.push(`/cheats/${c.id}`)}
+                            >
+                                <CardContent className="flex h-full flex-col gap-3 p-4">
+                                    <div className="flex items-start justify-between gap-2">
+                                        {c.intent ? (
+                                            <Badge
+                                                variant="secondary"
+                                                className="font-mono text-[11px]"
+                                            >
+                                                {c.intent}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">
+                                                —
+                                            </span>
+                                        )}
+                                        <div
+                                            className="-mr-1.5 flex items-center"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                title={
+                                                    isFav
+                                                        ? t.cheatsPage.unfavorite
+                                                        : t.cheatsPage.favorite
+                                                }
+                                                onClick={() => void toggleFavorite(c)}
+                                            >
+                                                <Star
+                                                    className={cn(
+                                                        "h-4 w-4",
+                                                        isFav
+                                                            ? "fill-yellow-400 text-yellow-500"
+                                                            : "text-muted-foreground",
+                                                    )}
+                                                />
+                                            </Button>
+                                            <CopyButton
+                                                value={c.improved ?? c.original}
+                                                size="icon-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="line-clamp-4 flex-1 text-sm">
+                                        {c.improved ?? c.original}
+                                    </p>
+                                    {c.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                            {c.tags.slice(0, 4).map((tag) => (
+                                                <Badge
+                                                    key={tag}
+                                                    variant="outline"
+                                                    className="text-[10px]"
+                                                >
+                                                    {tag}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className="flex items-center justify-between gap-2 border-t pt-2 text-xs text-muted-foreground">
+                                        <span className="flex items-center gap-3 tabular-nums">
+                                            <span
+                                                className="inline-flex items-center gap-1"
+                                                title={t.cheatsPage.reuseLabel}
+                                            >
+                                                <Gauge className="h-3 w-3" />
+                                                {c.reuseScore ?? "—"}
+                                            </span>
+                                            <span
+                                                className="inline-flex items-center gap-1"
+                                                title={t.cheatsPage.occurrencesLabel}
+                                            >
+                                                <Repeat2 className="h-3 w-3" />
+                                                {c.occurrences}
+                                            </span>
+                                        </span>
+                                        {c.project && (
+                                            <span
+                                                className="truncate font-mono"
+                                                title={c.project}
+                                            >
+                                                {basename(c.project)}
+                                            </span>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+            )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-muted-foreground">

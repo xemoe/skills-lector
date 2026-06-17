@@ -277,6 +277,8 @@ export const th: Dictionary = {
         intentLabel: "ใจความ",
         seenRange: (first, last) => `เห็นครั้งแรก ${first} · ล่าสุด ${last}`,
         favoritedBadge: "รายการโปรด",
+        viewTable: "มุมมองตาราง",
+        viewCards: "มุมมองการ์ด",
         statTotal: "พรอมต์ทั้งหมด",
         statFavorites: "รายการโปรด",
         statProjects: "โปรเจ็กต์",
