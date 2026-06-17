@@ -1,0 +1,459 @@
+<!doctype html>
+<!--
+  Cheats feature — design spec. Formal HTML report (black / white / red, GitHub-style, A4-PDF-ready).
+  Self-contained: system font stacks, inline SVG diagrams. No external URLs.
+  Export PDF:  node ~/.claude/skills/formal-html-report/assets/make-pdf.cjs this-file.html out.pdf
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cheats — Reusable Prompt Library · Design Spec</title>
+<style>
+:root{
+  --black:#111111;
+  --black-soft:#404040;
+  --white:#ffffff;
+  --paper:#fbfbfb;
+  --red:#cf222e;
+  --red-deep:#a40e26;
+  --red-tint:#fff5f5;
+  --line:#e0e0e0;
+  --line-strong:#111111;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--white);color:var(--black);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,
+    "Sarabun","Noto Sans Thai","Leelawadee UI","Tahoma",sans-serif;
+  font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+
+/* ---- sticky masthead ---- */
+.topbar{position:sticky;top:0;z-index:20;background:var(--white);
+  border-bottom:3px solid var(--red);padding:14px 40px;display:flex;align-items:center;gap:14px}
+.topbar .mark{flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;background:var(--red);color:var(--white);border-radius:6px;font-weight:800;font-size:14px;letter-spacing:.5px}
+.topbar .crumbs{font-size:14px;color:var(--black-soft)}
+.topbar .crumbs b{color:var(--black);font-weight:700}
+.topbar .crumbs .sep{margin:0 8px;color:var(--black-soft)}
+.topbar .stamp{margin-left:auto;font-size:13px;color:var(--black-soft);
+  border:1px solid var(--line);border-radius:2em;padding:2px 12px}
+
+/* ---- document frame ---- */
+.page{max-width:1180px;margin:32px auto 80px;padding:0 24px}
+.sheet{background:var(--white);border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;
+  box-shadow:0 1px 0 rgba(17,17,17,.04)}
+.doc{padding:48px 64px}
+@media(max-width:900px){.doc{padding:32px 22px}.topbar{padding:12px 18px}}
+
+/* ---- report head ---- */
+.doc-head{border-bottom:2px solid var(--black);padding-bottom:22px;margin-bottom:8px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);margin:0 0 10px}
+h1{font-size:32px;line-height:1.35;font-weight:800;margin:0 0 8px;letter-spacing:-.2px}
+.subtitle{font-size:17px;color:var(--black-soft);margin:0}
+.meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:28px 0 8px}
+.meta-grid div{background:var(--white);padding:12px 16px}
+.meta-grid dt{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--red);margin:0 0 2px}
+.meta-grid dd{margin:0;font-size:15px;font-weight:600;color:var(--black)}
+@media(max-width:900px){.meta-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- table of contents ---- */
+.toc{margin:32px 0;padding:18px 22px;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:6px;background:var(--paper)}
+.toc h2{border:0;margin:0 0 10px;padding:0;font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--red)}
+.toc ol{margin:0;padding-left:1.4em;columns:2;column-gap:40px}
+.toc li{margin:4px 0}
+.toc a{color:var(--black);text-decoration:none;font-weight:600}
+.toc a:hover{color:var(--red);text-decoration:underline}
+@media(max-width:900px){.toc ol{columns:1}}
+
+/* ---- headings ---- */
+h2{font-size:23px;font-weight:800;margin:48px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line);scroll-margin-top:80px}
+h2 .n{color:var(--red);margin-right:10px;font-variant-numeric:tabular-nums}
+h3{font-size:18px;font-weight:700;margin:30px 0 12px}
+h3::before{content:"";display:inline-block;width:8px;height:8px;background:var(--red);margin-right:10px;vertical-align:middle;border-radius:1px}
+p{margin:0 0 16px}
+strong{font-weight:700}
+.lead{font-size:18px;line-height:1.7}
+
+code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-size:88%;
+  background:var(--paper);border:1px solid var(--line);padding:.08em .42em;border-radius:5px;color:var(--red-deep);white-space:break-spaces}
+a{color:var(--red-deep);text-decoration:none;font-weight:600}
+a:hover{text-decoration:underline}
+
+/* ---- lists ---- */
+ul,ol{padding-left:1.6em;margin:0 0 16px}
+li{margin:6px 0}
+li::marker{color:var(--red)}
+.flow{list-style:none;padding-left:0;counter-reset:step}
+.flow>li{counter-increment:step;position:relative;padding:10px 0 10px 52px;border-bottom:1px dashed var(--line)}
+.flow>li:last-child{border-bottom:0}
+.flow>li::before{content:counter(step);position:absolute;left:0;top:8px;width:32px;height:32px;
+  background:var(--black);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.flow>li.drop::before{background:var(--red)}
+
+/* ---- tables ---- */
+.tbl-wrap{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line-strong);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+thead th{background:var(--red);color:var(--white);font-weight:700;text-align:left;padding:11px 16px;border-bottom:2px solid var(--red-deep)}
+tbody td,tbody th{padding:10px 16px;border-top:1px solid var(--line);vertical-align:top;text-align:left}
+tbody th{font-weight:700;background:var(--paper);white-space:nowrap}
+tbody tr:nth-child(2n) td,tbody tr:nth-child(2n) th{background:var(--paper)}
+tbody tr:hover td,tbody tr:hover th{background:var(--red-tint)}
+td .num{font-variant-numeric:tabular-nums;font-weight:700}
+td.center{text-align:center}
+
+/* ---- callouts / takeaway ---- */
+.callout{border:1px solid var(--line);border-left:5px solid var(--red);border-radius:6px;padding:16px 20px;margin:0 0 20px;background:var(--red-tint)}
+.callout.note{border-left-color:var(--black);background:var(--paper)}
+.callout .t{display:flex;align-items:center;gap:8px;font-weight:800;margin-bottom:6px}
+.callout .t .tag{font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--red)}
+.callout.note .t .tag{color:var(--black)}
+.callout p:last-child{margin-bottom:0}
+.takeaway{display:flex;gap:14px;align-items:flex-start;border:2px solid var(--black);border-radius:8px;padding:16px 20px;margin:18px 0 0;background:var(--white)}
+.takeaway .key{flex:none;background:var(--black);color:var(--white);font-weight:800;font-size:13px;letter-spacing:.5px;padding:4px 12px;border-radius:4px;text-transform:uppercase}
+.takeaway p{margin:0}
+
+/* ---- badges ---- */
+.badge{display:inline-block;font-size:12px;font-weight:700;line-height:1.6;padding:1px 10px;border-radius:2em;border:1px solid}
+.badge.warn{color:var(--red-deep);border-color:var(--red);background:var(--red-tint)}
+.badge.crit{color:var(--white);border-color:var(--red-deep);background:var(--red)}
+.badge.ok{color:var(--black);border-color:var(--line-strong);background:var(--white)}
+
+/* ---- option cards ---- */
+.opt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0 0}
+@media(max-width:900px){.opt-grid{grid-template-columns:1fr}}
+.opt{border:1px solid var(--line-strong);border-radius:8px;padding:18px;background:var(--white)}
+.opt.pick{border-color:var(--red);border-width:2px}
+.opt h4{margin:0 0 8px;font-size:15px;font-weight:800}
+.opt .pin{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--red);margin-bottom:6px}
+.opt p{font-size:14px;color:var(--black-soft);margin:0}
+
+/* ---- figures ---- */
+.figure{margin:10px 0 24px;border:1px solid var(--line);border-radius:8px;padding:18px 20px 12px;background:var(--white)}
+.figure svg{display:block;width:100%;height:auto}
+.figure figcaption{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13.5px;color:var(--black-soft);text-align:center}
+.figure .fig-no{color:var(--red);font-weight:800}
+
+/* ---- footer ---- */
+.foot{border-top:2px solid var(--black);margin-top:48px;padding-top:18px;font-size:13px;color:var(--black-soft)}
+.foot b{color:var(--black)}
+hr{height:1px;border:0;background:var(--line);margin:36px 0}
+
+/* ---- print / PDF ---- */
+@media print {
+  @page { size: A4; }
+  html,body{background:#fff !important}
+  .topbar{position:static}
+  .page{margin:0;padding:0;max-width:none}
+  .sheet{border:0;border-radius:0;box-shadow:none}
+  .doc{padding:0}
+  .doc-head{margin-top:0}
+  .doc > h2{break-before:page;page-break-before:always;margin-top:0}
+  .doc > h2,.doc h3{break-after:avoid;page-break-after:avoid}
+  .figure,figure,.tbl-wrap,table,.callout,.takeaway,.opt,.meta-grid,.toc,.flow>li{
+    break-inside:avoid;page-break-inside:avoid}
+  a{color:var(--black);text-decoration:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="mark">SL</span>
+  <span class="crumbs">Skills Lector <span class="sep">/</span> Design Spec <span class="sep">/</span> <b>Cheats</b></span>
+  <span class="stamp">2026-06-17</span>
+</header>
+
+<div class="page">
+<div class="sheet">
+<article class="doc">
+
+  <div class="doc-head">
+    <p class="eyebrow">Design Spec · Engineering</p>
+    <h1>Cheats — A Reusable Prompt Library from Your Claude History</h1>
+    <p class="subtitle">A new <code>/cheats</code> catalog page backed by SQLite, populated by a Claude Code analysis command.</p>
+  </div>
+
+  <dl class="meta-grid">
+    <div><dt>Status</dt><dd>Draft · for review</dd></div>
+    <div><dt>Date</dt><dd>2026-06-17</dd></div>
+    <div><dt>Storage</dt><dd>presets.db · table v2</dd></div>
+    <div><dt>Scope</dt><dd>One feature, one plan</dd></div>
+  </dl>
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">Summary</a></li>
+      <li><a href="#s2">Goals &amp; constraints</a></li>
+      <li><a href="#s3">Architecture</a></li>
+      <li><a href="#s4">Data model</a></li>
+      <li><a href="#s5">Generator pipeline</a></li>
+      <li><a href="#s6">Web layer &amp; UI</a></li>
+      <li><a href="#s7">Edge cases &amp; testing</a></li>
+      <li><a href="#s8">Approaches &amp; decisions</a></li>
+    </ol>
+  </nav>
+
+  <!-- ===== §1 ===== -->
+  <h2 id="s1"><span class="n">§1</span>Summary</h2>
+  <p class="lead">A <strong>Cheats</strong> feature that turns your past Claude prompts into a searchable, reusable prompt library. A Claude Code command reads your session history, analyzes it, and stores curated prompts in SQLite. A new <code>/cheats</code> web page lets you browse, copy, and favorite them.</p>
+  <ul>
+    <li><strong>The problem</strong> — Good prompts you wrote weeks ago are buried in transcripts. There is no way to find and reuse them.</li>
+    <li><strong>The split</strong> — Heavy lifting (read history, analyze, improve) happens in a Claude Code command. The web app only reads. This mirrors the existing <code>/discover</code> feature.</li>
+    <li><strong>The payoff</strong> — One page where every reusable prompt you have ever written is curated, improved, tagged, and one click from your clipboard.</li>
+  </ul>
+  <div class="callout note">
+    <div class="t"><span class="tag">Note</span></div>
+    <p>The web app never calls an LLM or the network — a hard project rule. All analysis and improvement happens inside the Claude Code command; the page reads pre-computed rows from SQLite.</p>
+  </div>
+  <div class="takeaway">
+    <span class="key">Takeaway</span>
+    <p>A Claude Code command writes curated prompts to <code>presets.db</code>; the <code>/cheats</code> page reads them. Browse, copy, favorite.</p>
+  </div>
+
+  <!-- ===== §2 ===== -->
+  <h2 id="s2"><span class="n">§2</span>Goals &amp; constraints</h2>
+
+  <h3>In scope</h3>
+  <ul>
+    <li>Extract user-typed prompts from <strong>all projects</strong> in <code>~/.claude/projects/**/*.jsonl</code>.</li>
+    <li>Use Claude to <strong>analyze + improve</strong> each prompt: dedupe, tag, rate reusability, and store a rewritten version next to the original.</li>
+    <li>A <code>/cheats</code> page: search, filter, sort, copy to clipboard, a detail page per cheat, and favorite (pin).</li>
+    <li>Persist everything in the existing <code>presets.db</code> via a new migration.</li>
+  </ul>
+
+  <h3>Out of scope (YAGNI)</h3>
+  <ul>
+    <li>Live, in-browser prompt improvement — impossible under the no-LLM-in-web rule.</li>
+    <li>Editing the stored prompt text from the web. Authoring stays in Claude Code.</li>
+    <li>A separate database or package. Reuse what exists.</li>
+  </ul>
+
+  <h3>Hard constraints</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Constraint</th><th>Consequence for this design</th></tr></thead>
+    <tbody>
+      <tr><th>No LLM / network in web</th><td>Web is read + one small write (favorite). All intelligence is pre-computed.</td></tr>
+      <tr><th>exFAT volume</th><td>No symlinks. SQLite writes use temp-file + atomic rename, same as the preset engine.</td></tr>
+      <tr><th>No npm workspaces</th><td>Reader imported through the <code>@lector/presets/*</code> path alias, not a workspace link.</td></tr>
+      <tr><th>presets = only mutating surface</th><td>The favorite write lives in <code>packages/presets</code>, keeping <code>packages/core</code> pure-read.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- ===== §3 ===== -->
+  <h2 id="s3"><span class="n">§3</span>Architecture</h2>
+  <p>Two halves joined only through the database file. The Claude Code side produces; the web side consumes. Neither imports the other.</p>
+
+  <figure class="figure">
+  <svg viewBox="0 0 880 230" role="img" aria-label="Cheats architecture: a Claude Code generator writes to the cheats table in presets.db, which the web app reads">
+    <text x="20" y="26" font-size="16" font-weight="800" fill="#111111">Cheats — two-half architecture</text>
+
+    <!-- generator box -->
+    <rect x="20" y="70" width="250" height="92" rx="8" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+    <text x="145" y="98" font-size="14" font-weight="800" fill="#111111" text-anchor="middle">Claude Code generator</text>
+    <text x="145" y="120" font-size="12" fill="#404040" text-anchor="middle">skill + /cheats command</text>
+    <text x="145" y="140" font-size="12" fill="#404040" text-anchor="middle">extract &#8594; analyze &#8594; store</text>
+
+    <!-- db box (center, red) -->
+    <rect x="335" y="70" width="210" height="92" rx="8" fill="#cf222e" stroke="#a40e26" stroke-width="1.5"/>
+    <text x="440" y="104" font-size="14" font-weight="800" fill="#ffffff" text-anchor="middle">presets.db</text>
+    <text x="440" y="126" font-size="12" fill="#ffffff" text-anchor="middle">cheats table</text>
+    <text x="440" y="144" font-size="11" fill="#ffffff" text-anchor="middle" opacity="0.85">migration v2</text>
+
+    <!-- web box -->
+    <rect x="610" y="70" width="250" height="92" rx="8" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+    <text x="735" y="98" font-size="14" font-weight="800" fill="#111111" text-anchor="middle">Web app — /cheats</text>
+    <text x="735" y="120" font-size="12" fill="#404040" text-anchor="middle">read-only catalog page</text>
+    <text x="735" y="140" font-size="12" fill="#404040" text-anchor="middle">browse · copy · favorite</text>
+
+    <!-- arrow generator -> db (writes) -->
+    <line x1="270" y1="116" x2="330" y2="116" stroke="#111111" stroke-width="2"/>
+    <polygon points="330,116 320,111 320,121" fill="#111111"/>
+    <text x="300" y="106" font-size="11" font-weight="700" fill="#111111" text-anchor="middle">writes</text>
+
+    <!-- arrow db -> web (reads) -->
+    <line x1="545" y1="106" x2="605" y2="106" stroke="#111111" stroke-width="2"/>
+    <polygon points="605,106 595,101 595,111" fill="#111111"/>
+    <text x="575" y="96" font-size="11" font-weight="700" fill="#111111" text-anchor="middle">reads</text>
+
+    <!-- dashed arrow web -> db (favorite write) -->
+    <line x1="605" y1="136" x2="547" y2="136" stroke="#cf222e" stroke-width="2" stroke-dasharray="5 4"/>
+    <polygon points="547,136 557,131 557,141" fill="#cf222e"/>
+    <text x="576" y="156" font-size="11" font-weight="700" fill="#cf222e" text-anchor="middle">favorite</text>
+
+    <!-- source label -->
+    <rect x="20" y="186" width="250" height="30" rx="6" fill="#fff5f5" stroke="#e0e0e0" stroke-width="1"/>
+    <text x="145" y="205" font-size="11.5" fill="#404040" text-anchor="middle">in: ~/.claude/projects/**/*.jsonl</text>
+    <line x1="145" y1="162" x2="145" y2="184" stroke="#404040" stroke-width="1.5" stroke-dasharray="3 3"/>
+  </svg>
+  <figcaption><span class="fig-no">Figure 1</span> · The database file is the only contract between the two halves. Solid = data flow; dashed red = the one web-originated write.</figcaption>
+  </figure>
+
+  <h3>Why this shape</h3>
+  <p>It is the proven <code>/discover</code> pattern: a Claude Code helper does the expensive, intelligent work and writes a result the web reads cheaply. Here the store is SQLite instead of a JSON manifest, because the data is queried, filtered, and mutated (favorite) — a database fits better than a flat file, and the preset engine already provides the SQLite plumbing.</p>
+
+  <!-- ===== §4 ===== -->
+  <h2 id="s4"><span class="n">§4</span>Data model</h2>
+  <p>One new table in the existing database, added through a forward-only migration <code>002_cheats.sql</code>. The migration runner picks it up automatically on next open; no other schema changes.</p>
+
+  <h3>The <code>cheats</code> table</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><th>id</th><td>INTEGER PK</td><td>Autoincrement surrogate key.</td></tr>
+      <tr><th>prompt_hash</th><td>TEXT UNIQUE</td><td>Hash of the normalized original — the dedupe / upsert key.</td></tr>
+      <tr><th>original</th><td>TEXT</td><td>The raw past prompt, verbatim. Not null.</td></tr>
+      <tr><th>improved</th><td>TEXT</td><td>Claude's rewritten version. Nullable.</td></tr>
+      <tr><th>intent</th><td>TEXT</td><td>Short category / intent label.</td></tr>
+      <tr><th>tags</th><td>TEXT</td><td>JSON array string of tags.</td></tr>
+      <tr><th>reuse_score</th><td>INTEGER</td><td>Reusability rating, <span class="num">0&#8211;100</span>.</td></tr>
+      <tr><th>project</th><td>TEXT</td><td>Origin project path.</td></tr>
+      <tr><th>occurrences</th><td>INTEGER</td><td>How many times this prompt was seen. Default <span class="num">1</span>.</td></tr>
+      <tr><th>favorite</th><td>INTEGER</td><td>Web-writable pin. Default <span class="num">0</span>.</td></tr>
+      <tr><th>favorited_at</th><td>TEXT</td><td>ISO timestamp when pinned. Nullable.</td></tr>
+      <tr><th>first_seen_at / last_seen_at</th><td>TEXT</td><td>ISO range across history.</td></tr>
+      <tr><th>created_at / updated_at</th><td>TEXT</td><td>Row bookkeeping, ISO-8601.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <div class="t"><span class="tag">Important</span></div>
+    <p>The <code>store</code> step upserts on <code>prompt_hash</code> and touches <strong>analysis columns only</strong>. It must never overwrite <code>favorite</code> or <code>favorited_at</code> — the web owns those. Re-running the command preserves your pins.</p>
+  </div>
+
+  <p><strong>Decision:</strong> <code>favorite</code> is a column on <code>cheats</code>, not a separate <code>cheat_favorites</code> table. It is strictly one-to-one with a cheat, so a column is simpler than the preset engine's separate <code>pinned_items</code> table (which is many-to-many across presets).</p>
+
+  <!-- ===== §5 ===== -->
+  <h2 id="s5"><span class="n">§5</span>Generator pipeline</h2>
+  <p>A skill at <code>.claude/skills/cheats/</code> holds the logic and scripts; a thin <code>/cheats</code> slash command is the entrypoint. The scripts are standalone Node using <code>better-sqlite3</code>. Claude sits in the middle doing the reasoning the scripts cannot.</p>
+
+  <ol class="flow">
+    <li><strong>Extract</strong> — <code>extract.mjs</code> walks <code>~/.claude/projects/**/*.jsonl</code> (reusing the <code>activity.ts</code> traversal), pulls user-typed prompts, strips tool results, system reminders, command stdout, and hook context, normalizes and hashes them, counts occurrences, and writes <code>.cheats/raw.json</code>.</li>
+    <li><strong>Analyze</strong> — Claude reads <code>raw.json</code> and produces, per prompt: an improved rewrite, an intent label, tags, and a reuse score. It clusters near-duplicates. Output: <code>.cheats/analyzed.json</code>.</li>
+    <li><strong>Store</strong> — <code>store.mjs</code> validates <code>analyzed.json</code> leniently and upserts into the <code>cheats</code> table, preserving favorites. Atomic, partial-success — a bad row is skipped, not fatal.</li>
+    <li class="drop"><strong>Refresh</strong> — Re-running the command repeats the loop and converges on the current history. Favorites survive; analysis columns update.</li>
+  </ol>
+
+  <div class="callout note">
+    <div class="t"><span class="tag">Why scripts + Claude</span></div>
+    <p>Scripts do deterministic I/O (file walk, hashing, SQLite). Claude does the judgment (improve, tag, rate). This is free — it runs inside your existing Claude Code session — and needs no API key, unlike a script that called the Anthropic API directly.</p>
+  </div>
+
+  <!-- ===== §6 ===== -->
+  <h2 id="s6"><span class="n">§6</span>Web layer &amp; UI</h2>
+
+  <h3>Reader &amp; API</h3>
+  <p>A new module <code>packages/presets/src/cheats.ts</code> exposes <code>listCheats()</code>, <code>getCheat(id)</code>, and the mutation <code>setFavorite(id, on)</code>. Keeping the write in the presets package preserves the rule that <code>packages/core</code> stays pure-read. The web detail page calls <code>getCheat</code> directly in the Server Component, like <code>/commands/[id]</code> does.</p>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Route</th><th>Method</th><th>Does</th></tr></thead>
+    <tbody>
+      <tr><th>/api/cheats</th><td>GET</td><td>Returns all cheats for the explorer's live refresh.</td></tr>
+      <tr><th>/api/cheats/[id]/favorite</th><td>POST</td><td>Toggles the favorite flag — the one mutating route.</td></tr>
+      <tr><th>/cheats</th><td>RSC</td><td>force-dynamic page; prefetches the list.</td></tr>
+      <tr><th>/cheats/[id]</th><td>RSC</td><td>Detail page; reads one cheat directly.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>The page</h3>
+  <p><code>components/cheats-explorer.tsx</code> mirrors <code>commands-explorer.tsx</code>: a search box, filters by project, tag, and intent, sort by recency / reuse score / occurrences, a favorites-only toggle, and pagination. The detail page shows the <strong>original and improved prompts side by side</strong>, each with a copy button, plus tags, source project, and the seen-range. A <code>StatCards</code> header summarizes total, favorites, projects covered, and average reuse score.</p>
+  <p>When the table is empty (fresh clone, command never run), an empty state points the user to run <code>/cheats</code> in Claude Code — the same convention as the <code>/discover</code> empty state.</p>
+
+  <h3>Files to create / edit</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Action</th><th>Path</th></tr></thead>
+    <tbody>
+      <tr><th>create</th><td><code>packages/presets/src/migrations/002_cheats.sql</code></td></tr>
+      <tr><th>create</th><td><code>packages/presets/src/cheats.ts</code> — reader + favorite write</td></tr>
+      <tr><th>create</th><td><code>.claude/skills/cheats/</code> — SKILL.md, <code>scripts/extract.mjs</code>, <code>scripts/store.mjs</code></td></tr>
+      <tr><th>create</th><td><code>.claude/commands/cheats.md</code> — thin slash command</td></tr>
+      <tr><th>create</th><td><code>apps/web/app/cheats/page.tsx</code> · <code>app/cheats/[id]/page.tsx</code> · <code>app/api/cheats/route.ts</code> · <code>app/api/cheats/[id]/favorite/route.ts</code></td></tr>
+      <tr><th>create</th><td><code>apps/web/components/cheats-explorer.tsx</code></td></tr>
+      <tr><th>edit</th><td><code>components/main-nav.tsx</code> — add the <code>/cheats</code> link</td></tr>
+      <tr><th>edit</th><td><code>lib/i18n/dictionaries/en.ts</code> &amp; <code>th.ts</code> — nav label + page strings</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- ===== §7 ===== -->
+  <h2 id="s7"><span class="n">§7</span>Edge cases &amp; testing</h2>
+
+  <h3>Edge cases</h3>
+  <ul>
+    <li><strong>Empty database</strong> — empty state, no crash. <span class="badge ok">handled</span></li>
+    <li><strong>Huge history</strong> — <code>extract</code> caps at the newest N transcripts, like <code>activity.ts</code> caps at the newest 2000 files. <span class="badge ok">handled</span></li>
+    <li><strong>Malformed transcript line</strong> — skipped, not fatal. <span class="badge ok">handled</span></li>
+    <li><strong>Bad analysis row</strong> — leniently validated before store; dropped if invalid. <span class="badge warn">degrade</span></li>
+    <li><strong>Re-run clobbers a pin</strong> — prevented: upsert never writes favorite columns. <span class="badge crit">must-hold</span></li>
+  </ul>
+
+  <h3>Testing</h3>
+  <p>No web test suite exists in this repo — <code>npm run build</code> is the type-correctness check. Per-script self-checks cover the logic that can break:</p>
+  <ul>
+    <li><code>extract</code> — normalization, hashing, and dedupe behave (a <code>demo()</code> self-check).</li>
+    <li><code>store</code> — upsert updates analysis columns and <strong>preserves favorite</strong> across a re-run.</li>
+    <li><code>cheats.ts</code> — reader returns typed rows; <code>setFavorite</code> toggles correctly.</li>
+  </ul>
+
+  <!-- ===== §8 ===== -->
+  <h2 id="s8"><span class="n">§8</span>Approaches &amp; decisions</h2>
+  <p>The open design fork was how analysis reaches the database. Three options were weighed; the rest of the design followed from the four requirement choices already made.</p>
+  <div class="opt-grid">
+    <div class="opt pick">
+      <span class="pin">&#9733; Recommended</span>
+      <h4>A · Script extract &#8594; Claude analyze &#8594; script store</h4>
+      <p>Scripts do I/O, Claude does reasoning. Free, exFAT-safe, matches repo convention.</p>
+    </div>
+    <div class="opt">
+      <span class="pin">Not advised</span>
+      <h4>B · One script, no LLM</h4>
+      <p>Pure mechanical extraction. Rejected — cannot "improve" a prompt, which was a requirement.</p>
+    </div>
+    <div class="opt">
+      <span class="pin">Not advised</span>
+      <h4>C · Script calls Anthropic API</h4>
+      <p>Rejected — needs an API key and network inside the script. The in-session loop is cleaner and free.</p>
+    </div>
+  </div>
+
+  <h3>Decisions locked</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Decision</th><th>Choice</th></tr></thead>
+    <tbody>
+      <tr><th>Cheat content</th><td>Analyzed + improved (original kept alongside the rewrite).</td></tr>
+      <tr><th>Storage</th><td>Reuse <code>presets.db</code>, new <code>cheats</code> table (migration v2).</td></tr>
+      <tr><th>Web actions</th><td>Browse / search / filter / sort, copy, detail page, favorite (DB write).</td></tr>
+      <tr><th>History scope</th><td>All projects; filter by project in the UI.</td></tr>
+      <tr><th>reuse_score</th><td>Integer, <span class="num">0&#8211;100</span>.</td></tr>
+      <tr><th>favorite</th><td>Column on <code>cheats</code> (not a separate table).</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="takeaway">
+    <span class="key">Next</span>
+    <p>On approval, this spec is committed and an implementation plan is written. The pipeline (Approach A) and the reuse of existing SQLite + page patterns keep the build small and low-risk.</p>
+  </div>
+
+  <footer class="foot">
+    <p><b>Skills Lector — Cheats feature, design spec</b> · 2026-06-17</p>
+    <p>Draft for review. The web app makes no LLM or network calls; all analysis runs in the Claude Code command.</p>
+  </footer>
+
+</article>
+</div>
+</div>
+
+</body>
+</html>
