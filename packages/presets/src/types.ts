@@ -115,3 +115,25 @@ export type ApplyEvent =
     | { phase: "logging" }
     | { phase: "done"; result: ApplyResult }
     | { phase: "error"; message: string };
+
+/**
+ * A reusable prompt mined from session history. Stored in the `cheats` table.
+ * `tags` is persisted as a JSON TEXT column and parsed on read.
+ */
+export type Cheat = {
+    id: number;
+    promptHash: string;
+    original: string;
+    improved: string | null;
+    intent: string | null;
+    tags: string[];
+    reuseScore: number | null;
+    project: string | null;
+    occurrences: number;
+    favorite: boolean;
+    favoritedAt: string | null;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    createdAt: string;
+    updatedAt: string;
+};
