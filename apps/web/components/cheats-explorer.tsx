@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
     ArrowUpDown,
@@ -40,13 +40,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatDate } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
-import type { Cheat } from "@lector/presets/types";
-
-type SortKey = "recent" | "reuse" | "used";
-type TabKey = "all" | "favorites";
-type ViewMode = "table" | "cards";
-
-const PAGE_SIZE = 10;
+import { useCheatsList, useToggleFavorite } from "@/components/cheats/use-cheat-queries";
+import {
+    PAGE_SIZE,
+    buildCheatQuery,
+    displayedPrompt,
+    filterSortCheats,
+    parseCheatFilters,
+    type CheatFilters,
+    type SortKey,
+} from "@/lib/cheats-filter";
 
 /** Cross-platform basename for display (client has no node:path). */
 function basename(p: string): string {
@@ -54,20 +57,63 @@ function basename(p: string): string {
     return segments[segments.length - 1] || p;
 }
 
-export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
+const SEARCH_DEBOUNCE_MS = 250;
+
+export function CheatsExplorer() {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const t = useT();
-    const [query, setQuery] = useState("");
-    const [tab, setTab] = useState<TabKey>("all");
-    const [projectFilter, setProjectFilter] = useState("all");
-    const [intentFilter, setIntentFilter] = useState("all");
-    const [sort, setSort] = useState<SortKey>("recent");
-    const [page, setPage] = useState(1);
-    const [view, setView] = useState<ViewMode>("table");
-    const [typedOnly, setTypedOnly] = useState(false);
-    const [favIds, setFavIds] = useState<Set<number>>(
-        () => new Set(cheats.filter((c) => c.favorite).map((c) => c.id)),
+
+    const filters = useMemo(() => parseCheatFilters(searchParams), [searchParams]);
+
+    const { data } = useCheatsList();
+    const cheats = useMemo(() => data?.cheats ?? [], [data]);
+    const toggleFav = useToggleFavorite();
+
+    // URL is the single source of truth for filters. Replace (not push) so
+    // tweaking filters doesn't flood browser history.
+    const pushFilters = useCallback(
+        (next: CheatFilters) => {
+            const qs = buildCheatQuery(next);
+            router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+        },
+        [router, pathname],
     );
+
+    // Merge a partial update; count/order-affecting changes reset to page 1.
+    const update = useCallback(
+        (patch: Partial<CheatFilters>, resetPage = true) => {
+            pushFilters({
+                ...filters,
+                ...patch,
+                page: resetPage ? 1 : (patch.page ?? filters.page),
+            });
+        },
+        [filters, pushFilters],
+    );
+
+    // Page turns reset scroll to the top so the new page starts in view.
+    const goToPage = useCallback(
+        (page: number) => {
+            update({ page }, false);
+            if (typeof window !== "undefined") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        },
+        [update],
+    );
+
+    // Local mirror for the search box (snappy typing); debounced into the URL.
+    const [queryInput, setQueryInput] = useState(filters.query);
+    useEffect(() => {
+        setQueryInput(filters.query);
+    }, [filters.query]);
+    useEffect(() => {
+        if (queryInput === filters.query) return;
+        const id = setTimeout(() => update({ query: queryInput }), SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(id);
+    }, [queryInput, filters.query, update]);
 
     const projects = useMemo(() => {
         const set = new Set<string>();
@@ -83,60 +129,15 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
 
     // Only worth offering the filter when the library actually mixes the two.
     const hasLegacy = useMemo(() => cheats.some((c) => c.provenance !== "typed"), [cheats]);
+    // The original/improved toggle is pointless if nothing has an improved version.
+    const hasImproved = useMemo(() => cheats.some((c) => c.improved), [cheats]);
 
     const counts = useMemo(
-        () => ({ all: cheats.length, favorites: favIds.size }),
-        [cheats.length, favIds],
+        () => ({ all: cheats.length, favorites: cheats.filter((c) => c.favorite).length }),
+        [cheats],
     );
 
-    async function toggleFavorite(c: Cheat) {
-        const on = !favIds.has(c.id);
-        setFavIds((prev) => {
-            const next = new Set(prev);
-            if (on) next.add(c.id);
-            else next.delete(c.id);
-            return next;
-        });
-        try {
-            const res = await fetch(`/api/cheats/${c.id}/favorite`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ favorite: on }),
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            router.refresh();
-        } catch {
-            // rollback on failure
-            setFavIds((prev) => {
-                const next = new Set(prev);
-                if (on) next.delete(c.id);
-                else next.add(c.id);
-                return next;
-            });
-        }
-    }
-
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        const list = cheats.filter((c) => {
-            if (tab === "favorites" && !favIds.has(c.id)) return false;
-            if (typedOnly && c.provenance !== "typed") return false;
-            if (projectFilter !== "all" && c.project !== projectFilter) return false;
-            if (intentFilter !== "all" && c.intent !== intentFilter) return false;
-            if (!q) return true;
-            return (
-                c.original.toLowerCase().includes(q) ||
-                (c.improved?.toLowerCase().includes(q) ?? false) ||
-                (c.intent?.toLowerCase().includes(q) ?? false) ||
-                c.tags.some((tag) => tag.toLowerCase().includes(q))
-            );
-        });
-        return list.sort((a, b) => {
-            if (sort === "reuse") return (b.reuseScore ?? -1) - (a.reuseScore ?? -1);
-            if (sort === "used") return b.occurrences - a.occurrences;
-            return Date.parse(b.lastSeenAt) - Date.parse(a.lastSeenAt);
-        });
-    }, [cheats, query, tab, typedOnly, projectFilter, intentFilter, sort, favIds]);
+    const filtered = useMemo(() => filterSortCheats(cheats, filters), [cheats, filters]);
 
     const sortLabel: Record<SortKey, string> = {
         recent: t.cheatsPage.sortRecent,
@@ -145,13 +146,24 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
     };
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const currentPage = Math.min(page, totalPages);
+    const currentPage = Math.min(filters.page, totalPages);
     const paged = useMemo(
         () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
         [filtered, currentPage],
     );
     const rangeStart = filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
     const rangeEnd = Math.min(currentPage * PAGE_SIZE, filtered.length);
+
+    // Detail links carry the live filters (incl. the page actually shown) so the
+    // detail view's back/prev/next operate on the same filtered, ordered list.
+    const baseQuery = useMemo(
+        () => buildCheatQuery({ ...filters, page: currentPage }),
+        [filters, currentPage],
+    );
+    const detailHref = useCallback(
+        (id: number) => (baseQuery ? `/cheats/${id}?${baseQuery}` : `/cheats/${id}`),
+        [baseQuery],
+    );
 
     return (
         <div className="space-y-4">
@@ -160,20 +172,14 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                     <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         placeholder={t.cheatsPage.search}
-                        value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value);
-                            setPage(1);
-                        }}
+                        value={queryInput}
+                        onChange={(e) => setQueryInput(e.target.value)}
                         className="pl-8"
                     />
                 </div>
                 <Tabs
-                    value={tab}
-                    onValueChange={(v) => {
-                        setTab(v as TabKey);
-                        setPage(1);
-                    }}
+                    value={filters.tab}
+                    onValueChange={(v) => update({ tab: v as CheatFilters["tab"] })}
                 >
                     <TabsList>
                         <TabsTrigger value="all" className="gap-1.5">
@@ -188,11 +194,8 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                 </Tabs>
                 {projects.length > 0 && (
                     <Select
-                        value={projectFilter}
-                        onValueChange={(v) => {
-                            setProjectFilter(v);
-                            setPage(1);
-                        }}
+                        value={filters.project}
+                        onValueChange={(v) => update({ project: v })}
                     >
                         <SelectTrigger className="gap-1.5 lg:w-[200px]" aria-label={t.cheatsPage.filterProject}>
                             <SelectValue />
@@ -209,11 +212,8 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                 )}
                 {intents.length > 0 && (
                     <Select
-                        value={intentFilter}
-                        onValueChange={(v) => {
-                            setIntentFilter(v);
-                            setPage(1);
-                        }}
+                        value={filters.intent}
+                        onValueChange={(v) => update({ intent: v })}
                     >
                         <SelectTrigger className="gap-1.5 lg:w-[180px]" aria-label={t.cheatsPage.filterIntent}>
                             <SelectValue />
@@ -229,16 +229,13 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                     </Select>
                 )}
                 <Select
-                    value={sort}
-                    onValueChange={(v) => {
-                        setSort(v as SortKey);
-                        setPage(1);
-                    }}
+                    value={filters.sort}
+                    onValueChange={(v) => update({ sort: v as SortKey })}
                 >
                     <IconSelectTrigger
                         icon={<ArrowUpDown />}
                         label={t.explorer.sortBy}
-                        currentValue={sortLabel[sort]}
+                        currentValue={sortLabel[filters.sort]}
                     />
                     <SelectContent position="popper">
                         <SelectItem value="recent">{t.cheatsPage.sortRecent}</SelectItem>
@@ -246,18 +243,43 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                         <SelectItem value="used">{t.cheatsPage.sortUsed}</SelectItem>
                     </SelectContent>
                 </Select>
+                {hasImproved && (
+                    <div
+                        className="flex items-center self-start rounded-md border lg:self-auto"
+                        role="radiogroup"
+                        aria-label={t.cheatsPage.displayModeLabel}
+                    >
+                        <Button
+                            type="button"
+                            role="radio"
+                            variant={filters.show === "original" ? "secondary" : "ghost"}
+                            size="sm"
+                            aria-checked={filters.show === "original"}
+                            onClick={() => update({ show: "original" }, false)}
+                        >
+                            {t.cheatsPage.showOriginal}
+                        </Button>
+                        <Button
+                            type="button"
+                            role="radio"
+                            variant={filters.show === "improved" ? "secondary" : "ghost"}
+                            size="sm"
+                            aria-checked={filters.show === "improved"}
+                            onClick={() => update({ show: "improved" }, false)}
+                        >
+                            {t.cheatsPage.showImproved}
+                        </Button>
+                    </div>
+                )}
                 {hasLegacy && (
                     <Button
                         type="button"
-                        variant={typedOnly ? "secondary" : "outline"}
+                        variant={filters.typedOnly ? "secondary" : "outline"}
                         size="sm"
                         className="gap-1.5 self-start lg:ml-auto lg:self-auto"
-                        aria-pressed={typedOnly}
+                        aria-pressed={filters.typedOnly}
                         title={t.cheatsPage.typedOnlyHint}
-                        onClick={() => {
-                            setTypedOnly((v) => !v);
-                            setPage(1);
-                        }}
+                        onClick={() => update({ typedOnly: !filters.typedOnly })}
                     >
                         <ShieldCheck className="h-4 w-4" />
                         {t.cheatsPage.typedOnly}
@@ -268,39 +290,37 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                         "flex items-center self-start rounded-md border lg:self-auto",
                         !hasLegacy && "lg:ml-auto",
                     )}
+                    role="radiogroup"
+                    aria-label={t.cheatsPage.viewModeLabel}
                 >
                     <Button
                         type="button"
-                        variant={view === "table" ? "secondary" : "ghost"}
+                        role="radio"
+                        variant={filters.view === "table" ? "secondary" : "ghost"}
                         size="icon-sm"
                         aria-label={t.cheatsPage.viewTable}
-                        aria-pressed={view === "table"}
+                        aria-checked={filters.view === "table"}
                         title={t.cheatsPage.viewTable}
-                        onClick={() => {
-                            setView("table");
-                            setPage(1);
-                        }}
+                        onClick={() => update({ view: "table" }, false)}
                     >
                         <List className="h-4 w-4" />
                     </Button>
                     <Button
                         type="button"
-                        variant={view === "cards" ? "secondary" : "ghost"}
+                        role="radio"
+                        variant={filters.view === "cards" ? "secondary" : "ghost"}
                         size="icon-sm"
                         aria-label={t.cheatsPage.viewCards}
-                        aria-pressed={view === "cards"}
+                        aria-checked={filters.view === "cards"}
                         title={t.cheatsPage.viewCards}
-                        onClick={() => {
-                            setView("cards");
-                            setPage(1);
-                        }}
+                        onClick={() => update({ view: "cards" }, false)}
                     >
                         <LayoutGrid className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
 
-            {view === "table" ? (
+            {filters.view === "table" ? (
                 <div className="ring-1 ring-foreground/10">
                 <Table>
                     <TableHeader>
@@ -324,24 +344,27 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                             </TableRow>
                         ) : (
                             paged.map((c) => {
-                                const isFav = favIds.has(c.id);
+                                const isFav = c.favorite;
+                                const text = displayedPrompt(c, filters.show);
                                 return (
                                     <TableRow
                                         key={c.id}
                                         className="cursor-pointer hover:bg-accent"
-                                        onClick={() => router.push(`/cheats/${c.id}`)}
+                                        onClick={() => router.push(detailHref(c.id))}
                                     >
                                         <TableCell className="text-center">
                                             <Button
                                                 variant="ghost"
                                                 size="icon-sm"
+                                                aria-label={isFav ? t.cheatsPage.unfavorite : t.cheatsPage.favorite}
                                                 title={isFav ? t.cheatsPage.unfavorite : t.cheatsPage.favorite}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    void toggleFavorite(c);
+                                                    toggleFav.mutate({ id: c.id, favorite: !isFav });
                                                 }}
                                             >
                                                 <Star
+                                                    aria-hidden="true"
                                                     className={cn(
                                                         "h-4 w-4",
                                                         isFav ? "fill-yellow-400 text-yellow-500" : "text-muted-foreground",
@@ -351,11 +374,11 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                                         </TableCell>
                                         <TableCell className="max-w-[420px]">
                                             <Link
-                                                href={`/cheats/${c.id}`}
+                                                href={detailHref(c.id)}
                                                 className="line-clamp-2 block text-sm hover:underline"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
-                                                {c.improved ?? c.original}
+                                                {text}
                                             </Link>
                                             {c.provenance !== "typed" && (
                                                 <Badge
@@ -396,7 +419,7 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                                             {formatDate(c.lastSeenAt)}
                                         </TableCell>
                                         <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                            <CopyButton value={c.improved ?? c.original} size="icon-xs" />
+                                            <CopyButton value={text} size="icon-xs" />
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -412,12 +435,13 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
             ) : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {paged.map((c) => {
-                        const isFav = favIds.has(c.id);
+                        const isFav = c.favorite;
+                        const text = displayedPrompt(c, filters.show);
                         return (
                             <Card
                                 key={c.id}
                                 className="group flex cursor-pointer flex-col rounded-sm transition-colors hover:bg-accent"
-                                onClick={() => router.push(`/cheats/${c.id}`)}
+                                onClick={() => router.push(detailHref(c.id))}
                             >
                                 <CardContent className="flex h-full flex-col gap-3 p-4">
                                     <div className="flex items-start justify-between gap-2">
@@ -451,14 +475,22 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon-sm"
+                                                aria-label={
+                                                    isFav
+                                                        ? t.cheatsPage.unfavorite
+                                                        : t.cheatsPage.favorite
+                                                }
                                                 title={
                                                     isFav
                                                         ? t.cheatsPage.unfavorite
                                                         : t.cheatsPage.favorite
                                                 }
-                                                onClick={() => void toggleFavorite(c)}
+                                                onClick={() =>
+                                                    toggleFav.mutate({ id: c.id, favorite: !isFav })
+                                                }
                                             >
                                                 <Star
+                                                    aria-hidden="true"
                                                     className={cn(
                                                         "h-4 w-4",
                                                         isFav
@@ -467,15 +499,10 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                                                     )}
                                                 />
                                             </Button>
-                                            <CopyButton
-                                                value={c.improved ?? c.original}
-                                                size="icon-sm"
-                                            />
+                                            <CopyButton value={text} size="icon-sm" />
                                         </div>
                                     </div>
-                                    <p className="line-clamp-4 flex-1 text-sm">
-                                        {c.improved ?? c.original}
-                                    </p>
+                                    <p className="line-clamp-4 flex-1 text-sm">{text}</p>
                                     {c.tags.length > 0 && (
                                         <div className="flex flex-wrap gap-1">
                                             {c.tags.slice(0, 4).map((tag) => (
@@ -534,7 +561,7 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                             variant="outline"
                             size="sm"
                             disabled={currentPage <= 1}
-                            onClick={() => setPage(currentPage - 1)}
+                            onClick={() => goToPage(currentPage - 1)}
                         >
                             <ChevronLeft />
                             {t.actions.previous}
@@ -546,7 +573,7 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                             variant="outline"
                             size="sm"
                             disabled={currentPage >= totalPages}
-                            onClick={() => setPage(currentPage + 1)}
+                            onClick={() => goToPage(currentPage + 1)}
                         >
                             {t.actions.next}
                             <ChevronRight />

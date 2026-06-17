@@ -1,5 +1,7 @@
+import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
 import { CheatStatCards } from "@/components/cheat-stat-cards";
 import { CheatsExplorer } from "@/components/cheats-explorer";
+import { cheatsQk } from "@/components/cheats/cheat-query-keys";
 import { InlineCode } from "@/components/inline-code";
 import { listCheats } from "@lector/presets/cheats";
 import { getServerI18n } from "@/lib/i18n/server";
@@ -26,6 +28,9 @@ export default async function CheatsPage() {
     const { t } = await getServerI18n();
     const cheats = listCheats();
 
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(cheatsQk.list(), { cheats });
+
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -35,9 +40,10 @@ export default async function CheatsPage() {
                 </div>
             </div>
 
-            <CheatStatCards cheats={cheats} />
-
-            {cheats.length === 0 ? <EmptyState t={t} /> : <CheatsExplorer cheats={cheats} />}
+            <HydrationBoundary state={dehydrate(queryClient)}>
+                <CheatStatCards />
+                {cheats.length === 0 ? <EmptyState t={t} /> : <CheatsExplorer />}
+            </HydrationBoundary>
         </div>
     );
 }

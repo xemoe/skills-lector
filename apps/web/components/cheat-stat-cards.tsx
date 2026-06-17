@@ -2,11 +2,13 @@
 
 import { Sparkles, Star, FolderGit2, Gauge } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Cheat } from "@lector/presets/types";
 import { useT } from "@/lib/i18n/context";
+import { useCheatsList } from "@/components/cheats/use-cheat-queries";
 
-export function CheatStatCards({ cheats }: { cheats: Cheat[] }) {
+export function CheatStatCards() {
     const t = useT();
+    const { data } = useCheatsList();
+    const cheats = data?.cheats ?? [];
 
     const favorites = cheats.filter((c) => c.favorite).length;
     const projects = new Set(cheats.map((c) => c.project).filter(Boolean)).size;

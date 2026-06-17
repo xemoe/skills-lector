@@ -291,6 +291,12 @@ export const th: Dictionary = {
         statFavorites: "รายการโปรด",
         statProjects: "โปรเจ็กต์",
         statAvgReuse: "ใช้ซ้ำเฉลี่ย",
+        showOriginal: "ต้นฉบับ",
+        showImproved: "ปรับปรุง",
+        displayModeLabel: "เวอร์ชันพรอมต์",
+        viewModeLabel: "โหมดมุมมอง",
+        backToList: "กลับไปหน้าพรอมต์",
+        itemPosition: (current, total) => `${current} จาก ${total}`,
     },
 
     usecasePage: {

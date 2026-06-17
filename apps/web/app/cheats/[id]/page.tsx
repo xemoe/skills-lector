@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CopyButton } from "@/components/copy-button";
+import { CheatDetailNav } from "@/components/cheats/cheat-detail-nav";
 import { getCheat } from "@lector/presets/cheats";
 import { getServerI18n } from "@/lib/i18n/server";
 import { formatDate } from "@/lib/utils";
@@ -19,15 +20,62 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
     );
 }
 
-export default async function CheatDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CheatDetailPage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ show?: string }>;
+}) {
     const { id } = await params;
+    const { show } = await searchParams;
     const { t } = await getServerI18n();
     const cheatId = Number(id);
     const cheat = Number.isInteger(cheatId) && cheatId > 0 ? getCheat(cheatId) : null;
     if (!cheat) notFound();
 
+    // Mirror the list's display preference: lead with the version the user was
+    // browsing (defaults to original). Both versions stay visible either way.
+    const improvedFirst = show === "improved";
+
+    const improvedCard = (
+        <Card className="rounded-sm">
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">{t.cheatsPage.improvedLabel}</CardTitle>
+                {cheat.improved && <CopyButton value={cheat.improved} />}
+            </CardHeader>
+            <Separator className="border-b border-dotted border-border" />
+            <CardContent className="pt-4">
+                {cheat.improved ? (
+                    <pre className="whitespace-pre-wrap break-words rounded-none bg-secondary p-3 text-sm">
+                        {cheat.improved}
+                    </pre>
+                ) : (
+                    <p className="text-sm text-muted-foreground">{t.cheatsPage.noImproved}</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    const originalCard = (
+        <Card className="rounded-sm">
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">{t.cheatsPage.originalLabel}</CardTitle>
+                <CopyButton value={cheat.original} />
+            </CardHeader>
+            <Separator className="border-b border-dotted border-border" />
+            <CardContent className="pt-4">
+                <pre className="whitespace-pre-wrap break-words rounded-none bg-secondary p-3 text-sm">
+                    {cheat.original}
+                </pre>
+            </CardContent>
+        </Card>
+    );
+
     return (
         <div className="space-y-4">
+            <CheatDetailNav cheatId={cheat.id} />
+
             <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight">{t.cheatsPage.title}</h1>
                 {cheat.favorite && (
@@ -38,35 +86,17 @@ export default async function CheatDetailPage({ params }: { params: Promise<{ id
                 )}
             </div>
 
-            <Card className="rounded-sm">
-                <CardHeader className="flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-base">{t.cheatsPage.improvedLabel}</CardTitle>
-                    {cheat.improved && <CopyButton value={cheat.improved} />}
-                </CardHeader>
-                <Separator className="border-b border-dotted border-gray-200" />
-                <CardContent className="pt-4">
-                    {cheat.improved ? (
-                        <pre className="whitespace-pre-wrap break-words rounded-none bg-secondary p-3 text-sm">
-                            {cheat.improved}
-                        </pre>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">{t.cheatsPage.noImproved}</p>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card className="rounded-sm">
-                <CardHeader className="flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-base">{t.cheatsPage.originalLabel}</CardTitle>
-                    <CopyButton value={cheat.original} />
-                </CardHeader>
-                <Separator className="border-b border-dotted border-gray-200" />
-                <CardContent className="pt-4">
-                    <pre className="whitespace-pre-wrap break-words rounded-none bg-secondary p-3 text-sm">
-                        {cheat.original}
-                    </pre>
-                </CardContent>
-            </Card>
+            {improvedFirst ? (
+                <>
+                    {improvedCard}
+                    {originalCard}
+                </>
+            ) : (
+                <>
+                    {originalCard}
+                    {improvedCard}
+                </>
+            )}
 
             <Card className="rounded-sm">
                 <CardHeader>

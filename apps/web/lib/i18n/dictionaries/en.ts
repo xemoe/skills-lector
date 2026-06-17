@@ -299,6 +299,12 @@ export const en = {
         statFavorites: "Favorites",
         statProjects: "Projects",
         statAvgReuse: "Avg Reuse",
+        showOriginal: "Original",
+        showImproved: "Improved",
+        displayModeLabel: "Prompt version",
+        viewModeLabel: "View mode",
+        backToList: "Back to prompts",
+        itemPosition: (current: number, total: number) => `${current} of ${total}`,
     },
 
     usecasePage: {
