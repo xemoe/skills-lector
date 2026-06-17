@@ -120,6 +120,9 @@ export type ApplyEvent =
  * A reusable prompt mined from session history. Stored in the `cheats` table.
  * `tags` is persisted as a JSON TEXT column and parsed on read.
  */
+/** "typed" = harness-confirmed user-typed; "legacy" = pre-provenance, unprovable. */
+export type CheatProvenance = "typed" | "legacy";
+
 export type Cheat = {
     id: number;
     promptHash: string;
@@ -130,6 +133,7 @@ export type Cheat = {
     reuseScore: number | null;
     project: string | null;
     occurrences: number;
+    provenance: CheatProvenance;
     favorite: boolean;
     favoritedAt: string | null;
     firstSeenAt: string;

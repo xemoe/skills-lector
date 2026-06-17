@@ -14,12 +14,16 @@ three steps; you (Claude) are the middle step.
 1. **Extract** — run the dependency-free extractor:
    `node .claude/skills/cheats/scripts/extract.mjs`
    It writes `.cheats/raw.json` (repo root) with up to 500 deduped user prompts,
-   each `{ hash, original, occurrences, firstSeenAt, lastSeenAt, project }`.
+   each `{ hash, original, occurrences, firstSeenAt, lastSeenAt, project, provenance }`.
+   It drops subagent task-prompts (`isSidechain`), hook/system-injected prompts
+   (`promptSource:"system"`), command wrappers, and interrupt markers — only genuine
+   user prompts survive. `provenance` is `"typed"` (harness-confirmed the user typed it)
+   or `"legacy"` (older entry from before the harness stamped origin — kept, unprovable).
 
 2. **Analyze** — Read `.cheats/raw.json` (a wrapper object; iterate its
    `prompts` array). For each prompt produce an analyzed entry. Preserve
    `hash`, `original`, `occurrences`, `firstSeenAt`,
-   `lastSeenAt`, `project` unchanged, and ADD:
+   `lastSeenAt`, `project`, `provenance` unchanged, and ADD:
    - `improved` — a tightened, reusable rewrite of `original` (string).
    - `intent` — a short lower-case label, e.g. `debugging`, `refactor`,
      `code-review`, `planning`, `docs`.
@@ -27,8 +31,9 @@ three steps; you (Claude) are the middle step.
    - `reuseScore` — 0–100 integer; higher = more broadly reusable. Penalize
      one-off or context-bound prompts; reward clear, transferable instructions.
    Cluster near-duplicates that survived hashing: keep the best phrasing, sum
-   their `occurrences`, and drop the rest. Write the result to
-   `.cheats/analyzed.json` as `{ "schemaVersion": 1, "analyzedAt": "<ISO>",
+   their `occurrences`, and set the cluster's `provenance` to `"typed"` if ANY
+   member is typed (typed wins), else `"legacy"`. Write the result to
+   `.cheats/analyzed.json` as `{ "schemaVersion": 2, "analyzedAt": "<ISO>",
    "cheats": [ ...entries ] }`.
 
 3. **Store** — upsert into the database:
@@ -43,12 +48,13 @@ reload) to browse the result.
 
 `raw.json` is a wrapper object whose `prompts` array holds the entries:
 ```json
-{ "schemaVersion": 1, "extractedAt": "<ISO>", "projectsScanned": 5,
-  "transcriptsRead": 42, "errors": [],
+{ "schemaVersion": 2, "extractedAt": "<ISO>", "projectsScanned": 5,
+  "transcriptsRead": 42, "typedCount": 30, "legacyCount": 12, "errors": [],
   "prompts": [
     { "hash": "ab12…", "original": "Refactor the auth middleware…",
       "occurrences": 3, "firstSeenAt": "2026-05-01T10:00:00.000Z",
-      "lastSeenAt": "2026-06-10T09:00:00.000Z", "project": "/Users/me/app" }
+      "lastSeenAt": "2026-06-10T09:00:00.000Z", "project": "/Users/me/app",
+      "provenance": "typed" }
   ] }
 ```
 
@@ -57,10 +63,11 @@ reload) to browse the result.
 { "hash": "ab12…", "original": "Refactor the auth middleware…",
   "improved": "Refactor the auth middleware so the token-expiry check is correct…",
   "intent": "refactor", "tags": ["auth", "middleware"], "reuseScore": 78,
-  "occurrences": 3, "firstSeenAt": "…", "lastSeenAt": "…", "project": "/Users/me/app" }
+  "occurrences": 3, "firstSeenAt": "…", "lastSeenAt": "…", "project": "/Users/me/app",
+  "provenance": "typed" }
 ```
 
-`schemaVersion` is `1`; bump it in both scripts and the skill on any breaking change.
+`schemaVersion` is `2`; bump it in both scripts and the skill on any breaking change.
 
 ## Notes
 

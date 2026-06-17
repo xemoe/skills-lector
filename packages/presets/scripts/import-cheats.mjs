@@ -80,16 +80,21 @@ function clampScore(v) {
     return Math.max(0, Math.min(100, Math.round(v)));
 }
 
+/** Only "typed" is trusted; anything else (incl. missing) is "legacy". */
+function provenanceOf(v) {
+    return v === "typed" ? "typed" : "legacy";
+}
+
 /** Upsert analyzed cheats. NEVER writes favorite / favorited_at — the web owns those. */
 function importCheats(cheats, db) {
     const now = new Date().toISOString();
     const stmt = db.prepare(`
         INSERT INTO cheats
           (prompt_hash, original, improved, intent, tags, reuse_score, project,
-           occurrences, first_seen_at, last_seen_at, created_at, updated_at)
+           occurrences, provenance, first_seen_at, last_seen_at, created_at, updated_at)
         VALUES
           (@prompt_hash, @original, @improved, @intent, @tags, @reuse_score, @project,
-           @occurrences, @first_seen_at, @last_seen_at, @now, @now)
+           @occurrences, @provenance, @first_seen_at, @last_seen_at, @now, @now)
         ON CONFLICT(prompt_hash) DO UPDATE SET
           original      = excluded.original,
           improved      = excluded.improved,
@@ -98,6 +103,7 @@ function importCheats(cheats, db) {
           reuse_score   = excluded.reuse_score,
           project       = excluded.project,
           occurrences   = excluded.occurrences,
+          provenance    = CASE WHEN cheats.provenance = 'typed' THEN 'typed' ELSE excluded.provenance END,
           first_seen_at = excluded.first_seen_at,
           last_seen_at  = excluded.last_seen_at,
           updated_at    = excluded.updated_at
@@ -121,6 +127,7 @@ function importCheats(cheats, db) {
                 reuse_score: clampScore(c.reuseScore),
                 project: typeof c.project === "string" ? c.project : null,
                 occurrences: Number.isFinite(c.occurrences) ? Math.max(1, Math.round(c.occurrences)) : 1,
+                provenance: provenanceOf(c.provenance),
                 first_seen_at: typeof c.firstSeenAt === "string" ? c.firstSeenAt : now,
                 last_seen_at: typeof c.lastSeenAt === "string" ? c.lastSeenAt : now,
                 now,
@@ -143,19 +150,20 @@ function selftest() {
     try {
         db = openDb();
 
-        // 1. first import
+        // 1. first import (no provenance → defaults to legacy)
         let res = importCheats(
             [{ hash: "h1", original: "do X", improved: "please do X", intent: "task", tags: ["a"], reuseScore: 70, occurrences: 2 }],
             db,
         );
         assert(res.imported === 1, "first import should insert 1");
+        assert(db.prepare("SELECT provenance FROM cheats WHERE prompt_hash='h1'").get().provenance === "legacy", "missing provenance defaults to legacy");
 
         // 2. user favorites it (simulating the web write)
         db.prepare("UPDATE cheats SET favorite = 1, favorited_at = ? WHERE prompt_hash = 'h1'").run(new Date().toISOString());
 
-        // 3. re-import with changed analysis
+        // 3. re-import with changed analysis (now proven typed)
         importCheats(
-            [{ hash: "h1", original: "do X", improved: "kindly do X", intent: "task", tags: ["a", "b"], reuseScore: 90, occurrences: 5 }],
+            [{ hash: "h1", original: "do X", improved: "kindly do X", intent: "task", tags: ["a", "b"], reuseScore: 90, occurrences: 5, provenance: "typed" }],
             db,
         );
 
@@ -163,10 +171,18 @@ function selftest() {
         assert(row.improved === "kindly do X", "analysis column should update on re-import");
         assert(row.occurrences === 5, "occurrences should update on re-import");
         assert(JSON.parse(row.tags).length === 2, "tags should update on re-import");
+        assert(row.provenance === "typed", "provenance should update on re-import");
         assert(row.favorite === 1, "favorite MUST be preserved across re-import");
         assert(row.favorited_at, "favorited_at MUST be preserved across re-import");
 
-        // 4. malformed row is skipped, not fatal
+        // 4. once typed, a later legacy sighting must NOT downgrade the row
+        importCheats(
+            [{ hash: "h1", original: "do X", improved: "kindly do X", intent: "task", tags: ["a", "b"], reuseScore: 90, occurrences: 5, provenance: "legacy" }],
+            db,
+        );
+        assert(db.prepare("SELECT provenance FROM cheats WHERE prompt_hash='h1'").get().provenance === "typed", "typed provenance MUST NOT downgrade to legacy on re-import");
+
+        // 5. malformed row is skipped, not fatal
         res = importCheats([{ original: "" }, null, { original: "valid new one" }], db);
         assert(res.skipped === 2, "blank/null rows should be skipped");
         assert(res.imported === 1, "the one valid row should import");

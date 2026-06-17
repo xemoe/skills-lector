@@ -74,6 +74,13 @@ export default async function CheatDetailPage({ params }: { params: Promise<{ id
                 </CardHeader>
                 <CardContent className="pt-0">
                     <div className="divide-y">
+                        <MetaRow label={t.cheatsPage.sourceLabel}>
+                            <span className="text-xs">
+                                {cheat.provenance === "typed"
+                                    ? t.cheatsPage.sourceTyped
+                                    : t.cheatsPage.sourceLegacy}
+                            </span>
+                        </MetaRow>
                         {cheat.intent && (
                             <MetaRow label={t.cheatsPage.intentLabel}>
                                 <span className="font-mono text-xs">{cheat.intent}</span>

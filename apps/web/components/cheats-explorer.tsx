@@ -12,6 +12,7 @@ import {
     List,
     Repeat2,
     Search,
+    ShieldCheck,
     Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
     const [sort, setSort] = useState<SortKey>("recent");
     const [page, setPage] = useState(1);
     const [view, setView] = useState<ViewMode>("table");
+    const [typedOnly, setTypedOnly] = useState(false);
     const [favIds, setFavIds] = useState<Set<number>>(
         () => new Set(cheats.filter((c) => c.favorite).map((c) => c.id)),
     );
@@ -78,6 +80,9 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
         for (const c of cheats) if (c.intent) set.add(c.intent);
         return [...set].sort();
     }, [cheats]);
+
+    // Only worth offering the filter when the library actually mixes the two.
+    const hasLegacy = useMemo(() => cheats.some((c) => c.provenance !== "typed"), [cheats]);
 
     const counts = useMemo(
         () => ({ all: cheats.length, favorites: favIds.size }),
@@ -115,6 +120,7 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
         const q = query.trim().toLowerCase();
         const list = cheats.filter((c) => {
             if (tab === "favorites" && !favIds.has(c.id)) return false;
+            if (typedOnly && c.provenance !== "typed") return false;
             if (projectFilter !== "all" && c.project !== projectFilter) return false;
             if (intentFilter !== "all" && c.intent !== intentFilter) return false;
             if (!q) return true;
@@ -130,7 +136,7 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
             if (sort === "used") return b.occurrences - a.occurrences;
             return Date.parse(b.lastSeenAt) - Date.parse(a.lastSeenAt);
         });
-    }, [cheats, query, tab, projectFilter, intentFilter, sort, favIds]);
+    }, [cheats, query, tab, typedOnly, projectFilter, intentFilter, sort, favIds]);
 
     const sortLabel: Record<SortKey, string> = {
         recent: t.cheatsPage.sortRecent,
@@ -240,7 +246,29 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                         <SelectItem value="used">{t.cheatsPage.sortUsed}</SelectItem>
                     </SelectContent>
                 </Select>
-                <div className="flex items-center self-start rounded-md border lg:ml-auto lg:self-auto">
+                {hasLegacy && (
+                    <Button
+                        type="button"
+                        variant={typedOnly ? "secondary" : "outline"}
+                        size="sm"
+                        className="gap-1.5 self-start lg:ml-auto lg:self-auto"
+                        aria-pressed={typedOnly}
+                        title={t.cheatsPage.typedOnlyHint}
+                        onClick={() => {
+                            setTypedOnly((v) => !v);
+                            setPage(1);
+                        }}
+                    >
+                        <ShieldCheck className="h-4 w-4" />
+                        {t.cheatsPage.typedOnly}
+                    </Button>
+                )}
+                <div
+                    className={cn(
+                        "flex items-center self-start rounded-md border lg:self-auto",
+                        !hasLegacy && "lg:ml-auto",
+                    )}
+                >
                     <Button
                         type="button"
                         variant={view === "table" ? "secondary" : "ghost"}
@@ -248,7 +276,10 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                         aria-label={t.cheatsPage.viewTable}
                         aria-pressed={view === "table"}
                         title={t.cheatsPage.viewTable}
-                        onClick={() => setView("table")}
+                        onClick={() => {
+                            setView("table");
+                            setPage(1);
+                        }}
                     >
                         <List className="h-4 w-4" />
                     </Button>
@@ -259,7 +290,10 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                         aria-label={t.cheatsPage.viewCards}
                         aria-pressed={view === "cards"}
                         title={t.cheatsPage.viewCards}
-                        onClick={() => setView("cards")}
+                        onClick={() => {
+                            setView("cards");
+                            setPage(1);
+                        }}
                     >
                         <LayoutGrid className="h-4 w-4" />
                     </Button>
@@ -323,6 +357,15 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                                             >
                                                 {c.improved ?? c.original}
                                             </Link>
+                                            {c.provenance !== "typed" && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="mt-1 text-[10px] font-normal text-muted-foreground"
+                                                    title={t.cheatsPage.provenanceLegacyHint}
+                                                >
+                                                    {t.cheatsPage.provenanceLegacy}
+                                                </Badge>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             {c.intent ? (
@@ -378,18 +421,29 @@ export function CheatsExplorer({ cheats }: { cheats: Cheat[] }) {
                             >
                                 <CardContent className="flex h-full flex-col gap-3 p-4">
                                     <div className="flex items-start justify-between gap-2">
-                                        {c.intent ? (
-                                            <Badge
-                                                variant="secondary"
-                                                className="font-mono text-[11px]"
-                                            >
-                                                {c.intent}
-                                            </Badge>
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground">
-                                                —
-                                            </span>
-                                        )}
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            {c.intent ? (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="font-mono text-[11px]"
+                                                >
+                                                    {c.intent}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    —
+                                                </span>
+                                            )}
+                                            {c.provenance !== "typed" && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-[10px] font-normal text-muted-foreground"
+                                                    title={t.cheatsPage.provenanceLegacyHint}
+                                                >
+                                                    {t.cheatsPage.provenanceLegacy}
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <div
                                             className="-mr-1.5 flex items-center"
                                             onClick={(e) => e.stopPropagation()}

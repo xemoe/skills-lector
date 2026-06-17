@@ -3,7 +3,7 @@
 // upsert lives in scripts/import-cheats.mjs (the generator's writer); this module
 // is what the Next.js app imports.
 import { openDb } from "./db";
-import type { Cheat } from "./types";
+import type { Cheat, CheatProvenance } from "./types";
 
 type DbCheatRow = {
     id: number;
@@ -15,6 +15,7 @@ type DbCheatRow = {
     reuse_score: number | null;
     project: string | null;
     occurrences: number;
+    provenance: string;
     favorite: number;
     favorited_at: string | null;
     first_seen_at: string;
@@ -22,6 +23,10 @@ type DbCheatRow = {
     created_at: string;
     updated_at: string;
 };
+
+function toProvenance(raw: string | null): CheatProvenance {
+    return raw === "typed" ? "typed" : "legacy";
+}
 
 function parseTags(raw: string | null): string[] {
     if (!raw) return [];
@@ -44,6 +49,7 @@ function rowToCheat(r: DbCheatRow): Cheat {
         reuseScore: r.reuse_score,
         project: r.project,
         occurrences: r.occurrences,
+        provenance: toProvenance(r.provenance),
         favorite: r.favorite === 1,
         favoritedAt: r.favorited_at,
         firstSeenAt: r.first_seen_at,
@@ -54,7 +60,7 @@ function rowToCheat(r: DbCheatRow): Cheat {
 }
 
 const COLS =
-    "id, prompt_hash, original, improved, intent, tags, reuse_score, project, occurrences, favorite, favorited_at, first_seen_at, last_seen_at, created_at, updated_at";
+    "id, prompt_hash, original, improved, intent, tags, reuse_score, project, occurrences, provenance, favorite, favorited_at, first_seen_at, last_seen_at, created_at, updated_at";
 
 /** All cheats, favorites first then most-recently-seen. */
 export function listCheats(): Cheat[] {

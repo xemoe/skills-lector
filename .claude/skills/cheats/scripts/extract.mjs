@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 // Extractor half of the Cheats generator. Walks ~/.claude/projects/**/*.jsonl,
-// pulls genuine user-typed prompts (dropping slash-command wrappers, tool results,
-// system reminders, and command stdout), dedupes by normalized hash, and writes
-// the repo-root .cheats/raw.json. Dependency-free (Node built-ins only). Run:
+// pulls genuine user-typed prompts (dropping subagent task-prompts, slash-command
+// wrappers, tool results, system reminders, command stdout, and interrupt markers),
+// dedupes by normalized hash, tags each with provenance, and writes the repo-root
+// .cheats/raw.json. Dependency-free (Node built-ins only). Run:
 //   node .claude/skills/cheats/scripts/extract.mjs            # extract
 //   node .claude/skills/cheats/scripts/extract.mjs selftest   # asserts
+//
+// Provenance: the harness stamps each user entry with `promptSource`. "typed" means
+// the user typed it; "system" means hook/system-injected (dropped). Entries from
+// before the field existed lack it — kept but tagged "legacy" (can't be proven typed).
+// Subagent prompts carry isSidechain:true and are dropped regardless.
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2; // bumped: entries now carry `provenance`
 const MAX_FILES = 2000;
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
 const MIN_LEN = 16;
@@ -22,6 +28,11 @@ const MAX_OUTPUT = 500;
 const SYSTEM_REMINDER = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
 const COMMAND_TAG = /<command-(name|message|args)>/;
 const STDOUT_TAG = /<local-command-stdout>/;
+// Harness-injected wrappers that ride in as user-role turns but were never typed:
+// background-task completion notices and the local-command caveat banner.
+const HARNESS_TAG = /<(task-notification|local-command-caveat)>/;
+// Harness-injected marker when the user aborts (e.g. "[Request interrupted by user]").
+const INTERRUPT = /^\[request interrupted/i;
 
 function claudeHome() {
     return process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
@@ -43,7 +54,21 @@ function stripNoise(text) {
 }
 
 function isCommandNoise(text) {
-    return COMMAND_TAG.test(text) || STDOUT_TAG.test(text);
+    return (
+        COMMAND_TAG.test(text) ||
+        STDOUT_TAG.test(text) ||
+        HARNESS_TAG.test(text) ||
+        INTERRUPT.test(text)
+    );
+}
+
+/**
+ * Provenance from the harness stamp. "typed" only when promptSource explicitly
+ * says so; everything else that survived the hard-drop filters is "legacy"
+ * (older entries predate the field — kept but not provable).
+ */
+function provenanceOf(obj) {
+    return obj?.promptSource === "typed" ? "typed" : "legacy";
 }
 
 /** Collapse whitespace so trivially different copies dedupe together. */
@@ -62,9 +87,13 @@ function textFromContent(content) {
     return "";
 }
 
-/** Returns {original, ts, project} for a genuine user prompt, else null. */
+/** Returns {original, ts, project, provenance} for a genuine user prompt, else null. */
 function promptFromLine(obj) {
-    if (!obj || obj.type !== "user" || obj.isMeta === true) return null;
+    if (!obj || obj.type !== "user") return null;
+    // Hard-drop everything that is provably NOT a user-typed prompt.
+    if (obj.isMeta === true || obj.isSidechain === true) return null; // meta / subagent
+    if (typeof obj.userType === "string" && obj.userType !== "external") return null; // internal
+    if (obj.promptSource === "system") return null; // hook/system-injected
     const raw = textFromContent(obj?.message?.content);
     if (!raw) return null;
     const cleaned = stripNoise(raw);
@@ -74,6 +103,7 @@ function promptFromLine(obj) {
         original: cleaned,
         ts: Number.isNaN(ts) ? Date.now() : ts,
         project: typeof obj?.cwd === "string" ? obj.cwd : null,
+        provenance: provenanceOf(obj),
     };
 }
 
@@ -142,6 +172,8 @@ function extract() {
                         ex.firstSeenMs = Math.min(ex.firstSeenMs, p.ts);
                         ex.lastSeenMs = Math.max(ex.lastSeenMs, p.ts);
                         if (!ex.project && p.project) ex.project = p.project;
+                        // typed wins: one proven-typed sighting upgrades the cluster.
+                        if (p.provenance === "typed") ex.provenance = "typed";
                     } else {
                         map.set(key, {
                             hash: key,
@@ -150,6 +182,7 @@ function extract() {
                             firstSeenMs: p.ts,
                             lastSeenMs: p.ts,
                             project: p.project,
+                            provenance: p.provenance,
                         });
                     }
                 }
@@ -171,13 +204,17 @@ function extract() {
             firstSeenAt: new Date(e.firstSeenMs).toISOString(),
             lastSeenAt: new Date(e.lastSeenMs).toISOString(),
             project: e.project,
+            provenance: e.provenance,
         }));
 
+    const typedCount = prompts.filter((p) => p.provenance === "typed").length;
     const manifest = {
         schemaVersion: SCHEMA_VERSION,
         extractedAt: new Date().toISOString(),
         projectsScanned: projects.size,
         transcriptsRead,
+        typedCount,
+        legacyCount: prompts.length - typedCount,
         prompts,
         errors,
     };
@@ -187,7 +224,7 @@ function extract() {
     const outPath = path.join(dir, "raw.json");
     fs.writeFileSync(outPath, JSON.stringify(manifest, null, 2));
     console.log(
-        `[cheats] extracted ${prompts.length} unique prompts from ${transcriptsRead} transcripts → ${outPath}`,
+        `[cheats] extracted ${prompts.length} unique prompts (${typedCount} typed, ${prompts.length - typedCount} legacy) from ${transcriptsRead} transcripts → ${outPath}`,
     );
     if (errors.length) console.log(`[cheats] ${errors.length} read error(s) (see raw.json)`);
 }
@@ -205,21 +242,32 @@ function selftest() {
         stripNoise("hello <system-reminder>secret</system-reminder> world") === "hello  world".trim(),
         "stripNoise should drop system reminders",
     );
-    // command wrappers are rejected
+    // command wrappers + interrupt markers are rejected
     assert(promptFromLine({ type: "user", message: { content: "<command-name>foo</command-name>" } }) === null, "slash command wrapper rejected");
     assert(promptFromLine({ type: "user", message: { content: "<local-command-stdout>x</local-command-stdout>" } }) === null, "command stdout rejected");
+    assert(promptFromLine({ type: "user", message: { content: "[Request interrupted by user]" } }) === null, "interrupt marker rejected");
+    assert(promptFromLine({ type: "user", message: { content: "<task-notification><task-id>w1</task-id> done</task-notification>" } }) === null, "task-notification rejected");
     // meta + short rejected
     assert(promptFromLine({ type: "user", isMeta: true, message: { content: "a real long enough prompt here" } }) === null, "isMeta rejected");
     assert(promptFromLine({ type: "user", message: { content: "short" } }) === null, "too-short rejected");
+    // provenance hard-drops: subagent / internal / system-injected are NOT user prompts
+    assert(promptFromLine({ type: "user", isSidechain: true, message: { content: "a real long enough prompt here" } }) === null, "isSidechain (subagent) rejected");
+    assert(promptFromLine({ type: "user", userType: "internal", message: { content: "a real long enough prompt here" } }) === null, "non-external userType rejected");
+    assert(promptFromLine({ type: "user", promptSource: "system", message: { content: "a real long enough prompt here" } }) === null, "promptSource=system rejected");
     // genuine prompt accepted, tool_result blocks ignored
     const p = promptFromLine({
         type: "user",
+        promptSource: "typed",
         timestamp: "2026-01-01T00:00:00Z",
         cwd: "/repo",
         message: { content: [{ type: "text", text: "Please refactor the auth middleware token check" }, { type: "tool_result", content: "ignore me" }] },
     });
     assert(p && p.original === "Please refactor the auth middleware token check", "text block extracted, tool_result ignored");
     assert(p.project === "/repo", "project from cwd");
+    // provenance tagging: explicit promptSource=typed vs missing (legacy)
+    assert(p.provenance === "typed", "promptSource=typed → provenance typed");
+    const legacy = promptFromLine({ type: "user", message: { content: "a real long enough prompt here" } });
+    assert(legacy && legacy.provenance === "legacy", "missing promptSource → provenance legacy");
     // normalize collapses whitespace + case so near-dupes share a hash
     assert(hashOf(normalize("Do  X")) === hashOf(normalize("do x")), "normalize dedupes whitespace/case");
     console.log("OK extract selftest");
