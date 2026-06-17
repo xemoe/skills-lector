@@ -24,7 +24,8 @@ type DbCheatRow = {
     updated_at: string;
 };
 
-function toProvenance(raw: string | null): CheatProvenance {
+// provenance is `TEXT NOT NULL DEFAULT 'legacy'` (migration 003) — never null from the DB.
+function toProvenance(raw: string): CheatProvenance {
     return raw === "typed" ? "typed" : "legacy";
 }
 

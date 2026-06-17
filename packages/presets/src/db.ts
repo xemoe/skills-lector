@@ -61,9 +61,16 @@ function runMigrations(db: Database.Database): void {
             db.exec("COMMIT");
         } catch (err) {
             db.exec("ROLLBACK");
-            throw new Error(
-                `Migration ${m.file} failed: ${err instanceof Error ? err.message : String(err)}`,
-            );
+            const msg = err instanceof Error ? err.message : String(err);
+            // ponytail: SQLite has no `ADD COLUMN IF NOT EXISTS`, so a migration replayed
+            // out-of-band (copied DB, hand-edited schema_version) throws a benign
+            // "duplicate column"/"already exists". The schema is already in the target
+            // state — treat as applied and converge. Real failures still throw.
+            if (/duplicate column name|already exists/i.test(msg)) {
+                db.prepare("INSERT OR IGNORE INTO schema_version(version) VALUES (?)").run(m.version);
+                continue;
+            }
+            throw new Error(`Migration ${m.file} failed: ${msg}`);
         }
     }
 }

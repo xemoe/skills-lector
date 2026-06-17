@@ -2,6 +2,8 @@
 -- "legacy" = pre-provenance entry that can't be proven typed (the safe default,
 -- which is also what every row imported before this migration becomes).
 -- Written by packages/presets/scripts/import-cheats.mjs; read by src/cheats.ts.
+-- SQLite has no `ADD COLUMN IF NOT EXISTS`; the version gate in db.ts runs this
+-- once, and the runner treats a replayed "duplicate column" as already-applied.
 
 ALTER TABLE cheats ADD COLUMN provenance TEXT NOT NULL DEFAULT 'legacy';
 

@@ -56,6 +56,13 @@ function runMigrations(db) {
             db.exec("COMMIT");
         } catch (e) {
             db.exec("ROLLBACK");
+            const msg = e instanceof Error ? e.message : String(e);
+            // ponytail: mirror db.ts — a replayed "duplicate column"/"already exists"
+            // means the schema is already there; record the version and converge.
+            if (/duplicate column name|already exists/i.test(msg)) {
+                db.prepare("INSERT OR IGNORE INTO schema_version(version) VALUES (?)").run(version);
+                continue;
+            }
             throw e;
         }
     }
@@ -73,6 +80,20 @@ function openDb() {
 
 function hashOf(s) {
     return createHash("sha256").update(s).digest("hex").slice(0, 16);
+}
+
+/**
+ * Canonical identity hash — MUST match extract.mjs (collapse whitespace + lowercase,
+ * then sha256/16). The importer recomputes it from `original` and ignores any
+ * caller-supplied `hash`, so a crafted analyzed.json can't target an arbitrary row.
+ */
+function keyOf(original) {
+    return hashOf(original.replace(/\s+/g, " ").trim().toLowerCase());
+}
+
+/** Accept only ISO-8601 date strings; anything else is untrusted and dropped. */
+function isIsoDate(s) {
+    return typeof s === "string" && /^\d{4}-\d{2}-\d{2}T/.test(s) && !Number.isNaN(Date.parse(s));
 }
 
 function clampScore(v) {
@@ -118,8 +139,7 @@ function importCheats(cheats, db) {
             }
             const original = c.original;
             stmt.run({
-                prompt_hash:
-                    typeof c.hash === "string" && c.hash ? c.hash : hashOf(original.trim()),
+                prompt_hash: keyOf(original),
                 original,
                 improved: typeof c.improved === "string" ? c.improved : null,
                 intent: typeof c.intent === "string" ? c.intent : null,
@@ -128,8 +148,8 @@ function importCheats(cheats, db) {
                 project: typeof c.project === "string" ? c.project : null,
                 occurrences: Number.isFinite(c.occurrences) ? Math.max(1, Math.round(c.occurrences)) : 1,
                 provenance: provenanceOf(c.provenance),
-                first_seen_at: typeof c.firstSeenAt === "string" ? c.firstSeenAt : now,
-                last_seen_at: typeof c.lastSeenAt === "string" ? c.lastSeenAt : now,
+                first_seen_at: isIsoDate(c.firstSeenAt) ? c.firstSeenAt : now,
+                last_seen_at: isIsoDate(c.lastSeenAt) ? c.lastSeenAt : now,
                 now,
             });
             imported++;
@@ -150,24 +170,28 @@ function selftest() {
     try {
         db = openDb();
 
-        // 1. first import (no provenance → defaults to legacy)
+        // identity key is derived from `original`, NOT the caller-supplied hash
+        const k1 = keyOf("do X");
+
+        // 1. first import (no provenance → defaults to legacy); bogus hash is ignored
         let res = importCheats(
-            [{ hash: "h1", original: "do X", improved: "please do X", intent: "task", tags: ["a"], reuseScore: 70, occurrences: 2 }],
+            [{ hash: "attacker-row", original: "do X", improved: "please do X", intent: "task", tags: ["a"], reuseScore: 70, occurrences: 2 }],
             db,
         );
         assert(res.imported === 1, "first import should insert 1");
-        assert(db.prepare("SELECT provenance FROM cheats WHERE prompt_hash='h1'").get().provenance === "legacy", "missing provenance defaults to legacy");
+        assert(!db.prepare("SELECT 1 FROM cheats WHERE prompt_hash = ?").get("attacker-row"), "caller-supplied hash MUST be ignored");
+        assert(db.prepare("SELECT provenance FROM cheats WHERE prompt_hash = ?").get(k1).provenance === "legacy", "missing provenance defaults to legacy");
 
         // 2. user favorites it (simulating the web write)
-        db.prepare("UPDATE cheats SET favorite = 1, favorited_at = ? WHERE prompt_hash = 'h1'").run(new Date().toISOString());
+        db.prepare("UPDATE cheats SET favorite = 1, favorited_at = ? WHERE prompt_hash = ?").run(new Date().toISOString(), k1);
 
         // 3. re-import with changed analysis (now proven typed)
         importCheats(
-            [{ hash: "h1", original: "do X", improved: "kindly do X", intent: "task", tags: ["a", "b"], reuseScore: 90, occurrences: 5, provenance: "typed" }],
+            [{ original: "do X", improved: "kindly do X", intent: "task", tags: ["a", "b"], reuseScore: 90, occurrences: 5, provenance: "typed" }],
             db,
         );
 
-        const row = db.prepare("SELECT * FROM cheats WHERE prompt_hash = 'h1'").get();
+        const row = db.prepare("SELECT * FROM cheats WHERE prompt_hash = ?").get(k1);
         assert(row.improved === "kindly do X", "analysis column should update on re-import");
         assert(row.occurrences === 5, "occurrences should update on re-import");
         assert(JSON.parse(row.tags).length === 2, "tags should update on re-import");
@@ -177,12 +201,17 @@ function selftest() {
 
         // 4. once typed, a later legacy sighting must NOT downgrade the row
         importCheats(
-            [{ hash: "h1", original: "do X", improved: "kindly do X", intent: "task", tags: ["a", "b"], reuseScore: 90, occurrences: 5, provenance: "legacy" }],
+            [{ original: "do X", improved: "kindly do X", intent: "task", tags: ["a", "b"], reuseScore: 90, occurrences: 5, provenance: "legacy" }],
             db,
         );
-        assert(db.prepare("SELECT provenance FROM cheats WHERE prompt_hash='h1'").get().provenance === "typed", "typed provenance MUST NOT downgrade to legacy on re-import");
+        assert(db.prepare("SELECT provenance FROM cheats WHERE prompt_hash = ?").get(k1).provenance === "typed", "typed provenance MUST NOT downgrade to legacy on re-import");
 
-        // 5. malformed row is skipped, not fatal
+        // 5. malformed dates are rejected, blank/null rows skipped
+        importCheats([{ original: "ts probe", firstSeenAt: "ZZZZ", lastSeenAt: "2026-01-02T03:04:05.000Z" }], db);
+        const tsRow = db.prepare("SELECT first_seen_at, last_seen_at FROM cheats WHERE prompt_hash = ?").get(keyOf("ts probe"));
+        assert(/^\d{4}-\d{2}-\d{2}T/.test(tsRow.first_seen_at), "malformed firstSeenAt must fall back to an ISO timestamp");
+        assert(tsRow.last_seen_at === "2026-01-02T03:04:05.000Z", "valid ISO lastSeenAt must be preserved");
+
         res = importCheats([{ original: "" }, null, { original: "valid new one" }], db);
         assert(res.skipped === 2, "blank/null rows should be skipped");
         assert(res.imported === 1, "the one valid row should import");
