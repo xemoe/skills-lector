@@ -52,7 +52,7 @@ export default async function CheatDetailPage({
     const improvedFirst = show === "improved";
 
     const improvedCard = (
-        <Card className="rounded-sm">
+        <Card className="cheat-card cheat-card-glow overflow-visible rounded-sm">
             <CardHeader>
                 <CardTitle className="text-base">
                     {t.cheatsPage.improvedLabel}
