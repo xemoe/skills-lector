@@ -15,6 +15,7 @@ const LINKS = [
     { href: "/sources", key: "sources" },
     { href: "/discover", key: "discover" },
     { href: "/usecase", key: "usecase" },
+    { href: "/cheats", key: "cheats" },
 ] as const;
 
 export function MainNav() {

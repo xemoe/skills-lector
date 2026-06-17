@@ -21,6 +21,7 @@ export const en = {
         sources: "Sources",
         usecase: "Usecase",
         discover: "Discover",
+        cheats: "Cheats",
     },
 
     language: {
@@ -241,6 +242,53 @@ export const en = {
         refreshBody:
             "Star counts move. Re-run discover any time to overwrite the manifest with a fresh top 10:",
         cmdSearch: "/discover-skills",
+    },
+
+    cheatsPage: {
+        title: "Prompt Cheats",
+        subtitle:
+            "Reusable prompts mined from your Claude session history — search, refine, and copy them back into your work.",
+        emptyTitle: "No cheats yet",
+        empty1: "Run the ",
+        empty2:
+            " command in Claude Code to analyze your session history and build a library of reusable prompts. Results are saved to ",
+        empty3: " and appear here.",
+        search: "Search prompts, intent, tags…",
+        colPrompt: "Prompt",
+        colIntent: "Intent",
+        colProject: "Project",
+        colReuse: "Reuse",
+        colUsed: "Used",
+        colUpdated: "Last seen",
+        tabAll: "All",
+        tabFavorites: "Favorites",
+        sortRecent: "Recently seen",
+        sortReuse: "Highest reuse",
+        sortUsed: "Most used",
+        favorite: "Add to favorites",
+        unfavorite: "Remove from favorites",
+        noMatch: "No prompts match your filters.",
+        showing: (start: number, end: number, total: number) =>
+            `Showing ${start}–${end} of ${total} prompts`,
+        emptyCount: (total: number) => `0 of ${total} prompts`,
+        filterProject: "Filter by project",
+        allProjects: "All projects",
+        filterIntent: "Filter by intent",
+        allIntents: "All intents",
+        originalLabel: "Original prompt",
+        improvedLabel: "Improved",
+        noImproved: "No improved version for this prompt yet.",
+        tagsLabel: "Tags",
+        reuseLabel: "Reuse score",
+        occurrencesLabel: "Times used",
+        projectLabel: "Project",
+        intentLabel: "Intent",
+        seenRange: (first: string, last: string) => `First seen ${first} · last ${last}`,
+        favoritedBadge: "Favorite",
+        statTotal: "Total Prompts",
+        statFavorites: "Favorites",
+        statProjects: "Projects",
+        statAvgReuse: "Avg Reuse",
     },
 
     usecasePage: {
