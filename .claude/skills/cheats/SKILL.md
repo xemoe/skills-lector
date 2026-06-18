@@ -20,6 +20,14 @@ three steps; you (Claude) are the middle step.
    user prompts survive. `provenance` is `"typed"` (harness-confirmed the user typed it)
    or `"legacy"` (older entry from before the harness stamped origin — kept, unprovable).
 
+   **Only-new by default.** Extract reads `.cheats/known-hashes.json` (refreshed by
+   the importer in step 3) and skips any prompt already in the library, so re-running
+   only surfaces prompts you haven't curated yet — it never re-analyzes or overwrites
+   existing entries. `raw.json` carries `mode`, `knownHashes`, and `skippedKnown` to
+   show what was skipped. Pass **`--full`** to ignore the library and re-extract every
+   prompt (use when you've improved the analysis pass and want to rebuild all). With no
+   library file yet, only-new behaves as full automatically.
+
 2. **Analyze** — Read `.cheats/raw.json` (a wrapper object; iterate its
    `prompts` array). For each prompt produce an analyzed entry. Preserve
    `hash`, `original`, `occurrences`, `firstSeenAt`,
@@ -40,6 +48,13 @@ three steps; you (Claude) are the middle step.
    `node packages/presets/scripts/import-cheats.mjs .cheats/analyzed.json`
    The importer upserts on `hash` and NEVER touches `favorite` — re-running is
    safe and preserves the user's pins. It prints `[cheats] imported N, skipped M → <db path>`.
+   After importing it refreshes `.cheats/known-hashes.json` with every hash now in
+   the library, which is what makes step 1's only-new mode work on the next run.
+
+   Seeding an existing DB (first time only): if the library predates only-new mode
+   and `known-hashes.json` doesn't exist yet, run
+   `node packages/presets/scripts/import-cheats.mjs known-hashes` once to dump the
+   current hashes — otherwise the next extract runs full and re-analyzes everything.
 
 Then tell the user to open the Skills Lector `/cheats` page (press Rescan or
 reload) to browse the result.
@@ -73,5 +88,8 @@ reload) to browse the result.
 
 - Heavy work (history read, analysis) is here, never in the web app — the web app
   makes no LLM or network calls. The split mirrors the `discover-popular-skills` skill.
-- `.cheats/` is git-ignored (a local cache).
-- If `raw.json` has 0 prompts, tell the user there is no session history to mine yet.
+- `.cheats/` is git-ignored (a local cache), including `known-hashes.json`.
+- If `raw.json` has 0 prompts in **only-new** mode (`mode: "only-new"`), nothing new
+  has been typed since the last run — tell the user the library is already up to date
+  (suggest `--full` only if they want to rebuild). If it has 0 prompts in **full** mode,
+  there is no session history to mine yet.

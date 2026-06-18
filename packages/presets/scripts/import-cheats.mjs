@@ -9,6 +9,7 @@ import Database from "better-sqlite3";
 import {
     mkdirSync,
     readFileSync,
+    writeFileSync,
     readdirSync,
     existsSync,
     rmSync,
@@ -20,6 +21,31 @@ import { createHash } from "node:crypto";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(HERE, "..", "src", "migrations");
+
+/** Repo root = 3 levels up from this script (packages/presets/scripts/). */
+function repoRoot() {
+    return join(HERE, "..", "..", "..");
+}
+
+/** Where extract.mjs looks for the already-imported hash set (--only-new input). */
+function knownHashesPath(arg) {
+    return arg && String(arg).trim()
+        ? String(arg).trim()
+        : join(repoRoot(), ".cheats", "known-hashes.json");
+}
+
+/**
+ * Dump every prompt_hash currently in the library so extract.mjs --only-new can
+ * skip them. Returns the count written. Shared by the import path (auto-refresh)
+ * and the standalone `known-hashes` subcommand (seed an existing DB).
+ */
+function writeKnownHashes(db, outPath) {
+    const rows = db.prepare("SELECT prompt_hash FROM cheats").all();
+    const hashes = rows.map((r) => r.prompt_hash);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, JSON.stringify(hashes));
+    return hashes.length;
+}
 
 function resolveDbPath() {
     const env = process.env.SKILLS_LECTOR_PRESETS_DB;
@@ -216,6 +242,16 @@ function selftest() {
         assert(res.skipped === 2, "blank/null rows should be skipped");
         assert(res.imported === 1, "the one valid row should import");
 
+        // 6. known-hashes dump reflects the stored rows (feeds extract --only-new)
+        const tmpHashes = join(homedir(), ".skills-lector", `cheats-hashes-${process.pid}.json`);
+        const n = writeKnownHashes(db, tmpHashes);
+        assert(n >= 1, "writeKnownHashes should dump at least one hash");
+        const dumped = JSON.parse(readFileSync(tmpHashes, "utf8"));
+        assert(Array.isArray(dumped), "known-hashes file is a JSON array");
+        assert(dumped.includes(k1), "dumped hashes include the known row");
+        assert(dumped.includes(keyOf("valid new one")), "dumped hashes include a freshly imported row");
+        rmSync(tmpHashes, { force: true });
+
         console.log("OK import-cheats selftest");
     } finally {
         if (db) {
@@ -232,6 +268,30 @@ function selftest() {
 function main() {
     const arg = process.argv[2];
     if (arg === "selftest") return selftest();
+
+    // `known-hashes [outfile]` — dump the library's hashes for extract --only-new.
+    // Use this once to seed only-new mode against a pre-existing DB.
+    if (arg === "known-hashes") {
+        const outPath = knownHashesPath(process.argv[3]);
+        let db;
+        try {
+            db = openDb();
+            const n = writeKnownHashes(db, outPath);
+            console.log(`[cheats] wrote ${n} known hash(es) → ${outPath}`);
+        } catch (e) {
+            console.error(`[cheats] fatal: ${e instanceof Error ? e.message : String(e)}`);
+            process.exitCode = 1;
+        } finally {
+            if (db) {
+                try {
+                    db.close();
+                } catch {
+                    /* already closed */
+                }
+            }
+        }
+        return;
+    }
 
     const file = arg || ".cheats/analyzed.json";
     if (!existsSync(file)) {
@@ -251,6 +311,14 @@ function main() {
         db = openDb();
         const { imported, skipped } = importCheats(cheats, db);
         console.log(`[cheats] imported ${imported}, skipped ${skipped} → ${resolveDbPath()}`);
+        // Refresh the only-new hash set so the next extract skips everything now stored.
+        try {
+            const kp = knownHashesPath();
+            const n = writeKnownHashes(db, kp);
+            console.log(`[cheats] refreshed ${n} known hash(es) → ${kp} (next extract skips these unless --full)`);
+        } catch (e) {
+            console.error(`[cheats] warning: could not write known-hashes (${e instanceof Error ? e.message : String(e)}); next extract will run full`);
+        }
     } catch (e) {
         console.error(`[cheats] fatal: ${e instanceof Error ? e.message : String(e)}`);
         process.exitCode = 1;

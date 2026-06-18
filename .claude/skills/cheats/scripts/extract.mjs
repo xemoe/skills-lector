@@ -22,6 +22,10 @@ const MAX_FILES = 2000;
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
 const MIN_LEN = 16;
 const MAX_OUTPUT = 500;
+// Written by import-cheats.mjs after every import; the set of prompt hashes already
+// in the library. Default ("only-new") mode skips these so re-running NEVER
+// re-analyzes or overwrites curated entries. `--full` ignores it and re-extracts all.
+const KNOWN_HASHES_FILE = "known-hashes.json";
 
 // /g is required for stripNoise's replace() to remove ALL reminders. Do NOT call
 // .test() on this shared regex — its lastIndex would persist across calls.
@@ -46,6 +50,30 @@ function repoRoot() {
 
 function hashOf(s) {
     return createHash("sha256").update(s).digest("hex").slice(0, 16);
+}
+
+/**
+ * Load the hashes already in the cheats library (written by import-cheats). Returns
+ * a Set, or null when there is no library yet / the file is unreadable — in which
+ * case extract falls back to full (everything is "new"). Errors are non-fatal.
+ */
+function loadKnownHashes(errors) {
+    const file = path.join(repoRoot(), ".cheats", KNOWN_HASHES_FILE);
+    if (!fs.existsSync(file)) return null;
+    try {
+        const arr = JSON.parse(fs.readFileSync(file, "utf8"));
+        if (!Array.isArray(arr)) throw new Error("expected a JSON array of hashes");
+        return new Set(arr.filter((h) => typeof h === "string"));
+    } catch (e) {
+        errors.push(`read ${file}: ${e.message} (falling back to full extract)`);
+        return null;
+    }
+}
+
+/** Pure: drop entries whose hash is already in the library. No-op when `known` is empty. */
+function dropKnown(entries, known) {
+    if (!known || !known.size) return entries;
+    return entries.filter((e) => !known.has(e.hash));
 }
 
 /** Drop system reminders and trim. Keeps the human-readable prompt body. */
@@ -128,7 +156,7 @@ function findTranscripts(root, errors) {
     return out;
 }
 
-function extract() {
+function extract({ onlyNew } = { onlyNew: true }) {
     const errors = [];
     const root = path.join(claudeHome(), "projects");
     const map = new Map(); // normalized-hash -> aggregate
@@ -194,7 +222,14 @@ function extract() {
         errors.push(`no transcripts directory at ${root}`);
     }
 
-    const prompts = [...map.values()]
+    // Default mode skips prompts already in the library so re-runs never re-analyze
+    // or overwrite curated entries. `--full` passes onlyNew:false to rebuild everything.
+    const known = onlyNew ? loadKnownHashes(errors) : null;
+    const aggregated = [...map.values()];
+    const newOnly = dropKnown(aggregated, known);
+    const skippedKnown = aggregated.length - newOnly.length;
+
+    const prompts = newOnly
         .sort((a, b) => b.occurrences - a.occurrences || b.lastSeenMs - a.lastSeenMs)
         .slice(0, MAX_OUTPUT)
         .map((e) => ({
@@ -211,6 +246,9 @@ function extract() {
     const manifest = {
         schemaVersion: SCHEMA_VERSION,
         extractedAt: new Date().toISOString(),
+        mode: onlyNew ? "only-new" : "full",
+        knownHashes: known ? known.size : 0,
+        skippedKnown,
         projectsScanned: projects.size,
         transcriptsRead,
         typedCount,
@@ -223,8 +261,13 @@ function extract() {
     fs.mkdirSync(dir, { recursive: true });
     const outPath = path.join(dir, "raw.json");
     fs.writeFileSync(outPath, JSON.stringify(manifest, null, 2));
+    const modeNote = onlyNew
+        ? known
+            ? `only-new — skipped ${skippedKnown} already in library`
+            : `only-new — no library yet, treating all as new`
+        : `full — re-extracting everything`;
     console.log(
-        `[cheats] extracted ${prompts.length} unique prompts (${typedCount} typed, ${prompts.length - typedCount} legacy) from ${transcriptsRead} transcripts → ${outPath}`,
+        `[cheats] extracted ${prompts.length} prompts [${modeNote}] (${typedCount} typed, ${prompts.length - typedCount} legacy) from ${transcriptsRead} transcripts → ${outPath}`,
     );
     if (errors.length) console.log(`[cheats] ${errors.length} read error(s) (see raw.json)`);
 }
@@ -270,9 +313,14 @@ function selftest() {
     assert(legacy && legacy.provenance === "legacy", "missing promptSource → provenance legacy");
     // normalize collapses whitespace + case so near-dupes share a hash
     assert(hashOf(normalize("Do  X")) === hashOf(normalize("do x")), "normalize dedupes whitespace/case");
+    // only-new filter: known hashes are dropped; a null/empty set is a no-op
+    assert(dropKnown([{ hash: "a" }, { hash: "b" }], new Set(["a"])).length === 1, "dropKnown removes known hashes");
+    assert(dropKnown([{ hash: "a" }, { hash: "b" }], new Set(["a"]))[0].hash === "b", "dropKnown keeps the unknown one");
+    assert(dropKnown([{ hash: "a" }], null).length === 1, "dropKnown is a no-op with no known set");
+    assert(dropKnown([{ hash: "a" }], new Set()).length === 1, "dropKnown is a no-op with an empty known set");
     console.log("OK extract selftest");
 }
 
-const arg = process.argv[2];
-if (arg === "selftest") selftest();
-else extract();
+const cliArgs = process.argv.slice(2);
+if (cliArgs.includes("selftest")) selftest();
+else extract({ onlyNew: !(cliArgs.includes("--full") || cliArgs.includes("--all")) });
