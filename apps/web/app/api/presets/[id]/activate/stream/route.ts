@@ -4,17 +4,13 @@ import { z } from "zod";
 import { applyPreset } from "@lector/presets/activate";
 import { ApplyEventBus } from "@lector/presets/events";
 import { getPreset } from "@lector/presets/presets";
+import { parsePresetId } from "@/lib/preset-query";
 
 export const dynamic = "force-dynamic";
 
 const Query = z.object({
     force: z.enum(["0", "1"]).optional(),
 });
-
-function parseId(value: string): number | null {
-    const n = Number(value);
-    return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 function sseChunk(payload: unknown): string {
     return `data: ${JSON.stringify(payload)}\n\n`;
@@ -25,7 +21,7 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> },
 ) {
     const { id: idStr } = await params;
-    const id = parseId(idStr);
+    const id = parsePresetId(idStr);
     if (!id) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
     const url = new URL(request.url);
     const parsed = Query.safeParse({

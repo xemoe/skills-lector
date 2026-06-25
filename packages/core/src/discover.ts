@@ -7,7 +7,7 @@ import type {
     DiscoverResult,
 } from "./types";
 
-const CACHE_TTL_MS = 8000;
+import { CACHE_TTL_MS } from "./cache";
 let cache: { result: DiscoverResult; at: number; manifestMtime: number } | null = null;
 
 const MANIFEST_REL = path.join(".discover", "results.json");

@@ -18,18 +18,10 @@ import type {
 import type { EnrichedPresetItem } from "@lector/presets/enrich";
 
 import { qk } from "./preset-query-keys";
+import { jsonFetch } from "@/lib/json-fetch";
 
 // Re-export so existing client-side imports keep working.
 export { qk };
-
-async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(url, init);
-    if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${res.status}`);
-    }
-    return res.json() as Promise<T>;
-}
 
 // --- Queries ---
 

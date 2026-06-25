@@ -46,6 +46,12 @@ export function formatRelativeTime(
     return t.common.justNow;
 }
 
+/** Cross-platform basename — splits on both separators since the client `path` uses POSIX semantics and never splits on backslashes. */
+export function basename(p: string): string {
+    const segments = p.split(/[\\/]/);
+    return segments[segments.length - 1] || p;
+}
+
 export function formatBytes(bytes: number): string {
     if (!bytes || bytes < 0) return "0 B";
     const k = 1024;

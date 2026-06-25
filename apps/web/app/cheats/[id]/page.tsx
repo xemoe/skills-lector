@@ -14,23 +14,9 @@ import { CheatDetailNav } from "@/components/cheats/cheat-detail-nav";
 import { getCheat } from "@lector/presets/cheats";
 import { getServerI18n } from "@/lib/i18n/server";
 import { formatDate } from "@/lib/utils";
+import { MetaRow } from "@/components/meta-row";
 
 export const dynamic = "force-dynamic";
-
-function MetaRow({
-    label,
-    children,
-}: {
-    label: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="flex items-start justify-between gap-4 py-2 text-sm">
-            <span className="shrink-0 text-muted-foreground">{label}</span>
-            <span className="min-w-0 text-right">{children}</span>
-        </div>
-    );
-}
 
 export default async function CheatDetailPage({
     params,

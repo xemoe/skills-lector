@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { claudeHome } from "./claude-paths";
+import { makeCache } from "./cache";
 import { safeExists } from "./scanner";
 
 /** How an invocation reached Claude Code. */
@@ -34,14 +35,13 @@ export interface ActivityResult {
     durationMs: number;
 }
 
-const CACHE_TTL_MS = 8000;
 /** Skip pathologically large transcripts so the scan stays bounded. */
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
 /** Read only the newest N transcripts. */
 const MAX_FILES = 2000;
 const COMMAND_RE = /<command-name>\s*([^<]+?)\s*<\/command-name>/;
 
-let cache: { result: ActivityResult; at: number } | null = null;
+const cache = makeCache<ActivityResult>();
 
 /** Recursively collects every .jsonl transcript under a directory. */
 function findTranscripts(root: string, errors: string[]): string[] {
@@ -112,9 +112,8 @@ function eventsFromLine(obj: any, origin: InvocationOrigin): ActivityEvent[] {
 
 /** Scans every Claude Code session transcript for skill and command invocations. */
 export function scanActivity(opts: { force?: boolean } = {}): ActivityResult {
-    if (!opts.force && cache && Date.now() - cache.at < CACHE_TTL_MS) {
-        return cache.result;
-    }
+    const cached = cache.get(opts.force);
+    if (cached) return cached;
 
     const started = Date.now();
     const errors: string[] = [];
@@ -167,6 +166,5 @@ export function scanActivity(opts: { force?: boolean } = {}): ActivityResult {
         errors,
         durationMs: Date.now() - started,
     };
-    cache = { result, at: Date.now() };
-    return result;
+    return cache.set(result);
 }

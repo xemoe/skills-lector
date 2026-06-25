@@ -8,6 +8,7 @@ import {
     updatePreset,
 } from "@lector/presets/presets";
 import { enrichPresetItems } from "@lector/presets/enrich";
+import { parsePresetId } from "@/lib/preset-query";
 
 export const dynamic = "force-dynamic";
 
@@ -23,17 +24,12 @@ const UpdateBody = z.object({
     color: z.string().max(32).nullable().optional(),
 });
 
-function parseId(value: string): number | null {
-    const n = Number(value);
-    return Number.isInteger(n) && n > 0 ? n : null;
-}
-
 export async function GET(
     _request: Request,
     { params }: { params: Promise<{ id: string }> },
 ) {
     const { id: idStr } = await params;
-    const id = parseId(idStr);
+    const id = parsePresetId(idStr);
     if (!id) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
     const preset = getPreset(id);
     if (!preset) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -47,7 +43,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> },
 ) {
     const { id: idStr } = await params;
-    const id = parseId(idStr);
+    const id = parsePresetId(idStr);
     if (!id) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
     const body = await request.json().catch(() => null);
     const parsed = UpdateBody.safeParse(body);

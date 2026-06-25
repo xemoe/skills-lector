@@ -6,16 +6,13 @@ import type {
     PinnedItem,
     PresetItem,
 } from "./types";
+import { itemKey } from "./util";
 
 type DiffInput = {
     presetItems: Pick<PresetItem, "kind" | "identifier">[];
     pinnedItems: Pick<PinnedItem, "kind" | "identifier">[];
     fsItems: FsItem[];
 };
-
-function key(kind: string, id: string): string {
-    return `${kind}::${id}`;
-}
 
 /**
  * Pure function — computes what would happen if we applied the given preset.
@@ -36,12 +33,12 @@ function key(kind: string, id: string): string {
  */
 export function computeApplyDiff(input: DiffInput): ApplyDiff {
     const pinnedKeys = new Set(
-        input.pinnedItems.map((p) => key(p.kind, p.identifier)),
+        input.pinnedItems.map((p) => itemKey(p.kind, p.identifier)),
     );
     const presetKeys = new Set(
-        input.presetItems.map((p) => key(p.kind, p.identifier)),
+        input.presetItems.map((p) => itemKey(p.kind, p.identifier)),
     );
-    const fsKeys = new Set(input.fsItems.map((f) => key(f.kind, f.identifier)));
+    const fsKeys = new Set(input.fsItems.map((f) => itemKey(f.kind, f.identifier)));
 
     const enabled: ApplyDiffEntry[] = [];
     const disabled: ApplyDiffEntry[] = [];
@@ -49,7 +46,7 @@ export function computeApplyDiff(input: DiffInput): ApplyDiff {
     const missing: ApplyDiffEntry[] = [];
 
     for (const fsItem of input.fsItems) {
-        const k = key(fsItem.kind, fsItem.identifier);
+        const k = itemKey(fsItem.kind, fsItem.identifier);
         const entry: ApplyDiffEntry = {
             kind: fsItem.kind,
             identifier: fsItem.identifier,
@@ -73,7 +70,7 @@ export function computeApplyDiff(input: DiffInput): ApplyDiff {
     }
 
     for (const p of input.presetItems) {
-        const k = key(p.kind, p.identifier);
+        const k = itemKey(p.kind, p.identifier);
         if (!fsKeys.has(k)) {
             missing.push({ kind: p.kind, identifier: p.identifier });
         }

@@ -2,6 +2,7 @@
 import type Database from "better-sqlite3";
 import { openDb } from "./db";
 import type { Preset, PresetItem, ActiveState, ItemKind } from "./types";
+import { nowIso } from "./util";
 
 type DbPresetRow = {
     id: number;
@@ -25,10 +26,6 @@ function rowToPreset(r: DbPresetRow): Preset {
         createdAt: r.created_at,
         updatedAt: r.updated_at,
     };
-}
-
-function nowIso(): string {
-    return new Date().toISOString();
 }
 
 export type ListPresetsOptions = { status?: "active" | "archived" | "all" };

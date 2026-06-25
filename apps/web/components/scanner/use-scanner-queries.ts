@@ -5,17 +5,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CommandScanResult, ScanResult } from "@lector/core/types";
 
 import { SCANNER_QUERY_PREFIX, scannerQk } from "./scanner-query-keys";
+import { jsonFetch } from "@/lib/json-fetch";
 
 export { scannerQk };
-
-async function jsonFetch<T>(url: string): Promise<T> {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${res.status}`);
-    }
-    return res.json() as Promise<T>;
-}
 
 /** Subscribe to the skills scan result. Initial data is supplied via HydrationBoundary in the page. */
 export function useSkillsScan() {

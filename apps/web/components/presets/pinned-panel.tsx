@@ -10,6 +10,7 @@ import {
 } from "./use-preset-queries";
 import { PresetItemPicker } from "./preset-item-picker";
 import { Button } from "@/components/ui/button";
+import { itemKey } from "@/lib/item-key";
 
 export function PinnedPanel() {
     const active = usePinnedList("active");
@@ -36,7 +37,7 @@ export function PinnedPanel() {
                     <ul className="divide-y rounded-none border text-sm">
                         {active.data.pinned.map((p) => (
                             <li
-                                key={`${p.kind}::${p.identifier}`}
+                                key={itemKey(p)}
                                 className="flex items-center justify-between p-2"
                             >
                                 <span className="font-mono">
@@ -69,7 +70,7 @@ export function PinnedPanel() {
                         <ul className="mt-2 divide-y rounded-none border text-sm">
                             {archived.data.pinned.map((p) => (
                                 <li
-                                    key={`${p.kind}::${p.identifier}`}
+                                    key={itemKey(p)}
                                     className="flex items-center justify-between p-2"
                                 >
                                     <span className="font-mono text-muted-foreground">
@@ -97,10 +98,10 @@ export function PinnedPanel() {
                     initiallySelected={active.data?.pinned.map((p) => ({ kind: p.kind, identifier: p.identifier })) ?? []}
                     onConfirm={async (chosen) => {
                         const existing = new Set(
-                            (active.data?.pinned ?? []).map((p) => `${p.kind}::${p.identifier}`),
+                            (active.data?.pinned ?? []).map(itemKey),
                         );
                         for (const c of chosen) {
-                            const k = `${c.kind}::${c.identifier}`;
+                            const k = itemKey(c);
                             if (!existing.has(k)) {
                                 await addPin.mutateAsync({ kind: c.kind, identifier: c.identifier });
                             }

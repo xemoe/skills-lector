@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import type { ApplyResult, ItemKind } from "@lector/presets/types";
 import { PresetItemCard } from "./preset-item-card";
 import type { EnrichedPresetItem } from "@lector/presets/enrich";
+import { itemKey } from "@/lib/item-key";
 
 const STREAM_THRESHOLD = 4;
 
@@ -124,9 +125,9 @@ export function PresetDetailClient({ presetId }: { presetId: number }) {
                 open={pickerOpen}
                 onOpenChange={setPickerOpen}
                 onConfirm={async (chosen) => {
-                    const existing = new Set(items.map((i) => `${i.kind}::${i.identifier}`));
+                    const existing = new Set(items.map(itemKey));
                     for (const c of chosen) {
-                        const key = `${c.kind}::${c.identifier}`;
+                        const key = itemKey(c);
                         if (!existing.has(key)) {
                             await addItem.mutateAsync({ presetId, kind: c.kind, identifier: c.identifier });
                         }
@@ -172,7 +173,7 @@ function PresetItemGrid({
         <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
             {items.map((i) => (
                 <PresetItemCard
-                    key={`${i.kind}::${i.identifier}`}
+                    key={itemKey(i)}
                     item={i}
                     presetId={presetId}
                     onRemove={() => onRemove(i.kind, i.identifier)}

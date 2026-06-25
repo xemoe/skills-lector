@@ -4,6 +4,7 @@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { ApplyResult } from "@lector/presets/types";
+import { itemKey } from "@/lib/item-key";
 
 export function ActivateConfirmDialog({
     open,
@@ -52,7 +53,7 @@ function DiffSection({ label, items }: { label: string; items: Array<{ kind: str
             </div>
             <ul className="mt-1 max-h-32 overflow-y-auto rounded-none border bg-secondary/30 p-2 text-xs">
                 {items.map((i) => (
-                    <li key={`${i.kind}::${i.identifier}`} className="font-mono">
+                    <li key={itemKey(i)} className="font-mono">
                         [{i.kind}] {i.identifier}
                         {i.reason ? <span className="text-muted-foreground"> &mdash; {i.reason}</span> : null}
                     </li>

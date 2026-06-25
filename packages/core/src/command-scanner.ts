@@ -5,7 +5,8 @@ import { claudeHome, personalCommandsDir, pluginsDir } from "./claude-paths";
 import { parseCommandMd } from "./command-parser";
 import { loadConfig } from "./config";
 import { clearGitCache, resolveSource } from "./git";
-import { readPluginJson, safeExists, SKIP_DIRS } from "./scanner";
+import { makeCache } from "./cache";
+import { findPluginRoots, readPluginJson, safeExists, SKIP_DIRS } from "./scanner";
 import { excerpt } from "./skill-parser";
 import type {
     Command,
@@ -18,8 +19,7 @@ import type {
 } from "./types";
 import { readProjectPaths } from "./usage";
 
-const CACHE_TTL_MS = 8000;
-let cache: { result: CommandScanResult; at: number } | null = null;
+const cache = makeCache<CommandScanResult>();
 
 /** A directory of command files, plus the scope every command inside it inherits. */
 interface CommandRoot {
@@ -58,32 +58,6 @@ function findCommandFiles(dir: string, maxDepth: number, errors: string[]): stri
         }
     };
     walk(dir, 0);
-    return results;
-}
-
-/** Walks the plugins directory to find every plugin root (a dir with .claude-plugin/plugin.json). */
-function findPluginRoots(root: string, maxDepth: number, errors: string[]): string[] {
-    const results: string[] = [];
-    const walk = (dir: string, depth: number) => {
-        if (depth > maxDepth) return;
-        if (safeExists(path.join(dir, ".claude-plugin", "plugin.json"))) {
-            results.push(dir);
-            return;
-        }
-        let entries: fs.Dirent[];
-        try {
-            entries = fs.readdirSync(dir, { withFileTypes: true });
-        } catch (e) {
-            errors.push(`read ${dir}: ${(e as Error).message}`);
-            return;
-        }
-        for (const entry of entries) {
-            if (!entry.isDirectory()) continue;
-            if (SKIP_DIRS.has(entry.name) || entry.name.startsWith(".")) continue;
-            walk(path.join(dir, entry.name), depth + 1);
-        }
-    };
-    walk(root, 0);
     return results;
 }
 
@@ -205,9 +179,8 @@ function buildCommand(filePath: string, root: CommandRoot): Command | null {
 
 /** Scans every known location for deployed Claude Code slash commands. */
 export function scanCommands(opts: { force?: boolean } = {}): CommandScanResult {
-    if (!opts.force && cache && Date.now() - cache.at < CACHE_TTL_MS) {
-        return cache.result;
-    }
+    const cached = cache.get(opts.force);
+    if (cached) return cached;
 
     const started = Date.now();
     clearGitCache();
@@ -262,8 +235,7 @@ export function scanCommands(opts: { force?: boolean } = {}): CommandScanResult 
         durationMs: Date.now() - started,
     };
 
-    cache = { result, at: Date.now() };
-    return result;
+    return cache.set(result);
 }
 
 export function getCommandById(id: string): Command | undefined {

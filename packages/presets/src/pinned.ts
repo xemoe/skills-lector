@@ -1,6 +1,7 @@
 // packages/presets/src/pinned.ts
 import { openDb } from "./db";
 import type { PinnedItem, ItemKind } from "./types";
+import { nowIso } from "./util";
 
 type DbPinnedRow = {
     kind: ItemKind;
@@ -18,10 +19,6 @@ function rowToPinned(r: DbPinnedRow): PinnedItem {
         reason: r.reason,
         archivedAt: r.archived_at,
     };
-}
-
-function nowIso(): string {
-    return new Date().toISOString();
 }
 
 export type ListPinnedOptions = { status?: "active" | "archived" | "all" };

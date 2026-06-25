@@ -32,7 +32,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SkillTypeDot } from "@/components/skill-type-dot";
 import { SKILL_TYPE_META } from "@/components/skill-type";
 import { CountBadge } from "@/components/count-badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, basename } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
 import type { Hook, HookEvent, HookScope } from "@lector/core/types";
 
@@ -55,12 +55,6 @@ const EVENTS: HookEvent[] = [
 ];
 
 const PAGE_SIZE = 10;
-
-/** Cross-platform basename — Node's `path.basename` on the client uses POSIX semantics and never splits on backslashes. */
-function basename(p: string): string {
-    const segments = p.split(/[\\/]/);
-    return segments[segments.length - 1] || p;
-}
 
 export function HooksExplorer({ hooks }: { hooks: Hook[] }) {
     const router = useRouter();

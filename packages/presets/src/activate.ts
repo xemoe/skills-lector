@@ -16,6 +16,7 @@ import type {
     ApplyOptions,
     ApplyResult,
 } from "./types";
+import { itemKey, nowIso } from "./util";
 
 export type ApplyDeps = {
     bus?: ApplyEventBus;
@@ -172,7 +173,7 @@ type WriteLogInput = {
 
 function writeLog(db: ReturnType<typeof openDb>, input: WriteLogInput): number {
     return db.transaction(() => {
-        const ts = new Date().toISOString();
+        const ts = nowIso();
         const info = db
             .prepare(
                 `INSERT INTO apply_log (ts, from_preset_id, to_preset_id, enabled_count, disabled_count, skipped_count, error_count, duration_ms, status)
@@ -196,21 +197,21 @@ function writeLog(db: ReturnType<typeof openDb>, input: WriteLogInput): number {
         );
 
         // Build a quick lookup of failed identifiers
-        const errorSet = new Set(input.errors.map((e) => `${e.kind}::${e.identifier}`));
+        const errorSet = new Set(input.errors.map((e) => itemKey(e.kind, e.identifier)));
 
         for (const e of input.diff.enabled) {
-            const k = `${e.kind}::${e.identifier}`;
+            const k = itemKey(e.kind, e.identifier);
             if (errorSet.has(k)) {
-                const err = input.errors.find((x) => `${x.kind}::${x.identifier}` === k);
+                const err = input.errors.find((x) => itemKey(x.kind, x.identifier) === k);
                 insertItem.run(logId, e.kind, e.identifier, "error", err?.message ?? null);
             } else {
                 insertItem.run(logId, e.kind, e.identifier, "enabled", null);
             }
         }
         for (const d of input.diff.disabled) {
-            const k = `${d.kind}::${d.identifier}`;
+            const k = itemKey(d.kind, d.identifier);
             if (errorSet.has(k)) {
-                const err = input.errors.find((x) => `${x.kind}::${x.identifier}` === k);
+                const err = input.errors.find((x) => itemKey(x.kind, x.identifier) === k);
                 insertItem.run(logId, d.kind, d.identifier, "error", err?.message ?? null);
             } else {
                 insertItem.run(logId, d.kind, d.identifier, "disabled", null);
@@ -229,6 +230,6 @@ function writeLog(db: ReturnType<typeof openDb>, input: WriteLogInput): number {
 }
 
 function countErrors(errors: ApplyDiffEntry[], pool: ApplyDiffEntry[]): number {
-    const poolKeys = new Set(pool.map((p) => `${p.kind}::${p.identifier}`));
-    return errors.filter((e) => poolKeys.has(`${e.kind}::${e.identifier}`)).length;
+    const poolKeys = new Set(pool.map((p) => itemKey(p.kind, p.identifier)));
+    return errors.filter((e) => poolKeys.has(itemKey(e.kind, e.identifier))).length;
 }

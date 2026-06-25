@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ItemKind } from "@lector/presets/types";
+import { itemKey } from "@/lib/item-key";
 
 type Step = "name" | "items" | "review";
 
@@ -134,7 +135,7 @@ export function PresetWizard({ onDone }: { onDone?: () => void }) {
                         <ul className="divide-y rounded-none border text-sm">
                             {items.map((i) => (
                                 <li
-                                    key={`${i.kind}::${i.identifier}`}
+                                    key={itemKey(i)}
                                     className="flex items-center justify-between p-2"
                                 >
                                     <span>
@@ -201,7 +202,7 @@ export function PresetWizard({ onDone }: { onDone?: () => void }) {
                     <ul className="divide-y rounded-none border text-sm">
                         {items.map((i) => (
                             <li
-                                key={`${i.kind}::${i.identifier}`}
+                                key={itemKey(i)}
                                 className="flex items-center gap-2 p-2"
                             >
                                 <span className="font-mono text-xs text-muted-foreground">

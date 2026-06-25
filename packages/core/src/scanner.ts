@@ -8,6 +8,7 @@ import {
     pluginsDir,
     samePath,
 } from "./claude-paths";
+import { makeCache } from "./cache";
 import { type CatalogConfig, loadConfig } from "./config";
 import { clearGitCache, PROVENANCE_FILE, resolveSource } from "./git";
 import {
@@ -36,8 +37,7 @@ export const SKIP_DIRS = new Set([
     "Service Worker", "logs", "Network", "Partitions",
 ]);
 
-const CACHE_TTL_MS = 8000;
-let cache: { result: ScanResult; at: number } | null = null;
+const cache = makeCache<ScanResult>();
 
 export function safeExists(p: string): boolean {
     try {
@@ -45,6 +45,32 @@ export function safeExists(p: string): boolean {
     } catch {
         return false;
     }
+}
+
+/** Walks the plugins directory to find every plugin root (a dir with .claude-plugin/plugin.json). */
+export function findPluginRoots(root: string, maxDepth: number, errors: string[]): string[] {
+    const results: string[] = [];
+    const walk = (dir: string, depth: number) => {
+        if (depth > maxDepth) return;
+        if (safeExists(path.join(dir, ".claude-plugin", "plugin.json"))) {
+            results.push(dir);
+            return;
+        }
+        let entries: fs.Dirent[];
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch (e) {
+            errors.push(`read ${dir}: ${(e as Error).message}`);
+            return;
+        }
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            if (SKIP_DIRS.has(entry.name) || entry.name.startsWith(".")) continue;
+            walk(path.join(dir, entry.name), depth + 1);
+        }
+    };
+    walk(root, 0);
+    return results;
 }
 
 /** Recursively finds every SKILL.md file under a root, skipping noise directories. */
@@ -321,9 +347,8 @@ function getScanRoots(config: CatalogConfig): ScanRoot[] {
 
 /** Scans every known location for deployed Claude Skills. */
 export function scanSkills(opts: { force?: boolean } = {}): ScanResult {
-    if (!opts.force && cache && Date.now() - cache.at < CACHE_TTL_MS) {
-        return cache.result;
-    }
+    const cached = cache.get(opts.force);
+    if (cached) return cached;
 
     const started = Date.now();
     clearGitCache();
@@ -367,8 +392,7 @@ export function scanSkills(opts: { force?: boolean } = {}): ScanResult {
         durationMs: Date.now() - started,
     };
 
-    cache = { result, at: Date.now() };
-    return result;
+    return cache.set(result);
 }
 
 export function getSkillById(id: string): Skill | undefined {

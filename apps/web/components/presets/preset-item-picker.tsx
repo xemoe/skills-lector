@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PluginScopeNotice } from "@/components/plugin-scope-notice";
 import { useT } from "@/lib/i18n/context";
 import type { ItemKind } from "@lector/presets/types";
+import { itemKey } from "@/lib/item-key";
 
 type AvailableItem = {
     kind: ItemKind;
@@ -47,7 +48,7 @@ export function PresetItemPicker({
         if (!open) return;
         setSelected(
             new Set(
-                initiallySelected.map((s) => `${s.kind}::${s.identifier}`),
+                initiallySelected.map(itemKey),
             ),
         );
         setHiddenCount(0);
@@ -120,7 +121,7 @@ export function PresetItemPicker({
     }, [items, search]);
 
     function toggle(item: AvailableItem) {
-        const k = `${item.kind}::${item.identifier}`;
+        const k = itemKey(item);
         setSelected((prev) => {
             const next = new Set(prev);
             if (next.has(k)) next.delete(k);
@@ -132,7 +133,7 @@ export function PresetItemPicker({
     function confirm() {
         if (!items) return;
         const chosen = items.filter((i) =>
-            selected.has(`${i.kind}::${i.identifier}`),
+            selected.has(itemKey(i)),
         );
         onConfirm(chosen);
         onOpenChange(false);
@@ -167,7 +168,7 @@ export function PresetItemPicker({
                         ) : (
                             <ul className="divide-y">
                                 {filtered.map((i) => {
-                                    const k = `${i.kind}::${i.identifier}`;
+                                    const k = itemKey(i);
                                     return (
                                         <li
                                             key={k}

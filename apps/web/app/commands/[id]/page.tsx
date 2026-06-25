@@ -28,23 +28,9 @@ import {formatBytes, formatDate, formatRelativeTime} from "@/lib/utils";
 import {getServerI18n} from "@/lib/i18n/server";
 import {getPreset} from "@lector/presets/presets";
 import {parsePresetId} from "@/lib/preset-query";
+import {MetaRow} from "@/components/meta-row";
 
 export const dynamic = "force-dynamic";
-
-function MetaRow({
-                     label,
-                     children,
-                 }: {
-    label: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="flex items-start justify-between gap-4 py-2 text-sm">
-            <span className="shrink-0 text-muted-foreground">{label}</span>
-            <span className="min-w-0 text-right">{children}</span>
-        </div>
-    );
-}
 
 export default async function CommandDetailPage({
                                                     params,

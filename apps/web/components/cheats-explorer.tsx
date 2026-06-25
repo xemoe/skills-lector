@@ -41,7 +41,7 @@ import { CountBadge } from "@/components/count-badge";
 import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, basename } from "@/lib/utils";
 import { useT } from "@/lib/i18n/context";
 import { useCheatsList, useToggleFavorite } from "@/components/cheats/use-cheat-queries";
 import {
@@ -54,12 +54,6 @@ import {
     type ShowMode,
     type SortKey,
 } from "@/lib/cheats-filter";
-
-/** Cross-platform basename for display (client has no node:path). */
-function basename(p: string): string {
-    const segments = p.split(/[\\/]/);
-    return segments[segments.length - 1] || p;
-}
 
 const SEARCH_DEBOUNCE_MS = 250;
 

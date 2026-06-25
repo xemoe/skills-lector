@@ -4,20 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Cheat } from "@lector/presets/types";
 
 import { cheatsQk } from "./cheat-query-keys";
+import { jsonFetch } from "@/lib/json-fetch";
 
 export { cheatsQk };
 
 export interface CheatsListResponse {
     cheats: Cheat[];
-}
-
-async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(url, { cache: "no-store", ...init });
-    if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${res.status}`);
-    }
-    return res.json() as Promise<T>;
 }
 
 /** Subscribe to the full cheats list. Seeded via HydrationBoundary on /cheats. */

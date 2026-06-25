@@ -2,6 +2,7 @@
 import { openDb } from "./db";
 import { listPresets } from "./presets";
 import type { Preset, ItemKind } from "./types";
+import { itemKey } from "./util";
 
 /**
  * Serializable shape that crosses the React Server Components boundary as JSON.
@@ -30,7 +31,7 @@ export function loadPresetMembership(): PresetMembership {
             .all() as DbRow[];
         const itemsByPreset: Record<string, string[]> = {};
         for (const r of rows) {
-            const key = `${r.kind}::${r.identifier}`;
+            const key = itemKey(r.kind, r.identifier);
             const bucket = itemsByPreset[String(r.preset_id)] ?? [];
             bucket.push(key);
             itemsByPreset[String(r.preset_id)] = bucket;

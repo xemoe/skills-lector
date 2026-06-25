@@ -12,7 +12,8 @@ import {
 import { loadConfig } from "./config";
 import { clearGitCache, resolveSource } from "./git";
 import { parseSettingsJson } from "./hook-parser";
-import { readPluginJson, safeExists, SKIP_DIRS } from "./scanner";
+import { makeCache } from "./cache";
+import { findPluginRoots, readPluginJson, safeExists, SKIP_DIRS } from "./scanner";
 import type {
     Hook,
     HookScanResult,
@@ -24,8 +25,7 @@ import type {
 } from "./types";
 import { readProjectPaths } from "./usage";
 
-const CACHE_TTL_MS = 8000;
-let cache: { result: HookScanResult; at: number } | null = null;
+const cache = makeCache<HookScanResult>();
 
 /** A single settings.json file, plus the scope every hook inside it inherits. */
 interface SettingsRoot {
@@ -37,32 +37,6 @@ interface SettingsRoot {
     labelArg?: string;
     plugin?: PluginInfo;
     project?: ProjectInfo;
-}
-
-/** Walks the plugins directory to find every plugin root. Mirrors command-scanner. */
-function findPluginRoots(root: string, maxDepth: number, errors: string[]): string[] {
-    const results: string[] = [];
-    const walk = (dir: string, depth: number) => {
-        if (depth > maxDepth) return;
-        if (safeExists(path.join(dir, ".claude-plugin", "plugin.json"))) {
-            results.push(dir);
-            return;
-        }
-        let entries: fs.Dirent[];
-        try {
-            entries = fs.readdirSync(dir, { withFileTypes: true });
-        } catch (e) {
-            errors.push(`read ${dir}: ${(e as Error).message}`);
-            return;
-        }
-        for (const entry of entries) {
-            if (!entry.isDirectory()) continue;
-            if (SKIP_DIRS.has(entry.name) || entry.name.startsWith(".")) continue;
-            walk(path.join(dir, entry.name), depth + 1);
-        }
-    };
-    walk(root, 0);
-    return results;
 }
 
 /** Resolves every settings.json file we should look at, tagged with its scope. */
@@ -191,9 +165,8 @@ function buildHooksFor(root: SettingsRoot, errors: string[]): Hook[] {
 
 /** Scans every known settings.json for declared Claude Code hooks. */
 export function scanHooks(opts: { force?: boolean } = {}): HookScanResult {
-    if (!opts.force && cache && Date.now() - cache.at < CACHE_TTL_MS) {
-        return cache.result;
-    }
+    const cached = cache.get(opts.force);
+    if (cached) return cached;
 
     const started = Date.now();
     clearGitCache();
@@ -245,8 +218,7 @@ export function scanHooks(opts: { force?: boolean } = {}): HookScanResult {
         durationMs: Date.now() - started,
     };
 
-    cache = { result, at: Date.now() };
-    return result;
+    return cache.set(result);
 }
 
 export function getHookById(id: string): Hook | undefined {
