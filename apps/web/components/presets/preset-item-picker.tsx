@@ -15,6 +15,7 @@ import { PluginScopeNotice } from "@/components/plugin-scope-notice";
 import { useT } from "@/lib/i18n/context";
 import type { ItemKind } from "@lector/presets/types";
 import { itemKey } from "@/lib/item-key";
+import { jsonFetch } from "@/lib/json-fetch";
 
 type AvailableItem = {
     kind: ItemKind;
@@ -42,6 +43,7 @@ export function PresetItemPicker({
     const [search, setSearch] = useState("");
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [hiddenCount, setHiddenCount] = useState(0);
+    const [error, setError] = useState<string | null>(null);
     const t = useT();
 
     useEffect(() => {
@@ -52,10 +54,15 @@ export function PresetItemPicker({
             ),
         );
         setHiddenCount(0);
+        setError(null);
         // Fetch personal-scope items from existing catalog endpoints
         Promise.all([
-            fetch("/api/skills").then((r) => r.json()),
-            fetch("/api/commands").then((r) => r.json()),
+            jsonFetch<{ skills?: unknown[]; result?: { skills?: unknown[] } }>(
+                "/api/skills",
+            ),
+            jsonFetch<{ commands?: unknown[]; result?: { commands?: unknown[] } }>(
+                "/api/commands",
+            ),
         ]).then(([skillsRes, commandsRes]) => {
             const skills = (
                 skillsRes.skills ??
@@ -105,6 +112,9 @@ export function PresetItemPicker({
             }
             setItems(merged);
             setHiddenCount(hidden);
+        }).catch((e) => {
+            setItems([]);
+            setError(e instanceof Error ? e.message : String(e));
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
@@ -155,7 +165,11 @@ export function PresetItemPicker({
                         onChange={(e) => setSearch(e.target.value)}
                     />
                     <div className="max-h-[60vh] overflow-y-auto rounded-none border">
-                        {!items ? (
+                        {error ? (
+                            <p className="p-4 text-sm text-destructive">
+                                Failed to load items: {error}
+                            </p>
+                        ) : !items ? (
                             <p className="p-4 text-sm text-muted-foreground">
                                 Loading…
                             </p>

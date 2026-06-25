@@ -1,7 +1,7 @@
 // apps/web/components/presets/activate-progress-modal.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ApplyEvent, ApplyResult } from "@lector/presets/types";
@@ -20,6 +20,7 @@ export function ActivateProgressModal({
     const qc = useQueryClient();
     const [events, setEvents] = useState<ApplyEvent[]>([]);
     const [done, setDone] = useState<ApplyResult | null>(null);
+    const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     useEffect(() => {
         if (!open) {
@@ -55,10 +56,14 @@ export function ActivateProgressModal({
                             qc.invalidateQueries({ queryKey: ["active-preset"] });
                             qc.invalidateQueries({ queryKey: ["apply-log"] });
                             qc.invalidateQueries({ queryKey: ["preset", presetId] });
-                            setTimeout(() => onDone(event.result), 600); // brief pause to show "done"
+                            timeoutsRef.current.push(
+                                setTimeout(() => onDone(event.result), 600),
+                            ); // brief pause to show "done"
                         }
                         if (event.phase === "error") {
-                            setTimeout(() => onDone(null), 600);
+                            timeoutsRef.current.push(
+                                setTimeout(() => onDone(null), 600),
+                            );
                         }
                     } catch {
                         // ignore malformed chunks
@@ -66,7 +71,11 @@ export function ActivateProgressModal({
                 }
             }
         })();
-        return () => controller.abort();
+        return () => {
+            controller.abort();
+            for (const id of timeoutsRef.current) clearTimeout(id);
+            timeoutsRef.current = [];
+        };
     }, [open, presetId, qc, onDone]);
 
     const last = events[events.length - 1];
