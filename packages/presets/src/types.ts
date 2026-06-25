@@ -141,3 +141,14 @@ export type Cheat = {
     createdAt: string;
     updatedAt: string;
 };
+
+export type Flow = {
+    id: number;
+    slug: string;
+    name: string;
+    description: string | null;
+    steps: number[];        // ordered cheat ids
+    seeded: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
