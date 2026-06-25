@@ -312,7 +312,7 @@ export const en = {
     usecasePage: {
         title: "Getting started with Skills Lector",
         subtitle:
-            "What Claude Skills and slash commands are, where they live, and how to use Skills Lector to manage them.",
+            "What Claude Code deploys — skills, slash commands, hooks, and prompt cheats mined from your sessions — where each lives, and how to read and manage them with Skills Lector.",
         tocTitle: "On this page",
         toc: {
             concepts: "Concepts",
@@ -323,17 +323,19 @@ export const en = {
         },
         concepts: {
             heading: "Concepts",
-            body: `**Claude Skills** and **slash commands** are two ways to teach Claude Code a reusable workflow. Both are plain text files on your disk, and both are what Skills Lector scans for.
+            body: `**Skills Lector** scans everything Claude Code has deployed on your machine and gathers it in one place: **skills**, slash **commands**, **hooks**, and prompt **cheats** mined from your session history. The first two you author, the third runs automatically, and the last is recovered from prompts you have already typed.
 
 A **Claude Skill** is a directory containing a \`SKILL.md\` file. The frontmatter declares the skill's \`name\` and \`description\`; the body explains *when* to use it and *how*. Claude reads the description and decides on its own whether the user's request matches — this is called **model invocation**. A skill can also be marked \`disable-model-invocation: true\` to make it slash-only.
 
 A **slash command** is a single \`.md\` file under a \`commands/\` directory. You invoke it explicitly by typing \`/<name>\` in Claude Code. Its frontmatter can declare a \`description\`, an \`argument-hint\`, and \`allowed-tools\`; its body becomes the prompt for that turn — \`$ARGUMENTS\` is replaced with whatever the user typed after the slash.
 
-**The key difference is who triggers it.** Claude picks skills based on context; you pick commands by typing them. Both can ship with permissions and tooling, and both can live in personal, plugin, project, or local scope.`,
+A **hook** is a shell command Claude Code runs automatically on an event — before or after a tool runs, or at session start and stop. Hooks live inside the \`hooks\` key of a \`settings.json\`, not in their own files. A **cheat** is a reusable prompt Skills Lector mines from your past sessions; unlike the others you do not install it — it is reconstructed from history and kept in a local store you can search and favourite.
+
+**Who triggers what is the thing to keep straight.** Claude picks skills and fires hooks on its own; you pick commands and cheats by hand. Model invocation is the switch between auto and manual for a skill — and **presets** let you flip that switch across many skills and commands at once, which is how Skills Lector manages what Claude may auto-invoke.`,
         },
         locations: {
             heading: "Where they live",
-            body: `Skills Lector scans four scopes for each kind of artifact. The scope is what the **Type** badge on every row tells you.
+            body: `Skills Lector scans four **scopes** for skills and commands. The scope is what the **Type** badge on every row tells you.
 
 | Scope | Skills path | Commands path | Notes |
 |---|---|---|---|
@@ -342,19 +344,25 @@ A **slash command** is a single \`.md\` file under a \`commands/\` directory. Yo
 | **project** | \`<repo>/.claude/skills/<name>/SKILL.md\` | \`<repo>/.claude/commands/<name>.md\` | Scoped to a project; usually committed |
 | **local** | bundled \`sample-skills/\` in this app | — | Examples shipped so the dashboard is never empty |
 
+**Hooks** are not their own files — they live in the \`hooks\` key of \`settings.json\` and \`settings.local.json\` (the \`local\` scope) at personal, plugin, and project level. **Cheats** have no path at all: they are mined from your Claude Code session transcripts and kept in a small local SQLite store under \`~/.skills-lector/\`.
+
 You can point the scanner at extra directories with a \`skills-lector.config.json\` next to where you run the dev server, or with the \`SKILLS_SCAN_ROOTS\` environment variable. See the **Sources** view for the full list of locations being walked right now.`,
         },
         catalogTour: {
             heading: "Reading Skills Lector",
-            body: `Skills Lector exposes five views, all built from the same scan. None of them call out to the network — everything is read from your disk.
+            body: `Skills Lector exposes these views, all built from the same scans. Everything is read from your disk — only **Presets** writes back to your skill and command files (favouriting a cheat also persists, but to a local database, not your \`.md\` files).
 
 - **Skills** (\`/\`) — every \`SKILL.md\` discovered, with search, filters, and a detail page that renders the body markdown and shows where the file came from.
 - **Commands** (\`/commands\`) — every slash command discovered, with the same search/filter/sort behaviour. The detail page shows the full invocation, frontmatter, and body.
+- **Hooks** (\`/hooks\`) — every hook from your \`settings.json\` files, flattened to one row per event → matcher → command, so you can see what runs automatically and when.
+- **Cheats** (\`/cheats\`) — reusable prompts mined from your session history, each with its original and an improved rewrite, searchable and favouritable.
+- **Presets** (\`/presets\`) — the one managing view. A preset is a named set of skills and commands; activating it bulk-toggles each item's model-invocation flag so Claude auto-invokes only what you chose. Pinned items always stay enabled, and every apply is recorded in the log.
+- **Discover** (\`/discover\`) — the top Claude-Skills repositories on GitHub, ranked by the \`discover-popular-skills\` skill and read here from a local manifest.
 - **Analytics** (\`/analytic\`) — which skills and commands you actually reach for, reconstructed from your Claude Code session transcripts. Useful for spotting things you forgot you installed.
-- **Graph** (\`/graph\`) — how skills, commands, and the plugins or projects that bundle them connect. Hubs are the bundling units; edges show references between artifacts.
+- **Graph** (\`/graph\`) — how the skills and commands in your active preset connect, clustered around the plugin or project that bundles them.
 - **Sources** (\`/sources\`) — the upstream of each skill: which GitHub repository, plugin, or local directory it came from, and a table of every scan root on this machine.
 
-The **Rescan** button in the top-right runs both scans again and refreshes every view.`,
+The **Rescan** button in the top-right re-runs every disk scan — skills, commands, hooks, analytics, and the discover manifest — and refreshes every view.`,
         },
         examples: {
             heading: "Worked examples",
@@ -408,9 +416,9 @@ Keep the explanation tight — three short paragraphs at most.`,
             },
             discover: {
                 heading: "4. Find popular skills to install",
-                body: `If you do not yet know which skills are worth installing, the upcoming \`/discover\` page and the \`/discover-skills\` Claude Code command will rank the most popular Claude-Skills repositories on GitHub and let you clone them straight into \`vendor/\`.
+                body: `Not sure which skills are worth installing? The **Discover** view (\`/discover\`) ranks the most popular Claude-Skills repositories on GitHub. The ranking is produced by the \`/discover-skills\` Claude Code command (the \`discover-popular-skills\` skill); the page itself only reads the local manifest it writes, so Skills Lector still makes no network calls of its own.
 
-That feature ships in **v0.3.0** — until it lands, browse the \`vendor/\` directory of this repository for the curated set of skills that come pre-vendored, and use the **install a vendored skill** flow above.`,
+Run \`/discover-skills\` in Claude Code to refresh the list and, on confirmation, add a repo to this project as a git submodule under \`vendor/\`. From there, install any skill with the **install a vendored skill** flow above.`,
             },
         },
         faq: {
@@ -418,7 +426,7 @@ That feature ships in **v0.3.0** — until it lands, browse the \`vendor/\` dire
             items: [
                 {
                     q: "I added a skill but Skills Lector does not show it. Why?",
-                    a: "The scan is cached for 8 seconds, and the page is rendered once per request. Press **Rescan** in the top-right; it force-refreshes both the skill and command scans. If it still does not appear, check that the file is at one of the scopes listed under **Where they live** above, and that the directory name matches the skill name in its frontmatter.",
+                    a: "The scan is cached for 8 seconds, and the page is rendered once per request. Press **Rescan** in the top-right; it re-runs every disk scan — skills, commands, hooks, analytics, and the discover manifest — and refreshes the views. If it still does not appear, check that the file is at one of the scopes listed under **Where they live** above, and that the directory name matches the skill name in its frontmatter.",
                 },
                 {
                     q: "What is the difference between a skill and a slash command?",
@@ -426,7 +434,7 @@ That feature ships in **v0.3.0** — until it lands, browse the \`vendor/\` dire
                 },
                 {
                     q: "Does Skills Lector send anything to the network?",
-                    a: "No. Skills Lector reads files from your disk and renders them in the browser. It makes no outbound HTTP calls — the **Sources** view links to GitHub but only via plain anchor tags that you click yourself. The discover feature in **v0.3.0** will make a GitHub call, but only from the Claude Code skill, never from Skills Lector itself.",
+                    a: "No. Skills Lector reads files from your disk and renders them in the browser; it makes no outbound HTTP calls. The **Sources** and **Discover** views link to GitHub, but only via plain anchors you click yourself — and Discover only reads a local manifest. The one GitHub query lives in the \`discover-popular-skills\` Claude Code skill, never in Skills Lector itself.",
                 },
                 {
                     q: "What if my SKILL.md has malformed frontmatter?",
@@ -434,7 +442,19 @@ That feature ships in **v0.3.0** — until it lands, browse the \`vendor/\` dire
                 },
                 {
                     q: "How do I stop Claude from auto-invoking a skill?",
-                    a: "Add \`disable-model-invocation: true\` to the skill's frontmatter, or use the \`/set-model-invocation\` slash command if you have it installed. The skill then runs only when you explicitly invoke it via a slash command that calls it.",
+                    a: "Add \`disable-model-invocation: true\` to the skill's frontmatter, or use the \`/set-model-invocation\` slash command if you have it installed. To flip many skills and commands at once, build a **preset** and activate it — that writes the same flag in bulk.",
+                },
+                {
+                    q: "What are cheats, and where do they come from?",
+                    a: "Cheats are reusable prompts mined from your own Claude Code session history by the \`/cheats\` command. Each keeps the original prompt and an improved rewrite, and you can search and favourite them on the **Cheats** view. They live in a local SQLite database under \`~/.skills-lector/\` — nothing is uploaded.",
+                },
+                {
+                    q: "What is a preset, and how do I use it?",
+                    a: "A preset is a named set of skills and commands. Activating one on the **Presets** view bulk-writes each personal-scope item's \`disable-model-invocation\` frontmatter so Claude auto-invokes only the items you chose; everything else becomes slash-only. Pinned items always stay enabled, and every apply is recorded in the log. It is the only part of Skills Lector that writes to your skill and command files.",
+                },
+                {
+                    q: "What shows up under Hooks?",
+                    a: "Every hook from the \`hooks\` key of your \`settings.json\` and \`settings.local.json\` files, at personal, plugin, and project scope. Each event → matcher → command pair is flattened to one row, so you can see exactly which shell commands Claude Code runs automatically and on which event.",
                 },
             ],
         },
