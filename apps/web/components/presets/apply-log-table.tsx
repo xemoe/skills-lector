@@ -2,32 +2,20 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { useApplyLog } from "./use-preset-queries";
-import type { ApplyLogItem } from "@lector/presets/types";
+import { useApplyLog, useApplyLogItems } from "./use-preset-queries";
 
 export function ApplyLogTable() {
     const { data, isLoading } = useApplyLog();
     const [expanded, setExpanded] = useState<number | null>(null);
-    const [items, setItems] = useState<Record<number, ApplyLogItem[] | "loading">>({});
+    const expandedItems = useApplyLogItems(expanded);
 
     if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
     if (!data || data.logs.length === 0) {
         return <p className="text-sm text-muted-foreground">No activations yet.</p>;
     }
 
-    async function loadItems(id: number) {
-        setItems((prev) => ({ ...prev, [id]: "loading" }));
-        const res = await fetch(`/api/presets/log?logId=${id}`).then((r) => r.json());
-        setItems((prev) => ({ ...prev, [id]: res.items ?? [] }));
-    }
-
     function toggle(id: number) {
-        if (expanded === id) {
-            setExpanded(null);
-        } else {
-            setExpanded(id);
-            if (!items[id]) loadItems(id);
-        }
+        setExpanded((cur) => (cur === id ? null : id));
     }
 
     return (
@@ -64,11 +52,11 @@ export function ApplyLogTable() {
                             {expanded === log.id ? (
                                 <tr className="border-t bg-secondary/20">
                                     <td colSpan={7} className="p-2">
-                                        {items[log.id] === "loading" ? (
+                                        {expandedItems.isLoading ? (
                                             <p className="text-xs text-muted-foreground">Loading items…</p>
-                                        ) : items[log.id] ? (
+                                        ) : expandedItems.data && expandedItems.data.items.length > 0 ? (
                                             <ul className="space-y-1 font-mono text-xs">
-                                                {(items[log.id] as ApplyLogItem[]).map((i, idx) => (
+                                                {expandedItems.data.items.map((i, idx) => (
                                                     <li key={idx}>
                                                         [{i.action}] [{i.kind}] {i.identifier}
                                                         {i.message ? (
@@ -77,7 +65,9 @@ export function ApplyLogTable() {
                                                     </li>
                                                 ))}
                                             </ul>
-                                        ) : null}
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground">No items.</p>
+                                        )}
                                     </td>
                                 </tr>
                             ) : null}

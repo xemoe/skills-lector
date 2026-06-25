@@ -153,18 +153,19 @@ function normalizeLocalSource(raw: string): string {
     return raw.replace(/^\.\//, "").replace(/^\/+/, "").replace(/\/+$/, "");
 }
 
+type MarketplaceRepo = { label: string; url: string; branch: string };
+
+/** Memoised per `MarketplaceData` via a module-level WeakMap, keyed by object identity. */
+const derivedRepoCache = new WeakMap<MarketplaceData, MarketplaceRepo | null>();
+
 /**
  * Tries to deduce the marketplace's own GitHub `owner/repo` and default branch
  * by inspecting any sibling entry whose `homepage` points at a `/tree/<branch>/<path>`
- * URL that matches the entry's local `source` pointer. Cached on the data object.
+ * URL that matches the entry's local `source` pointer.
  */
-function deriveMarketplaceRepo(data: MarketplaceData): { label: string; url: string; branch: string } | null {
-    const cacheKey = "__marketplaceRepo" as const;
-    const cached = (data as unknown as Record<string, unknown>)[cacheKey];
-    if (cached === null) return null;
-    if (cached && typeof cached === "object") {
-        return cached as { label: string; url: string; branch: string };
-    }
+function deriveMarketplaceRepo(data: MarketplaceData): MarketplaceRepo | null {
+    const cached = derivedRepoCache.get(data);
+    if (cached !== undefined) return cached;
     for (const entry of data.plugins) {
         if (typeof entry.source !== "string" || typeof entry.homepage !== "string") continue;
         const localPath = normalizeLocalSource(entry.source);
@@ -182,21 +183,11 @@ function deriveMarketplaceRepo(data: MarketplaceData): { label: string; url: str
         const tail = segs.slice(4).join("/");
         if (tail !== localPath) continue;
         const label = `${segs[0]}/${segs[1]}`;
-        const repo = { label, url: `https://github.com/${label}`, branch };
-        Object.defineProperty(data, cacheKey, {
-            value: repo,
-            enumerable: false,
-            configurable: true,
-            writable: true,
-        });
+        const repo: MarketplaceRepo = { label, url: `https://github.com/${label}`, branch };
+        derivedRepoCache.set(data, repo);
         return repo;
     }
-    Object.defineProperty(data, cacheKey, {
-        value: null,
-        enumerable: false,
-        configurable: true,
-        writable: true,
-    });
+    derivedRepoCache.set(data, null);
     return null;
 }
 

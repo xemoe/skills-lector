@@ -84,23 +84,34 @@ function originOf(file: string, root: string): InvocationOrigin {
 }
 
 /** Extracts skill/command invocations from one parsed transcript line. */
-function eventsFromLine(obj: any, origin: InvocationOrigin): ActivityEvent[] {
-    const ts = Date.parse(obj?.timestamp);
+function eventsFromLine(obj: unknown, origin: InvocationOrigin): ActivityEvent[] {
+    const line = obj as {
+        timestamp?: unknown;
+        type?: unknown;
+        message?: { content?: unknown };
+    };
+    const ts =
+        typeof line.timestamp === "string" ? Date.parse(line.timestamp) : NaN;
     if (!ts || Number.isNaN(ts)) return [];
-    const content = obj?.message?.content;
+    const content = line.message?.content;
     const out: ActivityEvent[] = [];
 
     if (Array.isArray(content)) {
         // A model-invoked skill surfaces as a `Skill` tool_use block.
-        for (const block of content) {
+        for (const raw of content) {
+            const block = raw as {
+                type?: unknown;
+                name?: unknown;
+                input?: { skill?: unknown };
+            };
             if (block?.type === "tool_use" && block?.name === "Skill") {
-                const skill = block?.input?.skill;
+                const skill = block.input?.skill;
                 if (typeof skill === "string" && skill.trim()) {
                     out.push({ name: skill.trim(), ts, via: "skill-tool", origin });
                 }
             }
         }
-    } else if (typeof content === "string" && obj?.type === "user") {
+    } else if (typeof content === "string" && line.type === "user") {
         // A typed slash invocation is wrapped in a <command-name> tag.
         const m = content.match(COMMAND_RE);
         if (m && m[1].trim()) {
@@ -143,7 +154,7 @@ export function scanActivity(opts: { force?: boolean } = {}): ActivityResult {
                 const origin = originOf(f, root);
                 for (const line of text.split("\n")) {
                     if (!line) continue;
-                    let obj: any;
+                    let obj: unknown;
                     try {
                         obj = JSON.parse(line);
                     } catch {

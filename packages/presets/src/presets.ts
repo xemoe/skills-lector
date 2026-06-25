@@ -108,11 +108,23 @@ export type UpdatePresetInput = {
     slug?: string;
 };
 
+/** Loads a preset by id or throws a not-found error. */
+function requirePreset(id: number): Preset {
+    const preset = getPreset(id);
+    if (!preset) throw new Error(`Preset not found: ${id}`);
+    return preset;
+}
+
+/** Loads a preset, throwing if it is missing or archived (i.e. not editable). */
+function requireEditablePreset(id: number): Preset {
+    const preset = requirePreset(id);
+    if (preset.archivedAt) throw new Error("Cannot edit an archived preset");
+    return preset;
+}
+
 export function updatePreset(id: number, input: UpdatePresetInput): Preset {
     const db = openDb();
-    const current = getPreset(id);
-    if (!current) throw new Error(`Preset not found: ${id}`);
-    if (current.archivedAt) throw new Error("Cannot edit an archived preset");
+    const current = requireEditablePreset(id);
     if (input.slug && input.slug !== current.slug) {
         const collide = getPresetBySlug(input.slug);
         if (collide) throw new SlugCollisionError(input.slug);
@@ -133,8 +145,7 @@ export function updatePreset(id: number, input: UpdatePresetInput): Preset {
 
 export function archivePreset(id: number): Preset {
     const db = openDb();
-    const current = getPreset(id);
-    if (!current) throw new Error(`Preset not found: ${id}`);
+    const current = requirePreset(id);
     if (current.archivedAt) return current;
     const ts = nowIso();
     db.transaction(() => {
@@ -153,8 +164,7 @@ export function archivePreset(id: number): Preset {
 
 export function unarchivePreset(id: number): Preset {
     const db = openDb();
-    const current = getPreset(id);
-    if (!current) throw new Error(`Preset not found: ${id}`);
+    const current = requirePreset(id);
     if (!current.archivedAt) return current;
     const ts = nowIso();
     db.prepare(`UPDATE presets SET archived_at = NULL, updated_at = ? WHERE id = ?`).run(
@@ -198,9 +208,7 @@ export function addItem(
     identifier: string,
 ): PresetItem {
     const db = openDb();
-    const preset = getPreset(presetId);
-    if (!preset) throw new Error(`Preset not found: ${presetId}`);
-    if (preset.archivedAt) throw new Error("Cannot edit an archived preset");
+    requireEditablePreset(presetId);
     const ts = nowIso();
     db.prepare(
         `INSERT OR IGNORE INTO preset_items (preset_id, kind, identifier, added_at) VALUES (?, ?, ?, ?)`,
@@ -220,9 +228,7 @@ export function removeItem(
     identifier: string,
 ): void {
     const db = openDb();
-    const preset = getPreset(presetId);
-    if (!preset) throw new Error(`Preset not found: ${presetId}`);
-    if (preset.archivedAt) throw new Error("Cannot edit an archived preset");
+    requireEditablePreset(presetId);
     const ts = nowIso();
     db.prepare(
         `DELETE FROM preset_items WHERE preset_id = ? AND kind = ? AND identifier = ?`,

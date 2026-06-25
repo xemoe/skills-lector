@@ -13,6 +13,7 @@ import type {
     Preset,
     PresetItem,
     ApplyLog,
+    ApplyLogItem,
     ActiveState,
 } from "@lector/presets/types";
 import type { EnrichedPresetItem } from "@lector/presets/enrich";
@@ -59,6 +60,18 @@ export function useApplyLog(presetId?: number) {
             const qs = presetId ? `?presetId=${presetId}` : "";
             return jsonFetch<{ logs: ApplyLog[] }>(`/api/presets/log${qs}`);
         },
+    });
+}
+
+/** Lazily loads the per-item rows for one apply-log entry. Disabled until a row is expanded. */
+export function useApplyLogItems(logId: number | null) {
+    return useQuery({
+        queryKey: qk.applyLogItems(logId ?? 0),
+        queryFn: () =>
+            jsonFetch<{ items: ApplyLogItem[] }>(
+                `/api/presets/log?logId=${logId}`,
+            ),
+        enabled: logId != null,
     });
 }
 
