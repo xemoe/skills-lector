@@ -22,6 +22,7 @@ export const en = {
         usecase: "Usecase",
         discover: "Discover",
         cheats: "Cheats",
+        flow: "Flows",
     },
 
     language: {
@@ -307,6 +308,39 @@ export const en = {
         viewModeLabel: "View mode",
         backToList: "Back to prompts",
         itemPosition: (current: number, total: number) => `${current} of ${total}`,
+    },
+
+    flowsPage: {
+        title: "Flows",
+        subtitle:
+            "Chain your prompt cheats into an ordered workflow for a specific kind of work — research, plan, implement, review.",
+        emptyTitle: "No flows yet",
+        empty1: "Create a flow with ",
+        empty2: " or auto-seed starter flows grouped by intent with ",
+        empty3: ".",
+        newFlow: "New flow",
+        seed: "Seed from cheats",
+        seeding: "Seeding…",
+        seededBadge: "seeded",
+        loadingFlow: "Loading…",
+        emptySteps: "No steps yet — add a cheat below.",
+        addStep: "Add step",
+        addFirstStep: "Add first step",
+        copyPrompt: "Copy combined prompt",
+        deleteFlow: "Delete",
+        start: "Start",
+        end: "Done",
+        steps: "steps",
+        pickerTitle: "Add a step",
+        search: "Search flows…",
+        backToList: "All flows",
+        noMatch: "No flows match your search.",
+        sortRecent: "Recently updated",
+        sortName: "Name (A–Z)",
+        sortSteps: "Most steps",
+        itemPosition: (current: number, total: number) => `${current} of ${total}`,
+        matchCount: (shown: number, total: number) =>
+            shown === total ? `${total} flows` : `${shown} of ${total} flows`,
     },
 
     usecasePage: {

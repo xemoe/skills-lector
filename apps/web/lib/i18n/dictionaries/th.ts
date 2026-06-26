@@ -19,6 +19,7 @@ export const th: Dictionary = {
         usecase: "วิธีใช้",
         discover: "ค้นพบ",
         cheats: "โพย",
+        flow: "โฟลว์",
     },
 
     language: {
@@ -299,6 +300,39 @@ export const th: Dictionary = {
         viewModeLabel: "โหมดมุมมอง",
         backToList: "กลับไปหน้าพรอมต์",
         itemPosition: (current, total) => `${current} จาก ${total}`,
+    },
+
+    flowsPage: {
+        title: "โฟลว์",
+        subtitle:
+            "เชื่อมโพยพรอมต์ของคุณเป็นลำดับขั้นตอนสำหรับงานแต่ละแบบ เช่น ค้นคว้า → วางแผน → ลงมือทำ → ตรวจสอบ",
+        emptyTitle: "ยังไม่มีโฟลว์",
+        empty1: "สร้างโฟลว์ด้วย ",
+        empty2: " หรือสร้างโฟลว์เริ่มต้นจากโพยที่จัดกลุ่มตามใจความด้วย ",
+        empty3: "",
+        newFlow: "สร้างโฟลว์",
+        seed: "สร้างจากโพย",
+        seeding: "กำลังสร้าง…",
+        seededBadge: "สร้างอัตโนมัติ",
+        loadingFlow: "กำลังโหลด…",
+        emptySteps: "ยังไม่มีขั้นตอน — เพิ่มโพยด้านล่าง",
+        addStep: "เพิ่มขั้นตอน",
+        addFirstStep: "เพิ่มขั้นตอนแรก",
+        copyPrompt: "คัดลอก prompt รวม",
+        deleteFlow: "ลบ",
+        start: "เริ่ม",
+        end: "เสร็จ",
+        steps: "ขั้นตอน",
+        pickerTitle: "เพิ่มขั้นตอน",
+        search: "ค้นหาโฟลว์…",
+        backToList: "โฟลว์ทั้งหมด",
+        noMatch: "ไม่พบโฟลว์ที่ตรงกับการค้นหา",
+        sortRecent: "อัปเดตล่าสุด",
+        sortName: "ชื่อ (ก–ฮ)",
+        sortSteps: "ขั้นตอนมากสุด",
+        itemPosition: (current: number, total: number) => `${current} จาก ${total}`,
+        matchCount: (shown: number, total: number) =>
+            shown === total ? `${total} โฟลว์` : `${shown} จาก ${total} โฟลว์`,
     },
 
     usecasePage: {

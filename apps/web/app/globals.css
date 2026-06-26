@@ -279,3 +279,12 @@
     -webkit-mask-image: linear-gradient(to right, #000 80%, transparent);
     mask-image: linear-gradient(to right, #000 80%, transparent);
 }
+
+/* Blueprint canvas for the flow pipeline: a faint engineering dot-grid that
+   reads as a workbench/schematic surface behind the connected stage nodes.
+   Uses the --border token so it stays correct in light, dark, and monokai. */
+.flow-canvas {
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 18px 18px;
+    background-position: -9px -9px;
+}

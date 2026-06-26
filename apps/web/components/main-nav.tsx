@@ -13,6 +13,7 @@ import {
     Compass,
     Lightbulb,
     ScrollText,
+    Workflow,
 } from "lucide-react";
 import {
     Tooltip,
@@ -28,6 +29,7 @@ const LINKS = [
     { href: "/commands", key: "commands", Icon: SquareTerminal },
     { href: "/hooks", key: "hooks", Icon: Webhook },
     { href: "/presets", key: "presets", Icon: SlidersHorizontal },
+    { href: "/flows", key: "flow", Icon: Workflow },
     { href: "/analytic", key: "analytics", Icon: ChartColumn },
     { href: "/graph", key: "graph", Icon: Network },
     { href: "/sources", key: "sources", Icon: GitBranch },
