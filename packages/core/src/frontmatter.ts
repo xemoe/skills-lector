@@ -4,6 +4,8 @@
  * `---` fences so a malformed YAML body never leaks into the rendered content.
  */
 
+import yaml from "js-yaml";
+
 /** Strips a leading UTF-8 BOM, if present. */
 export function stripBom(text: string): string {
     return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
@@ -14,6 +16,18 @@ export function splitFrontmatter(text: string): { frontmatter: string; body: str
     const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/);
     if (!match) return { frontmatter: "", body: text };
     return { frontmatter: match[1], body: text.slice(match[0].length) };
+}
+
+/**
+ * Parses a raw YAML frontmatter block into a plain object. Empty or non-object
+ * YAML yields `{}`; malformed YAML throws (callers fall back to `lenientField`).
+ */
+export function parseFrontmatterData(frontmatter: string): Record<string, unknown> {
+    if (!frontmatter.trim()) return {};
+    const loaded = yaml.load(frontmatter);
+    return loaded && typeof loaded === "object" && !Array.isArray(loaded)
+        ? (loaded as Record<string, unknown>)
+        : {};
 }
 
 /** Coerces a parsed YAML value to a trimmed string (arrays are comma-joined). */

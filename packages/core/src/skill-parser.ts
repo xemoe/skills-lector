@@ -1,9 +1,9 @@
 import fs from "fs";
-import matter from "gray-matter";
 import {
     asBoolean,
     asString,
     lenientField,
+    parseFrontmatterData,
     splitFrontmatter,
     stripBom,
 } from "./frontmatter";
@@ -43,7 +43,7 @@ export function parseSkillMd(filePath: string): ParsedSkill {
     let disableModelInvocation: boolean | undefined;
 
     try {
-        const { data } = matter(text);
+        const data = parseFrontmatterData(frontmatter);
         name = asString(data.name);
         description = asString(data.description);
         allowedTools = asString(data["allowed-tools"] ?? data.allowedTools);

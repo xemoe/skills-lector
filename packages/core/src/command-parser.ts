@@ -1,9 +1,9 @@
 import fs from "fs";
-import matter from "gray-matter";
 import {
     asBoolean,
     asString,
     lenientField,
+    parseFrontmatterData,
     splitFrontmatter,
     stripBom,
 } from "./frontmatter";
@@ -46,7 +46,7 @@ export function parseCommandMd(filePath: string): ParsedCommand {
     let disableModelInvocation: boolean | undefined;
 
     try {
-        const { data } = matter(text);
+        const data = parseFrontmatterData(frontmatter);
         description = asString(data.description);
         argumentHint = asString(data["argument-hint"] ?? data.argumentHint);
         allowedTools = asString(data["allowed-tools"] ?? data.allowedTools);

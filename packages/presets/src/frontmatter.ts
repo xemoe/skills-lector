@@ -1,15 +1,37 @@
 // packages/presets/src/frontmatter.ts
 //
-// Core's packages/core/src/frontmatter.ts is a read-only parsing helper
-// (splitFrontmatter, asBoolean, lenientField, etc.) — it has no write API.
-// skill-parser.ts already uses gray-matter for parsing, and matter.stringify
-// is the established write path in this codebase. We use gray-matter directly
-// here rather than pulling in core's wrapper.
+// Self-contained YAML frontmatter read/write for the preset apply path. Core's
+// packages/core/src/frontmatter.ts only parses (no stringify), and the two
+// packages are deliberately decoupled (no shared path alias), so this keeps a
+// tiny local helper rather than coupling presets to core.
 
-import matter from "gray-matter";
+import yaml from "js-yaml";
 import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
 import type { InvocationState } from "./types.js";
+
+// Opening fence + body up to a closing `---` on its own line. The optional
+// newline before the closing fence lets an empty block (`---\n---`) match too.
+const FRONTMATTER_RE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n?---[ \t]*\r?\n?/;
+
+/** Splits frontmatter YAML (as an object) from the markdown body. */
+function parseFrontmatter(src: string): { data: Record<string, unknown>; content: string } {
+    const match = src.match(FRONTMATTER_RE);
+    if (!match) return { data: {}, content: src };
+    const loaded = yaml.load(match[1]);
+    const data =
+        loaded && typeof loaded === "object" && !Array.isArray(loaded)
+            ? (loaded as Record<string, unknown>)
+            : {};
+    return { data, content: src.slice(match[0].length) };
+}
+
+/** Re-emits `---\n<yaml>---\n<body>`, ensuring the file ends with a newline. */
+function stringifyFrontmatter(content: string, data: Record<string, unknown>): string {
+    const block = yaml.dump(data);
+    const body = content.endsWith("\n") || content === "" ? content : content + "\n";
+    return `---\n${block}---\n${body}`;
+}
 
 /**
  * Read the disable-model-invocation flag from a file's frontmatter.
@@ -21,8 +43,8 @@ export function readInvocation(filePath: string): InvocationState {
         throw new Error(`File not found: ${filePath}`);
     }
     const src = readFileSync(filePath, "utf8");
-    const parsed = matter(src);
-    const flag = parsed.data?.["disable-model-invocation"];
+    const parsed = parseFrontmatter(src);
+    const flag = parsed.data["disable-model-invocation"];
     return flag === true ? "disabled" : "enabled";
 }
 
@@ -38,14 +60,14 @@ export function writeInvocation(filePath: string, state: InvocationState): void 
         throw new Error(`File not found: ${filePath}`);
     }
     const src = readFileSync(filePath, "utf8");
-    const parsed = matter(src);
-    const data = { ...(parsed.data ?? {}) };
+    const parsed = parseFrontmatter(src);
+    const data = { ...parsed.data };
     if (state === "disabled") {
         data["disable-model-invocation"] = true;
     } else {
         delete data["disable-model-invocation"];
     }
-    const out = matter.stringify(parsed.content, data);
+    const out = stringifyFrontmatter(parsed.content, data);
     const tmp = filePath + ".tmp-preset-" + process.pid + "-" + Date.now();
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(tmp, out, "utf8");
