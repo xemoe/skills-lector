@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ExternalLink, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/copy-button";
 import type { ResolvedStep } from "@/lib/flow-resolve";
 
-const PREVIEW_MAX = 200;
+const PREVIEW_MAX = 240;
 
 function truncate(text: string): string {
     const flat = text.replace(/\s+/g, " ").trim();
@@ -23,10 +23,11 @@ interface FlowNodeProps {
 }
 
 /**
- * One stage in the pipeline canvas. Square, schematic card with a filled
- * step-number medallion, the cheat's intent as the stage title, a prompt
- * preview, and a footer of stage controls (move back/forward, copy, remove).
- * A removed cheat degrades to a dashed, muted placeholder node.
+ * One stage card in the top-down pipeline. Full width; the numbered medallion
+ * lives on the rail (rendered by FlowPipeline), so this is just the stage body:
+ * an index ribbon, the cheat's intent as title, a prompt preview, and a footer
+ * of stage controls (move up/down, copy, remove). A removed cheat degrades to a
+ * dashed, muted card.
  */
 export function FlowNode({
     step,
@@ -45,26 +46,20 @@ export function FlowNode({
         return (
             <div
                 style={enterStyle}
-                className="group relative flex w-full animate-in fade-in slide-in-from-bottom-2 flex-col rounded-none border border-dashed border-border bg-muted/30 p-3 md:w-[17rem] md:shrink-0"
+                className="group flex w-full animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-2 rounded-none border border-dashed border-border bg-muted/30 px-3 py-2.5"
             >
-                <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                        {num}
-                        <span className="opacity-40"> / {totalLabel}</span>
-                    </span>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        aria-label="Remove step"
-                        onClick={() => onRemove(index)}
-                    >
-                        <X />
-                    </Button>
-                </div>
-                <p className="mt-3 text-xs italic text-muted-foreground">
-                    removed cheat #{cheatId}
-                </p>
+                <span className="text-xs italic text-muted-foreground">
+                    <span className="font-mono not-italic">{num}</span> · removed cheat #{cheatId}
+                </span>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Remove step"
+                    onClick={() => onRemove(index)}
+                >
+                    <X />
+                </Button>
             </div>
         );
     }
@@ -74,17 +69,19 @@ export function FlowNode({
     return (
         <div
             style={enterStyle}
-            className="group relative flex w-full animate-in fade-in slide-in-from-bottom-2 flex-col rounded-none border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md md:w-[17rem] md:shrink-0"
+            className="group relative flex w-full animate-in fade-in slide-in-from-bottom-1 flex-col rounded-none border bg-card p-3 shadow-sm transition-all hover:border-primary/60 hover:shadow-md"
         >
-            {/* Stage header: number medallion + index ribbon + open-cheat */}
+            {/* Header: index ribbon + open-cheat */}
             <div className="flex items-center gap-2">
-                <span className="flex size-7 shrink-0 items-center justify-center bg-primary font-mono text-xs font-bold tabular-nums text-primary-foreground">
-                    {index + 1}
-                </span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] tabular-nums text-muted-foreground">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
                     {num}
                     <span className="opacity-40"> / {totalLabel}</span>
                 </span>
+                {cheat.intent && (
+                    <span className="truncate text-sm font-semibold text-foreground">
+                        {cheat.intent}
+                    </span>
+                )}
                 <Button
                     asChild
                     variant="ghost"
@@ -98,17 +95,10 @@ export function FlowNode({
                 </Button>
             </div>
 
-            {/* Body: intent title + prompt preview */}
-            <div className="mt-2.5 min-h-[5.5rem] flex-1">
-                {cheat.intent && (
-                    <p className="mb-1 line-clamp-1 text-sm font-semibold text-foreground">
-                        {cheat.intent}
-                    </p>
-                )}
-                <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground">
-                    {truncate(promptText)}
-                </p>
-            </div>
+            {/* Body: prompt preview */}
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                {truncate(promptText)}
+            </p>
 
             {/* Footer: stage controls */}
             <div className="mt-2.5 flex items-center gap-0.5 border-t pt-2">
@@ -116,21 +106,21 @@ export function FlowNode({
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label="Move step back"
+                    aria-label="Move step up"
                     disabled={index === 0}
                     onClick={() => onMoveUp(index)}
                 >
-                    <ChevronLeft />
+                    <ChevronUp />
                 </Button>
                 <Button
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label="Move step forward"
+                    aria-label="Move step down"
                     disabled={index === total - 1}
                     onClick={() => onMoveDown(index)}
                 >
-                    <ChevronRight />
+                    <ChevronDown />
                 </Button>
                 <CopyButton value={promptText} size="icon-xs" />
                 <Button
