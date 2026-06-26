@@ -5,6 +5,7 @@ node_modules/
 
 # next.js
 .next/
+.next-build/
 out/
 
 # production
@@ -36,6 +37,9 @@ skills-lector.config.json
 
 # cheats skill output (extracted + analyzed prompt cache)
 .cheats/
+
+# flow-enhance command output (per-flow enhanced prompts)
+.flows/
 
 # codegraph index (local per-machine code graph database)
 .codegraph/

@@ -18,4 +18,12 @@ const nextConfig = {
     outputFileTracingRoot: monorepoRoot,
 };
 
-export default nextConfig;
+// dev -> .next, build & start -> .next-build. Keeping the production build in a
+// separate output dir means `next build` can never clobber a live `next dev`
+// server's `.next` (which 500s every route until restarted). The phase string
+// is compared as a literal ("phase-development-server" === PHASE_DEVELOPMENT_SERVER)
+// to avoid importing next/constants, which fails to resolve under this setup.
+export default (phase) => ({
+    ...nextConfig,
+    distDir: phase === "phase-development-server" ? ".next" : ".next-build",
+});
