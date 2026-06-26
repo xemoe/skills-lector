@@ -317,8 +317,13 @@ export const th: Dictionary = {
         loadingFlow: "กำลังโหลด…",
         emptySteps: "ยังไม่มีขั้นตอน — เพิ่มโพยด้านล่าง",
         addStep: "เพิ่มขั้นตอน",
+        addFirstStep: "เพิ่มขั้นตอนแรก",
         copyPrompt: "คัดลอก prompt รวม",
         deleteFlow: "ลบ",
+        start: "เริ่ม",
+        end: "เสร็จ",
+        steps: "ขั้นตอน",
+        pickerTitle: "เพิ่มขั้นตอน",
     },
 
     usecasePage: {

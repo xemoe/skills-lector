@@ -2,10 +2,16 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Copy, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n/context";
 import { buildCombinedPrompt, cheatsByIdMap, resolveSteps } from "@/lib/flow-resolve";
 import { useCheatsList } from "@/components/cheats/use-cheat-queries";
@@ -16,7 +22,7 @@ import {
     useUpdateFlow,
 } from "./use-flow-queries";
 import { CheatPicker } from "./cheat-picker";
-import { FlowStepRow } from "./flow-step-row";
+import { FlowPipeline } from "./flow-pipeline";
 
 interface FlowEditorProps {
     flowId: number;
@@ -141,6 +147,9 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-1">
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+                        {t.flowsPage.title} · {steps.length} {t.flowsPage.steps}
+                    </p>
                     {editingName ? (
                         <form
                             className="flex items-center gap-2"
@@ -248,49 +257,24 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                 </div>
             </div>
 
-            {/* Steps */}
-            <div className="space-y-2">
-                {steps.length === 0 ? (
-                    <div className="rounded-sm border border-dashed p-8 text-center text-sm text-muted-foreground">
-                        {t.flowsPage.emptySteps}
-                    </div>
-                ) : (
-                    steps.map((step, index) => (
-                        <FlowStepRow
-                            key={step.cheatId}
-                            step={step}
-                            index={index}
-                            total={steps.length}
-                            onMoveUp={handleMoveUp}
-                            onMoveDown={handleMoveDown}
-                            onRemove={handleRemove}
-                        />
-                    ))
-                )}
-            </div>
+            {/* Pipeline canvas */}
+            <FlowPipeline
+                steps={steps}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                onRemove={handleRemove}
+                onAdd={() => setShowPicker(true)}
+            />
 
-            {/* Add step */}
-            <div className="space-y-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setShowPicker((v) => !v)}
-                >
-                    <Plus />
-                    {t.flowsPage.addStep}
-                    <ChevronDown
-                        className={showPicker ? "rotate-180 transition-transform" : "transition-transform"}
-                    />
-                </Button>
-                {showPicker && (
-                    <CheatPicker
-                        excludeIds={flow.steps}
-                        onPick={handleAddCheat}
-                    />
-                )}
-            </div>
+            {/* Add-step picker */}
+            <Dialog open={showPicker} onOpenChange={setShowPicker}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>{t.flowsPage.pickerTitle}</DialogTitle>
+                    </DialogHeader>
+                    <CheatPicker excludeIds={flow.steps} onPick={handleAddCheat} />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

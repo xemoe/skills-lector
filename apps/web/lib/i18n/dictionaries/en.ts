@@ -325,8 +325,13 @@ export const en = {
         loadingFlow: "Loading…",
         emptySteps: "No steps yet — add a cheat below.",
         addStep: "Add step",
+        addFirstStep: "Add first step",
         copyPrompt: "Copy combined prompt",
         deleteFlow: "Delete",
+        start: "Start",
+        end: "Done",
+        steps: "steps",
+        pickerTitle: "Add a step",
     },
 
     usecasePage: {

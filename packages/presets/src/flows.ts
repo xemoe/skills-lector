@@ -183,10 +183,15 @@ export type SeedResult = { created: Flow[] };
  * 2. Group by intent (skip null/empty).
  * 3. Keep groups with >= 2 cheats.
  * 4. For each group: derive slug from intent; skip if a flow with that slug
- *    already exists (idempotent). Steps = cheat ids sorted by reuseScore desc,
- *    then occurrences desc. seeded = 1.
+ *    already exists (idempotent). Steps = the top MAX_SEEDED_STEPS cheat ids
+ *    sorted by reuseScore desc, then occurrences desc. seeded = 1.
  * 5. Return { created }.
+ *
+ * The per-flow cap keeps an auto-seeded flow a usable workflow: an intent like
+ * "question" can span 100+ cheats, and a 100-stage pipeline is noise, not a flow.
  */
+const MAX_SEEDED_STEPS = 8;
+
 export function seedFlows(): SeedResult {
     const cheats = listCheats();
     const byIntent = new Map<string, typeof cheats>();
@@ -217,7 +222,7 @@ export function seedFlows(): SeedResult {
             return b.occurrences - a.occurrences;
         });
 
-        const cheatIds = sorted.map((c) => c.id);
+        const cheatIds = sorted.slice(0, MAX_SEEDED_STEPS).map((c) => c.id);
         const ts = nowIso();
         const db = openDb();
         const info = db
