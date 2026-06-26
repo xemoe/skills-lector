@@ -331,6 +331,32 @@ export const en = {
         start: "Start",
         end: "Done",
         steps: "steps",
+        enhanced: "Enhanced",
+        original: "Original",
+        foldedIn: "Folded in",
+        fillVariables: "Fill variables",
+        fillHint: "fill the placeholders for a ready-to-use prompt",
+        preview: "Preview",
+        unfilled: (n: number) => `${n} unfilled`,
+        copyFilled: "Copy filled",
+        reset: "Reset",
+        changeAdded: "Added",
+        changeRemoved: "Removed",
+        changeMoved: "Moved",
+        revert: "Revert",
+        applyChanges: "Apply changes",
+        revertChanges: "Revert changes",
+        applying: "Applying…",
+        applyFailed: "Apply failed — your changes are kept; try again.",
+        unsavedChanges: (added: number, removed: number, moved: number) =>
+            "Unsaved — " +
+            [
+                added ? `${added} added` : "",
+                removed ? `${removed} removed` : "",
+                moved ? `${moved} moved` : "",
+            ]
+                .filter(Boolean)
+                .join(", "),
         pickerTitle: "Add a step",
         search: "Search flows…",
         backToList: "All flows",

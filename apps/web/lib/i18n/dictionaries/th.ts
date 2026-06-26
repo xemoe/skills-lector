@@ -323,6 +323,32 @@ export const th: Dictionary = {
         start: "เริ่ม",
         end: "เสร็จ",
         steps: "ขั้นตอน",
+        enhanced: "เพิ่มพลัง",
+        original: "ต้นฉบับ",
+        foldedIn: "รวมทักษะ",
+        fillVariables: "เติมตัวแปร",
+        fillHint: "เติมค่าตัวแปรเพื่อได้พรอมต์พร้อมใช้",
+        preview: "ตัวอย่าง",
+        unfilled: (n: number) => `ยังไม่เติม ${n}`,
+        copyFilled: "คัดลอกที่เติมแล้ว",
+        reset: "ล้าง",
+        changeAdded: "เพิ่ม",
+        changeRemoved: "ลบ",
+        changeMoved: "ย้าย",
+        revert: "ย้อนกลับ",
+        applyChanges: "บันทึกการแก้ไข",
+        revertChanges: "ยกเลิกการแก้ไข",
+        applying: "กำลังบันทึก…",
+        applyFailed: "บันทึกไม่สำเร็จ — การแก้ไขยังอยู่ ลองใหม่อีกครั้ง",
+        unsavedChanges: (added: number, removed: number, moved: number) =>
+            "ยังไม่บันทึก — " +
+            [
+                added ? `เพิ่ม ${added}` : "",
+                removed ? `ลบ ${removed}` : "",
+                moved ? `ย้าย ${moved}` : "",
+            ]
+                .filter(Boolean)
+                .join(", "),
         pickerTitle: "เพิ่มขั้นตอน",
         search: "ค้นหาโฟลว์…",
         backToList: "โฟลว์ทั้งหมด",

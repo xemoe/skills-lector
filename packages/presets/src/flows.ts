@@ -5,7 +5,7 @@
 import { openDb } from "./db";
 import { nowIso } from "./util";
 import { listCheats } from "./cheats";
-import type { Flow } from "./types";
+import type { Flow, FlowEnhancement, FlowEnhancedStep } from "./types";
 
 // ---------------------------------------------------------------------------
 // DB row shape
@@ -18,6 +18,7 @@ type DbFlowRow = {
     description: string | null;
     steps: string;
     seeded: number;
+    enhanced: string | null;
     created_at: string;
     updated_at: string;
 };
@@ -38,6 +39,44 @@ function parseSteps(raw: string | null): number[] {
     }
 }
 
+/**
+ * Parse the `enhanced` JSON column into a FlowEnhancement, or null. Tolerant of
+ * malformed/legacy data (returns null) and drops any step entry missing a
+ * numeric cheatId or string body, so one bad entry can't break the whole flow.
+ */
+function parseEnhanced(raw: string | null): FlowEnhancement | null {
+    if (!raw) return null;
+    try {
+        const v: unknown = JSON.parse(raw);
+        if (!v || typeof v !== "object") return null;
+        const obj = v as { generatedAt?: unknown; steps?: unknown };
+        if (!Array.isArray(obj.steps)) return null;
+        const steps: FlowEnhancedStep[] = obj.steps
+            .filter(
+                (s): s is { cheatId: number; enhanced: string; foldedIn?: unknown } =>
+                    !!s &&
+                    typeof s === "object" &&
+                    typeof (s as { cheatId?: unknown }).cheatId === "number" &&
+                    typeof (s as { enhanced?: unknown }).enhanced === "string",
+            )
+            .map((s) => ({
+                cheatId: s.cheatId,
+                enhanced: s.enhanced,
+                foldedIn: Array.isArray(s.foldedIn)
+                    ? s.foldedIn.filter((n): n is string => typeof n === "string")
+                    : [],
+            }));
+        if (steps.length === 0) return null;
+        return {
+            generatedAt:
+                typeof obj.generatedAt === "string" ? obj.generatedAt : nowIso(),
+            steps,
+        };
+    } catch {
+        return null;
+    }
+}
+
 function rowToFlow(r: DbFlowRow): Flow {
     return {
         id: r.id,
@@ -46,12 +85,14 @@ function rowToFlow(r: DbFlowRow): Flow {
         description: r.description,
         steps: parseSteps(r.steps),
         seeded: r.seeded === 1,
+        enhanced: parseEnhanced(r.enhanced),
         createdAt: r.created_at,
         updatedAt: r.updated_at,
     };
 }
 
-const COLS = "id, slug, name, description, steps, seeded, created_at, updated_at";
+const COLS =
+    "id, slug, name, description, steps, seeded, enhanced, created_at, updated_at";
 
 // ---------------------------------------------------------------------------
 // Slug collision error — mirrors presets.ts
@@ -160,6 +201,22 @@ export function setFlowSteps(id: number, cheatIds: number[]): Flow {
     db.prepare(
         `UPDATE flows SET steps = ?, updated_at = ? WHERE id = ?`,
     ).run(JSON.stringify(cheatIds), ts, id);
+    return getFlow(id)!;
+}
+
+/**
+ * Stores the per-step skill-aware rewrite for a flow. `generatedAt` is stamped
+ * server-side. Steps are keyed by cheatId; callers pass only the steps they
+ * enhanced (others render un-enhanced). Throws if id is unknown.
+ */
+export function setFlowEnhanced(id: number, steps: FlowEnhancedStep[]): Flow {
+    const db = openDb();
+    requireFlow(id);
+    const ts = nowIso();
+    const payload: FlowEnhancement = { generatedAt: ts, steps };
+    db.prepare(
+        `UPDATE flows SET enhanced = ?, updated_at = ? WHERE id = ?`,
+    ).run(JSON.stringify(payload), ts, id);
     return getFlow(id)!;
 }
 

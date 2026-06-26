@@ -3,25 +3,32 @@
 import { Play, Plus } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-import type { ResolvedStep } from "@/lib/flow-resolve";
+import type { Cheat, FlowEnhancedStep } from "@lector/presets/types";
+import type { StepChange } from "@/lib/flow-step-diff";
 import { FlowNode } from "./flow-node";
 
+/** One render row: a resolved step plus its staged-change tag. */
+export interface PipelineRow {
+    cheatId: number;
+    cheat: Cheat | null;
+    change: StepChange;
+    /** Index among the draft steps; null for a removed ghost. */
+    draftIndex: number | null;
+}
+
 interface FlowPipelineProps {
-    steps: ResolvedStep[];
-    onMoveUp: (index: number) => void;
-    onMoveDown: (index: number) => void;
-    onRemove: (index: number) => void;
+    rows: PipelineRow[];
+    draftCount: number;
+    enhancedByCheatId?: Map<number, FlowEnhancedStep>;
+    onMoveUp: (cheatId: number) => void;
+    onMoveDown: (cheatId: number) => void;
+    onRemove: (cheatId: number) => void;
+    onRevert: (cheatId: number) => void;
     onAdd: () => void;
 }
 
-type RailKind = "start" | "step" | "add";
+type RailKind = "start" | "step" | "removed" | "add";
 
-/**
- * The rail cell for one row: the continuous vertical line plus the medallion.
- * `top`/`bottom` toggle the line halves so the line starts at `Start` and ends
- * at the add node. `align` keeps the medallion near the card's header for steps
- * and centered for the start/add caps.
- */
 function Rail({
     kind,
     label,
@@ -29,7 +36,7 @@ function Rail({
     bottom,
 }: {
     kind: RailKind;
-    label?: number;
+    label?: number | string;
     top: boolean;
     bottom: boolean;
 }) {
@@ -41,12 +48,14 @@ function Rail({
                     "z-10 my-0.5 flex size-9 shrink-0 items-center justify-center",
                     kind === "step" &&
                         "bg-primary font-mono text-sm font-bold tabular-nums text-primary-foreground",
+                    kind === "removed" &&
+                        "border border-dashed border-destructive/50 font-mono text-xs text-destructive/70 line-through",
                     kind === "start" && "bg-primary/15 text-primary",
                     kind === "add" &&
                         "border-2 border-dashed border-border text-muted-foreground",
                 )}
             >
-                {kind === "step" && label}
+                {(kind === "step" || kind === "removed") && label}
                 {kind === "start" && <Play className="size-4 fill-current" />}
                 {kind === "add" && <Plus className="size-4" />}
             </span>
@@ -56,20 +65,24 @@ function Rail({
 }
 
 /**
- * The flow as a top-down pipeline: a continuous left rail threading a `Start`
- * cap, each step (numbered medallion + full-width stage card), and a dashed
- * add-step node, laid over a faint blueprint dot-grid. Reads as a workflow you
- * scan top to bottom; no horizontal scroll.
+ * The flow as a top-down pipeline. Renders diff rows: active steps numbered on
+ * the rail, removed steps as struck ghost rows. All controls are cheatId-based.
  */
 export function FlowPipeline({
-    steps,
+    rows,
+    draftCount,
+    enhancedByCheatId,
     onMoveUp,
     onMoveDown,
     onRemove,
+    onRevert,
     onAdd,
 }: FlowPipelineProps) {
     const t = useT();
-    const empty = steps.length === 0;
+    const empty = draftCount === 0;
+
+    // Running 1-based number for active (non-removed) steps.
+    let stepNo = 0;
 
     return (
         <div className="flow-canvas rounded-none border bg-muted/20 p-4 md:p-6">
@@ -83,21 +96,41 @@ export function FlowPipeline({
                 </div>
 
                 {/* Steps */}
-                {steps.map((step, index) => (
-                    <div key={step.cheatId} className="flex items-stretch gap-4">
-                        <Rail kind="step" label={index + 1} top bottom />
-                        <div className="min-w-0 flex-1 py-2">
-                            <FlowNode
-                                step={step}
-                                index={index}
-                                total={steps.length}
-                                onMoveUp={onMoveUp}
-                                onMoveDown={onMoveDown}
-                                onRemove={onRemove}
+                {rows.map((row) => {
+                    const removed = row.change === "removed";
+                    const num = removed ? null : ++stepNo;
+                    return (
+                        <div
+                            key={`${row.cheatId}-${removed ? "x" : "a"}`}
+                            className="flex items-stretch gap-4"
+                        >
+                            <Rail
+                                kind={removed ? "removed" : "step"}
+                                label={removed ? "×" : (num ?? undefined)}
+                                top
+                                bottom
                             />
+                            <div className="min-w-0 flex-1 py-2">
+                                <FlowNode
+                                    step={{ cheatId: row.cheatId, cheat: row.cheat }}
+                                    num={num}
+                                    total={draftCount}
+                                    change={row.change}
+                                    enhanced={enhancedByCheatId?.get(row.cheatId)}
+                                    canMoveUp={row.draftIndex !== null && row.draftIndex > 0}
+                                    canMoveDown={
+                                        row.draftIndex !== null &&
+                                        row.draftIndex < draftCount - 1
+                                    }
+                                    onMoveUp={onMoveUp}
+                                    onMoveDown={onMoveDown}
+                                    onRemove={onRemove}
+                                    onRevert={onRevert}
+                                />
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
                 {/* Add-step terminal */}
                 <div className="flex items-stretch gap-4">

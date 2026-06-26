@@ -142,6 +142,24 @@ export type Cheat = {
     updatedAt: string;
 };
 
+/**
+ * One step's skill-aware rewrite. Keyed by `cheatId` (not position) so it stays
+ * aligned to its step if the flow is reordered; a step whose cheat has no entry
+ * simply renders un-enhanced. `foldedIn` is the skill/command names whose
+ * guidance the rewrite incorporates.
+ */
+export type FlowEnhancedStep = {
+    cheatId: number;
+    enhanced: string;
+    foldedIn: string[];
+};
+
+/** A flow's stored enhancement — the per-step rewrites plus when they were made. */
+export type FlowEnhancement = {
+    generatedAt: string;
+    steps: FlowEnhancedStep[];
+};
+
 export type Flow = {
     id: number;
     slug: string;
@@ -149,6 +167,7 @@ export type Flow = {
     description: string | null;
     steps: number[];        // ordered cheat ids
     seeded: boolean;
+    enhanced: FlowEnhancement | null; // per-step skill-aware rewrite, or null
     createdAt: string;
     updatedAt: string;
 };

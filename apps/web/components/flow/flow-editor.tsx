@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Trash2 } from "lucide-react";
+import { Check, Copy, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n/context";
-import { buildCombinedPrompt, cheatsByIdMap, resolveSteps } from "@/lib/flow-resolve";
+import type { FlowEnhancedStep } from "@lector/presets/types";
+import { buildCombinedPrompt, cheatsByIdMap } from "@/lib/flow-resolve";
+import { diffSteps, insertAtServerPosition } from "@/lib/flow-step-diff";
 import { useCheatsList } from "@/components/cheats/use-cheat-queries";
 import {
     useDeleteFlow,
@@ -30,9 +32,10 @@ interface FlowEditorProps {
 }
 
 /**
- * Detail editor for a single flow. Inline-editable name and description,
- * ordered step list with reorder/remove, cheat picker to add steps, and a
- * "Copy combined prompt" button that builds the full chain for clipboard.
+ * Detail editor for a single flow. Step edits (reorder / remove / add) are
+ * staged in a local draft — highlighted per item with a revert — and only hit
+ * the DB on "Apply changes"; "Revert changes" discards the draft. Name and
+ * description still save immediately.
  */
 export function FlowEditor({ flowId }: FlowEditorProps) {
     const t = useT();
@@ -43,16 +46,33 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
 
     const { data: cheatsData } = useCheatsList();
     const cheats = cheatsData?.cheats ?? [];
-
     const cheatsById = useMemo(() => cheatsByIdMap(cheats), [cheats]);
-    const steps = useMemo(
-        () => (flow ? resolveSteps(flow, cheatsById) : []),
-        [flow, cheatsById],
-    );
 
     const updateFlow = useUpdateFlow();
     const setSteps = useSetSteps();
     const deleteFlow = useDeleteFlow();
+
+    // Local draft of the step order. null = clean (mirrors the saved order).
+    const [draft, setDraft] = useState<number[] | null>(null);
+    const server = flow?.steps ?? [];
+    const current = draft ?? server;
+
+    const diff = useMemo(() => diffSteps(server, current), [server, current]);
+    const enhancedByCheatId = useMemo(() => {
+        const map = new Map<number, FlowEnhancedStep>();
+        for (const s of flow?.enhanced?.steps ?? []) map.set(s.cheatId, s);
+        return map;
+    }, [flow]);
+    const rows = useMemo(
+        () =>
+            diff.rows.map((r) => ({
+                cheatId: r.cheatId,
+                cheat: cheatsById.get(r.cheatId) ?? null,
+                change: r.change,
+                draftIndex: r.draftIndex,
+            })),
+        [diff, cheatsById],
+    );
 
     const [editingName, setEditingName] = useState(false);
     const [nameVal, setNameVal] = useState("");
@@ -60,6 +80,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
     const [descVal, setDescVal] = useState("");
     const [copied, setCopied] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
+    const [applyError, setApplyError] = useState<string | null>(null);
 
     const handleSaveName = useCallback(() => {
         const trimmed = nameVal.trim();
@@ -79,7 +100,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
 
     const handleCopyAll = useCallback(async () => {
         if (!flow) return;
-        const text = buildCombinedPrompt(flow, cheatsById);
+        const text = buildCombinedPrompt({ ...flow, steps: current }, cheatsById);
         try {
             await navigator.clipboard.writeText(text);
             setCopied(true);
@@ -87,46 +108,74 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
         } catch {
             /* clipboard unavailable */
         }
-    }, [flow, cheatsById]);
+    }, [flow, current, cheatsById]);
 
+    // ---- staged step edits (local draft only) ----
     const handleMoveUp = useCallback(
-        (index: number) => {
-            if (!flow || index === 0) return;
-            const ids = [...flow.steps];
-            [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
-            setSteps.mutate({ id: flowId, cheatIds: ids });
+        (cheatId: number) => {
+            const i = current.indexOf(cheatId);
+            if (i <= 0) return;
+            const next = [...current];
+            [next[i - 1], next[i]] = [next[i], next[i - 1]];
+            setDraft(next);
         },
-        [flow, flowId, setSteps],
+        [current],
     );
 
     const handleMoveDown = useCallback(
-        (index: number) => {
-            if (!flow || index >= flow.steps.length - 1) return;
-            const ids = [...flow.steps];
-            [ids[index], ids[index + 1]] = [ids[index + 1], ids[index]];
-            setSteps.mutate({ id: flowId, cheatIds: ids });
+        (cheatId: number) => {
+            const i = current.indexOf(cheatId);
+            if (i < 0 || i >= current.length - 1) return;
+            const next = [...current];
+            [next[i], next[i + 1]] = [next[i + 1], next[i]];
+            setDraft(next);
         },
-        [flow, flowId, setSteps],
+        [current],
     );
 
     const handleRemove = useCallback(
-        (index: number) => {
-            if (!flow) return;
-            const ids = flow.steps.filter((_, i) => i !== index);
-            setSteps.mutate({ id: flowId, cheatIds: ids });
-        },
-        [flow, flowId, setSteps],
+        (cheatId: number) => setDraft(current.filter((x) => x !== cheatId)),
+        [current],
     );
 
     const handleAddCheat = useCallback(
         (cheatId: number) => {
-            if (!flow) return;
-            const ids = [...flow.steps, cheatId];
-            setSteps.mutate({ id: flowId, cheatIds: ids });
+            setDraft([...current, cheatId]);
             setShowPicker(false);
         },
-        [flow, flowId, setSteps],
+        [current],
     );
+
+    const handleRevertItem = useCallback(
+        (cheatId: number) => {
+            const inServer = server.includes(cheatId);
+            setDraft(
+                inServer
+                    ? insertAtServerPosition(current, cheatId, server) // removed or moved
+                    : current.filter((x) => x !== cheatId), // added
+            );
+        },
+        [current, server],
+    );
+
+    const handleApply = useCallback(() => {
+        setApplyError(null);
+        setSteps.mutate(
+            { id: flowId, cheatIds: current },
+            {
+                onSuccess: () => setDraft(null),
+                onError: (err) =>
+                    setApplyError(
+                        err instanceof Error ? err.message : t.flowsPage.applyFailed,
+                    ),
+            },
+        );
+    }, [setSteps, flowId, current, t]);
+
+    const handleRevertAll = useCallback(() => {
+        setApplyError(null);
+        setDraft(null);
+    }, []);
 
     const handleDelete = useCallback(() => {
         deleteFlow.mutate(
@@ -146,6 +195,8 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
         );
     }
 
+    const applying = setSteps.isPending;
+
     return (
         <div className="space-y-6">
             <FlowDetailNav flowId={flowId} />
@@ -154,7 +205,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-1">
                     <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-                        {t.flowsPage.title} · {steps.length} {t.flowsPage.steps}
+                        {t.flowsPage.title} · {current.length} {t.flowsPage.steps}
                     </p>
                     {editingName ? (
                         <form
@@ -181,15 +232,19 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                             </Button>
                         </form>
                     ) : (
-                        <h1
-                            className="cursor-text text-lg font-semibold hover:underline hover:underline-offset-2"
-                            title="Click to edit name"
-                            onClick={() => {
-                                setNameVal(flow.name);
-                                setEditingName(true);
-                            }}
-                        >
-                            {flow.name}
+                        <h1 className="text-lg font-semibold">
+                            <button
+                                type="button"
+                                className="cursor-text rounded-none text-left hover:underline hover:underline-offset-2"
+                                title="Click to edit name"
+                                aria-label="Edit flow name"
+                                onClick={() => {
+                                    setNameVal(flow.name);
+                                    setEditingName(true);
+                                }}
+                            >
+                                {flow.name}
+                            </button>
                         </h1>
                     )}
 
@@ -218,9 +273,11 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                             </Button>
                         </form>
                     ) : (
-                        <p
-                            className="cursor-text text-sm text-muted-foreground hover:text-foreground"
+                        <button
+                            type="button"
+                            className="block cursor-text rounded-none text-left text-sm text-muted-foreground hover:text-foreground"
                             title="Click to edit description"
+                            aria-label="Edit flow description"
                             onClick={() => {
                                 setDescVal(flow.description ?? "");
                                 setEditingDesc(true);
@@ -229,7 +286,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                             {flow.description ?? (
                                 <span className="italic">Add a description…</span>
                             )}
-                        </p>
+                        </button>
                     )}
                 </div>
 
@@ -240,7 +297,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                         size="sm"
                         className="gap-1.5"
                         onClick={handleCopyAll}
-                        disabled={steps.length === 0}
+                        disabled={current.length === 0}
                     >
                         {copied ? (
                             <Check className="text-green-600" />
@@ -263,12 +320,59 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                 </div>
             </div>
 
+            {/* Unsaved-changes action bar */}
+            {diff.dirty && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 rounded-none border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 backdrop-blur supports-backdrop-filter:bg-amber-500/10"
+                >
+                    <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                        {applyError ? (
+                            <span className="text-destructive">{applyError}</span>
+                        ) : (
+                            t.flowsPage.unsavedChanges(
+                                diff.counts.added,
+                                diff.counts.removed,
+                                diff.counts.moved,
+                            )
+                        )}
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={handleRevertAll}
+                            disabled={applying}
+                        >
+                            <Undo2 className="size-3.5" />
+                            {t.flowsPage.revertChanges}
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={handleApply}
+                            disabled={applying}
+                        >
+                            <Check className="size-3.5" />
+                            {applying ? t.flowsPage.applying : t.flowsPage.applyChanges}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Pipeline canvas */}
             <FlowPipeline
-                steps={steps}
+                rows={rows}
+                draftCount={current.length}
+                enhancedByCheatId={enhancedByCheatId}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
                 onRemove={handleRemove}
+                onRevert={handleRevertItem}
                 onAdd={() => setShowPicker(true)}
             />
 
@@ -278,7 +382,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                     <DialogHeader>
                         <DialogTitle>{t.flowsPage.pickerTitle}</DialogTitle>
                     </DialogHeader>
-                    <CheatPicker excludeIds={flow.steps} onPick={handleAddCheat} />
+                    <CheatPicker excludeIds={current} onPick={handleAddCheat} />
                 </DialogContent>
             </Dialog>
         </div>
