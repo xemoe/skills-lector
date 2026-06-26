@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/copy-button";
 import type { ResolvedStep } from "@/lib/flow-resolve";
 
-const PREVIEW_MAX = 240;
+const PREVIEW_MAX = 380;
 
 function truncate(text: string): string {
     const flat = text.replace(/\s+/g, " ").trim();
@@ -46,9 +46,9 @@ export function FlowNode({
         return (
             <div
                 style={enterStyle}
-                className="group flex w-full animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-2 rounded-none border border-dashed border-border bg-muted/30 px-3 py-2.5"
+                className="group flex w-full animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-2 rounded-none border border-dashed border-border bg-muted/30 px-4 py-3.5"
             >
-                <span className="text-xs italic text-muted-foreground">
+                <span className="text-sm italic text-muted-foreground">
                     <span className="font-mono not-italic">{num}</span> · removed cheat #{cheatId}
                 </span>
                 <Button
@@ -69,23 +69,23 @@ export function FlowNode({
     return (
         <div
             style={enterStyle}
-            className="group relative flex w-full animate-in fade-in slide-in-from-bottom-1 flex-col rounded-none border bg-card p-3 shadow-sm transition-all hover:border-primary/60 hover:shadow-md"
+            className="group relative flex w-full animate-in fade-in slide-in-from-bottom-1 flex-col rounded-none border bg-card p-5 shadow-sm transition-all hover:border-primary/60 hover:shadow-md"
         >
             {/* Header: index ribbon + open-cheat */}
-            <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
+            <div className="flex items-center gap-2.5">
+                <span className="font-mono text-xs uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
                     {num}
                     <span className="opacity-40"> / {totalLabel}</span>
                 </span>
                 {cheat.intent && (
-                    <span className="truncate text-sm font-semibold text-foreground">
+                    <span className="truncate text-lg font-semibold text-foreground">
                         {cheat.intent}
                     </span>
                 )}
                 <Button
                     asChild
                     variant="ghost"
-                    size="icon-xs"
+                    size="icon-sm"
                     className="ml-auto opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                     aria-label={`Open cheat #${cheatId}`}
                 >
@@ -96,16 +96,16 @@ export function FlowNode({
             </div>
 
             {/* Body: prompt preview */}
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
                 {truncate(promptText)}
             </p>
 
             {/* Footer: stage controls */}
-            <div className="mt-2.5 flex items-center gap-0.5 border-t pt-2">
+            <div className="mt-4 flex items-center gap-1 border-t pt-3">
                 <Button
                     type="button"
                     variant="ghost"
-                    size="icon-xs"
+                    size="icon-sm"
                     aria-label="Move step up"
                     disabled={index === 0}
                     onClick={() => onMoveUp(index)}
@@ -115,18 +115,18 @@ export function FlowNode({
                 <Button
                     type="button"
                     variant="ghost"
-                    size="icon-xs"
+                    size="icon-sm"
                     aria-label="Move step down"
                     disabled={index === total - 1}
                     onClick={() => onMoveDown(index)}
                 >
                     <ChevronDown />
                 </Button>
-                <CopyButton value={promptText} size="icon-xs" />
+                <CopyButton value={promptText} size="icon-sm" />
                 <Button
                     type="button"
                     variant="ghost"
-                    size="icon-xs"
+                    size="icon-sm"
                     className="ml-auto text-muted-foreground hover:text-destructive"
                     aria-label="Remove step"
                     onClick={() => onRemove(index)}

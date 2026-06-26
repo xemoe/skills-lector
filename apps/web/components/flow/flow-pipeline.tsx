@@ -34,21 +34,21 @@ function Rail({
     bottom: boolean;
 }) {
     return (
-        <div className="relative flex w-8 shrink-0 flex-col items-center self-stretch">
+        <div className="relative flex w-10 shrink-0 flex-col items-center self-stretch">
             <span className={cn("w-px flex-1", top ? "bg-border" : "bg-transparent")} />
             <span
                 className={cn(
-                    "z-10 my-0.5 flex size-7 shrink-0 items-center justify-center",
+                    "z-10 my-0.5 flex size-9 shrink-0 items-center justify-center",
                     kind === "step" &&
-                        "bg-primary font-mono text-xs font-bold tabular-nums text-primary-foreground",
+                        "bg-primary font-mono text-sm font-bold tabular-nums text-primary-foreground",
                     kind === "start" && "bg-primary/15 text-primary",
                     kind === "add" &&
                         "border-2 border-dashed border-border text-muted-foreground",
                 )}
             >
                 {kind === "step" && label}
-                {kind === "start" && <Play className="size-3 fill-current" />}
-                {kind === "add" && <Plus className="size-3.5" />}
+                {kind === "start" && <Play className="size-4 fill-current" />}
+                {kind === "add" && <Plus className="size-4" />}
             </span>
             <span className={cn("w-px flex-1", bottom ? "bg-border" : "bg-transparent")} />
         </div>
@@ -73,20 +73,20 @@ export function FlowPipeline({
 
     return (
         <div className="flow-canvas rounded-none border bg-muted/20 p-4 md:p-6">
-            <div className="mx-auto max-w-2xl">
+            <div className="mx-auto max-w-3xl">
                 {/* Start cap */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                     <Rail kind="start" top={false} bottom />
-                    <span className="inline-flex items-center rounded-none border border-primary/40 bg-primary/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+                    <span className="inline-flex items-center rounded-none border border-primary/40 bg-primary/10 px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
                         {t.flowsPage.start}
                     </span>
                 </div>
 
                 {/* Steps */}
                 {steps.map((step, index) => (
-                    <div key={step.cheatId} className="flex items-stretch gap-3">
+                    <div key={step.cheatId} className="flex items-stretch gap-4">
                         <Rail kind="step" label={index + 1} top bottom />
-                        <div className="min-w-0 flex-1 py-1.5">
+                        <div className="min-w-0 flex-1 py-2">
                             <FlowNode
                                 step={step}
                                 index={index}
@@ -100,16 +100,16 @@ export function FlowPipeline({
                 ))}
 
                 {/* Add-step terminal */}
-                <div className="flex items-stretch gap-3">
+                <div className="flex items-stretch gap-4">
                     <Rail kind="add" top bottom={false} />
-                    <div className="flex-1 py-1.5">
+                    <div className="flex-1 py-2">
                         <button
                             type="button"
                             onClick={onAdd}
-                            className="group flex w-full items-center justify-center gap-2 rounded-none border-2 border-dashed border-border p-3 text-muted-foreground transition-colors hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
+                            className="group flex w-full items-center justify-center gap-2 rounded-none border-2 border-dashed border-border p-5 text-muted-foreground transition-colors hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
                         >
-                            <Plus className="size-4" />
-                            <span className="text-xs font-medium">
+                            <Plus className="size-5" />
+                            <span className="text-sm font-medium">
                                 {empty ? t.flowsPage.addFirstStep : t.flowsPage.addStep}
                             </span>
                         </button>
