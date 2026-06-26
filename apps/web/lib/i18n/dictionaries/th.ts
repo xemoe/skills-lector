@@ -357,6 +357,7 @@ export const th: Dictionary = {
         sortName: "ชื่อ (ก–ฮ)",
         sortSteps: "ขั้นตอนมากสุด",
         itemPosition: (current: number, total: number) => `${current} จาก ${total}`,
+        switchFlow: "สลับโฟลว์",
         matchCount: (shown: number, total: number) =>
             shown === total ? `${total} โฟลว์` : `${shown} จาก ${total} โฟลว์`,
     },

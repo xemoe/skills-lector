@@ -100,7 +100,10 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
 
     const handleCopyAll = useCallback(async () => {
         if (!flow) return;
-        const text = buildCombinedPrompt({ ...flow, steps: current }, cheatsById);
+        const text = buildCombinedPrompt(
+            { ...flow, steps: current },
+            cheatsById,
+        );
         try {
             await navigator.clipboard.writeText(text);
             setCopied(true);
@@ -166,7 +169,9 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                 onSuccess: () => setDraft(null),
                 onError: (err) =>
                     setApplyError(
-                        err instanceof Error ? err.message : t.flowsPage.applyFailed,
+                        err instanceof Error
+                            ? err.message
+                            : t.flowsPage.applyFailed,
                     ),
             },
         );
@@ -198,15 +203,12 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
     const applying = setSteps.isPending;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-2.5">
             <FlowDetailNav flowId={flowId} />
 
             {/* Header */}
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 mb-6">
                 <div className="min-w-0 flex-1 space-y-1">
-                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-                        {t.flowsPage.title} · {current.length} {t.flowsPage.steps}
-                    </p>
                     {editingName ? (
                         <form
                             className="flex items-center gap-2"
@@ -284,18 +286,24 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                             }}
                         >
                             {flow.description ?? (
-                                <span className="italic">Add a description…</span>
+                                <span className="italic">
+                                    Add a description…
+                                </span>
                             )}
                         </button>
                     )}
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-primary mr-4">
+                        {t.flowsPage.title} · {current.length}{" "}
+                        {t.flowsPage.steps}
+                    </p>
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 w-46"
                         onClick={handleCopyAll}
                         disabled={current.length === 0}
                     >
@@ -310,7 +318,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                         type="button"
                         variant="destructive"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 w-20 rounded-md"
                         onClick={handleDelete}
                         disabled={deleteFlow.isPending}
                     >
@@ -329,7 +337,9 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                 >
                     <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
                         {applyError ? (
-                            <span className="text-destructive">{applyError}</span>
+                            <span className="text-destructive">
+                                {applyError}
+                            </span>
                         ) : (
                             t.flowsPage.unsavedChanges(
                                 diff.counts.added,
@@ -358,7 +368,9 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                             disabled={applying}
                         >
                             <Check className="size-3.5" />
-                            {applying ? t.flowsPage.applying : t.flowsPage.applyChanges}
+                            {applying
+                                ? t.flowsPage.applying
+                                : t.flowsPage.applyChanges}
                         </Button>
                     </div>
                 </div>

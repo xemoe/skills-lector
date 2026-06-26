@@ -365,6 +365,7 @@ export const en = {
         sortName: "Name (A–Z)",
         sortSteps: "Most steps",
         itemPosition: (current: number, total: number) => `${current} of ${total}`,
+        switchFlow: "Switch flow",
         matchCount: (shown: number, total: number) =>
             shown === total ? `${total} flows` : `${shown} of ${total} flows`,
     },
