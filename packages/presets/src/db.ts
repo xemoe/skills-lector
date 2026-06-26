@@ -10,8 +10,17 @@ const MIGRATIONS_DIR = join(
     "migrations",
 );
 
-let cached: Database.Database | null = null;
-let cachedPath: string | null = null;
+// Cache the connection on globalThis, not a module-level `let`. In `next dev`
+// (Turbopack) each API route is evaluated as its own module instance, so a
+// module-level cache gives every route a *separate* better-sqlite3 connection —
+// a write committed on one route's connection is invisible to another's, making
+// list/detail/mutation routes disagree. A process-wide globalThis singleton (the
+// standard Next.js dev pattern) keeps them on one connection. Prod already runs a
+// single bundled instance, so this only changes dev.
+const globalForDb = globalThis as unknown as {
+    __lectorDb?: Database.Database;
+    __lectorDbPath?: string;
+};
 
 function resolveDbPath(): string {
     const fromEnv = process.env.SKILLS_LECTOR_PRESETS_DB;
@@ -77,26 +86,28 @@ function runMigrations(db: Database.Database): void {
 
 export function openDb(): Database.Database {
     const path = resolveDbPath();
-    if (cached && cachedPath === path) return cached;
-    if (cached) {
-        cached.close();
-        cached = null;
+    if (globalForDb.__lectorDb && globalForDb.__lectorDbPath === path) {
+        return globalForDb.__lectorDb;
+    }
+    if (globalForDb.__lectorDb) {
+        globalForDb.__lectorDb.close();
+        globalForDb.__lectorDb = undefined;
     }
     mkdirSync(dirname(path), { recursive: true });
     const db = new Database(path);
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");
     runMigrations(db);
-    cached = db;
-    cachedPath = path;
+    globalForDb.__lectorDb = db;
+    globalForDb.__lectorDbPath = path;
     return db;
 }
 
 export function closeDb(): void {
-    if (cached) {
-        cached.close();
-        cached = null;
-        cachedPath = null;
+    if (globalForDb.__lectorDb) {
+        globalForDb.__lectorDb.close();
+        globalForDb.__lectorDb = undefined;
+        globalForDb.__lectorDbPath = undefined;
     }
 }
 
