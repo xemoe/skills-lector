@@ -5,7 +5,7 @@
     "description": "Server-side filesystem scanners for Claude Skills and slash commands, plus the shared data model. Consumed by apps/web.",
     "type": "module",
     "dependencies": {
-        "js-yaml": "^4.2.0"
+        "js-yaml": "^5.1.0"
     },
     "devDependencies": {
         "@types/js-yaml": "^4.0.9",
