@@ -23,6 +23,7 @@ import {
 } from "./use-flow-queries";
 import { CheatPicker } from "./cheat-picker";
 import { FlowPipeline } from "./flow-pipeline";
+import { FlowDetailNav } from "./flow-detail-nav";
 
 interface FlowEditorProps {
     flowId: number;
@@ -136,14 +137,19 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
 
     if (!flow) {
         return (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-                {t.flowsPage.loadingFlow}
+            <div className="space-y-6">
+                <FlowDetailNav flowId={flowId} />
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                    {t.flowsPage.loadingFlow}
+                </div>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
+            <FlowDetailNav flowId={flowId} />
+
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-1">

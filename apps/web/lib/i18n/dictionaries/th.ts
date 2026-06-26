@@ -324,6 +324,15 @@ export const th: Dictionary = {
         end: "เสร็จ",
         steps: "ขั้นตอน",
         pickerTitle: "เพิ่มขั้นตอน",
+        search: "ค้นหาโฟลว์…",
+        backToList: "โฟลว์ทั้งหมด",
+        noMatch: "ไม่พบโฟลว์ที่ตรงกับการค้นหา",
+        sortRecent: "อัปเดตล่าสุด",
+        sortName: "ชื่อ (ก–ฮ)",
+        sortSteps: "ขั้นตอนมากสุด",
+        itemPosition: (current: number, total: number) => `${current} จาก ${total}`,
+        matchCount: (shown: number, total: number) =>
+            shown === total ? `${total} โฟลว์` : `${shown} จาก ${total} โฟลว์`,
     },
 
     usecasePage: {

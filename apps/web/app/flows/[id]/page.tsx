@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
-import { getFlow } from "@lector/presets/flows";
+import { getFlow, listFlows } from "@lector/presets/flows";
 import { listCheats } from "@lector/presets/cheats";
 import { FlowEditor } from "@/components/flow/flow-editor";
 import { flowsQk } from "@/components/flow/flow-query-keys";
@@ -21,9 +21,11 @@ export default async function FlowDetailPage({
     if (!flow) return notFound();
 
     const cheats = listCheats();
+    const flows = listFlows();
 
     const queryClient = new QueryClient();
     queryClient.setQueryData(flowsQk.detail(id), { flow });
+    queryClient.setQueryData(flowsQk.list(), { flows });
     queryClient.setQueryData(cheatsQk.list(), { cheats });
 
     return (

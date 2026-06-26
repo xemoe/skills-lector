@@ -332,6 +332,15 @@ export const en = {
         end: "Done",
         steps: "steps",
         pickerTitle: "Add a step",
+        search: "Search flows…",
+        backToList: "All flows",
+        noMatch: "No flows match your search.",
+        sortRecent: "Recently updated",
+        sortName: "Name (A–Z)",
+        sortSteps: "Most steps",
+        itemPosition: (current: number, total: number) => `${current} of ${total}`,
+        matchCount: (shown: number, total: number) =>
+            shown === total ? `${total} flows` : `${shown} of ${total} flows`,
     },
 
     usecasePage: {
