@@ -69,7 +69,7 @@ export function FlowDetailNav({
                         asChild
                         variant="outline"
                         size="sm"
-                        className="rounded-l-md w-20"
+                        className="rounded-l-md w-24 pr-4"
                     >
                         <Link href={neighborHref(prev.id)}>
                             <ChevronLeft className="h-4 w-4" />
@@ -78,7 +78,7 @@ export function FlowDetailNav({
                     </Button>
                 ) : (
                     <Button
-                        className="rounded-l-md w-20"
+                        className="rounded-l-md w-24 pr-4"
                         variant="outline"
                         size="sm"
                         disabled
@@ -89,14 +89,11 @@ export function FlowDetailNav({
                 )}
                 <Button
                     asChild
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     className="gap-1.5 px-2"
                 >
-                    <Link href={backHref}>
-                        <ArrowLeft className="h-4 w-4" />
-                        {t.flowsPage.backToList}
-                    </Link>
+                    <Link href={backHref}>{t.flowsPage.backToList}</Link>
                 </Button>
                 {index >= 0 && ordered.length > 0 && (
                     <Select
@@ -126,7 +123,7 @@ export function FlowDetailNav({
                         asChild
                         variant="outline"
                         size="sm"
-                        className="rounded-r-md w-20"
+                        className="rounded-r-md w-24"
                     >
                         <Link href={neighborHref(next.id)}>
                             {t.actions.next}
@@ -137,7 +134,7 @@ export function FlowDetailNav({
                     <Button
                         variant="outline"
                         size="sm"
-                        className="rounded-r-md w-20"
+                        className="rounded-r-md w-24"
                         disabled
                     >
                         {t.actions.next}

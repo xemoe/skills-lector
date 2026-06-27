@@ -42,7 +42,12 @@ function Rail({
 }) {
     return (
         <div className="relative flex w-10 shrink-0 flex-col items-center self-stretch">
-            <span className={cn("w-px flex-1", top ? "bg-border" : "bg-transparent")} />
+            <span
+                className={cn(
+                    "w-px flex-1",
+                    top ? "bg-border" : "bg-transparent",
+                )}
+            />
             <span
                 className={cn(
                     "z-10 my-0.5 flex size-9 shrink-0 items-center justify-center",
@@ -59,7 +64,12 @@ function Rail({
                 {kind === "start" && <Play className="size-4 fill-current" />}
                 {kind === "add" && <Plus className="size-4" />}
             </span>
-            <span className={cn("w-px flex-1", bottom ? "bg-border" : "bg-transparent")} />
+            <span
+                className={cn(
+                    "w-px flex-1",
+                    bottom ? "bg-border" : "bg-transparent",
+                )}
+            />
         </div>
     );
 }
@@ -112,12 +122,20 @@ export function FlowPipeline({
                             />
                             <div className="min-w-0 flex-1 py-2">
                                 <FlowNode
-                                    step={{ cheatId: row.cheatId, cheat: row.cheat }}
+                                    step={{
+                                        cheatId: row.cheatId,
+                                        cheat: row.cheat,
+                                    }}
                                     num={num}
                                     total={draftCount}
                                     change={row.change}
-                                    enhanced={enhancedByCheatId?.get(row.cheatId)}
-                                    canMoveUp={row.draftIndex !== null && row.draftIndex > 0}
+                                    enhanced={enhancedByCheatId?.get(
+                                        row.cheatId,
+                                    )}
+                                    canMoveUp={
+                                        row.draftIndex !== null &&
+                                        row.draftIndex > 0
+                                    }
                                     canMoveDown={
                                         row.draftIndex !== null &&
                                         row.draftIndex < draftCount - 1
@@ -143,7 +161,9 @@ export function FlowPipeline({
                         >
                             <Plus className="size-5" />
                             <span className="text-sm font-medium">
-                                {empty ? t.flowsPage.addFirstStep : t.flowsPage.addStep}
+                                {empty
+                                    ? t.flowsPage.addFirstStep
+                                    : t.flowsPage.addStep}
                             </span>
                         </button>
                     </div>

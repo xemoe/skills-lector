@@ -321,7 +321,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                         type="button"
                         variant="destructive"
                         size="sm"
-                        className="gap-1.5 w-20 rounded-md"
+                        className="gap-1.5 w-24 rounded-md"
                         onClick={handleDelete}
                         disabled={deleteFlow.isPending}
                     >

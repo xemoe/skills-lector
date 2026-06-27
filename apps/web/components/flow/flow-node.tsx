@@ -100,12 +100,16 @@ export function FlowNode({
         <div
             className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium",
-                change === "added" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-                change === "moved" && "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                change === "added" &&
+                    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                change === "moved" &&
+                    "bg-amber-500/10 text-amber-700 dark:text-amber-400",
                 change === "removed" && "bg-destructive/10 text-destructive",
             )}
         >
-            <span className="font-mono uppercase tracking-[0.12em]">{changeLabel}</span>
+            <span className="font-mono uppercase tracking-[0.12em]">
+                {changeLabel}
+            </span>
             <Button
                 type="button"
                 variant="ghost"
@@ -123,7 +127,9 @@ export function FlowNode({
     // Removed ghost (staged removal, or a dangling/deleted cheat): struck, revert only.
     if (change === "removed" || cheat === null) {
         const title =
-            cheat === null ? `unavailable cheat #${cheatId}` : (cheat.intent ?? `step`);
+            cheat === null
+                ? `unavailable cheat #${cheatId}`
+                : (cheat.intent ?? `step`);
         return (
             <div
                 className={cn(
@@ -134,7 +140,8 @@ export function FlowNode({
                 {ribbon}
                 <div className="flex items-center justify-between gap-2 px-4 py-3">
                     <span className="truncate text-sm text-muted-foreground line-through">
-                        <span className="font-mono not-italic">{numLabel}</span> · {title}
+                        <span className="font-mono not-italic">{numLabel}</span>{" "}
+                        · {title}
                     </span>
                     {change !== "removed" && (
                         <Button
@@ -159,14 +166,14 @@ export function FlowNode({
     return (
         <div
             className={cn(
-                "group relative flex w-full animate-in fade-in slide-in-from-bottom-1 flex-col rounded-none border bg-card shadow-sm transition-all hover:border-primary/60 hover:shadow-md",
+                "group relative flex w-full animate-in fade-in slide-in-from-bottom-1 flex-col rounded-md border bg-card shadow-sm transition-all hover:border-primary/60 hover:shadow-md",
                 change !== "unchanged"
                     ? CHANGE_ACCENT[change]
                     : hasEnhanced && "border-l-2 border-l-primary/70",
             )}
         >
             {ribbon}
-            <div className="flex flex-col p-5">
+            <div className="flex flex-col p-4 pb-3">
                 {/* Header: index ribbon + intent + enhanced badge + open-cheat */}
                 <div className="flex items-center gap-2.5">
                     <span className="font-mono text-xs uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
@@ -188,7 +195,7 @@ export function FlowNode({
                         asChild
                         variant="ghost"
                         size="icon-sm"
-                        className="ml-auto opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                        className="ml-auto rounded-xl opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                         aria-label={`Open cheat #${cheatId}`}
                     >
                         <Link href={`/cheats/${cheatId}`}>
@@ -201,7 +208,9 @@ export function FlowNode({
                 <pre
                     className={cn(
                         "mt-2.5 whitespace-pre-wrap break-words rounded-none border bg-muted/30 p-3 font-mono text-[13px] leading-relaxed",
-                        showingEnhanced ? "text-foreground" : "text-muted-foreground",
+                        showingEnhanced
+                            ? "text-foreground"
+                            : "text-muted-foreground",
                     )}
                 >
                     {truncate(bodyText)}
@@ -225,12 +234,13 @@ export function FlowNode({
                 )}
 
                 {/* Footer: stage controls */}
-                <div className="mt-4 flex items-center gap-1 border-t pt-3">
+                <div className="mt-4 flex items-center gap-1 border-t-0 pt-3">
                     <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
                         aria-label="Move step up"
+                        className="rounded-lg"
                         disabled={!canMoveUp}
                         onClick={() => onMoveUp(cheatId)}
                     >
@@ -241,21 +251,28 @@ export function FlowNode({
                         variant="ghost"
                         size="icon-sm"
                         aria-label="Move step down"
+                        className="rounded-lg"
                         disabled={!canMoveDown}
                         onClick={() => onMoveDown(cheatId)}
                     >
                         <ChevronDown />
                     </Button>
-                    <CopyButton value={bodyText} size="icon-sm" />
+                    <CopyButton
+                        className="rounded-xl"
+                        value={bodyText}
+                        size="icon-sm"
+                    />
                     {hasEnhanced && (
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground"
+                            className="h-7 px-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground rounded-lg"
                             onClick={() => setShowEnhanced((v) => !v)}
                         >
-                            {showingEnhanced ? t.flowsPage.original : t.flowsPage.enhanced}
+                            {showingEnhanced
+                                ? t.flowsPage.original
+                                : t.flowsPage.enhanced}
                         </Button>
                     )}
                     {showingEnhanced && variables.length > 0 ? (
@@ -263,7 +280,7 @@ export function FlowNode({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 gap-1 px-2 text-primary hover:text-primary"
+                            className="h-7 gap-1 px-2 text-primary hover:text-primary rounded-lg"
                             onClick={() => setDrawerOpen(true)}
                         >
                             <Braces className="size-3.5" />
@@ -279,18 +296,20 @@ export function FlowNode({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 gap-1 px-2 text-muted-foreground"
+                            className="h-7 gap-1 px-2 text-muted-foreground rounded-lg"
                             onClick={() => setDrawerOpen(true)}
                         >
                             <Eye className="size-3.5" />
-                            <span className="text-[11px] font-medium">{t.flowsPage.view}</span>
+                            <span className="text-[11px] font-medium">
+                                {t.flowsPage.view}
+                            </span>
                         </Button>
                     )}
                     <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="ml-auto text-muted-foreground hover:text-destructive"
+                        className="ml-auto text-muted-foreground hover:text-destructive rounded-xl"
                         aria-label="Remove step"
                         onClick={() => onRemove(cheatId)}
                     >

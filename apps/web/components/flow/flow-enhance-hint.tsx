@@ -26,7 +26,7 @@ export function FlowEnhanceHint({ flowId }: { flowId: number }) {
     };
 
     return (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-primary/30 bg-primary/5 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-md border border-primary/30 bg-primary/5 px-4 py-3">
             <div className="flex items-start gap-2.5">
                 <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
                 <div className="space-y-0.5">
@@ -45,7 +45,7 @@ export function FlowEnhanceHint({ flowId }: { flowId: number }) {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="shrink-0 gap-1.5"
+                className="shrink-0 gap-1.5 rounded-xs"
                 onClick={handleCopy}
             >
                 {copied ? <Check className="text-green-600" /> : <Copy />}
