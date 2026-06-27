@@ -1,11 +1,13 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Play, Plus } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import type { Cheat, FlowEnhancedStep } from "@lector/presets/types";
 import type { StepChange } from "@/lib/flow-step-diff";
 import { FlowNode } from "./flow-node";
+import { FlowVariableDrawer } from "./flow-variable-drawer";
 
 /** One render row: a resolved step plus its staged-change tag. */
 export interface PipelineRow {
@@ -91,10 +93,40 @@ export function FlowPipeline({
     const t = useT();
     const empty = draftCount === 0;
 
+    // Index into `openable` of the step shown in the shared drawer; null = closed.
+    const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+    // Active (non-removed, resolvable) steps in display order — what the drawer
+    // walks with prev/next. Index here matches the on-rail step number minus 1.
+    const openable = useMemo(() => {
+        const list: {
+            cheatId: number;
+            title: string;
+            text: string;
+        }[] = [];
+        let n = 0;
+        for (const row of rows) {
+            if (row.change === "removed" || !row.cheat) continue;
+            n += 1;
+            const enhanced = enhancedByCheatId?.get(row.cheatId);
+            const text =
+                enhanced?.enhanced ?? row.cheat.improved ?? row.cheat.original;
+            list.push({
+                cheatId: row.cheatId,
+                title: `${String(n).padStart(2, "0")} · ${row.cheat.intent ?? "step"}`,
+                text,
+            });
+        }
+        return list;
+    }, [rows, enhancedByCheatId]);
+
+    const openStep = openIndex !== null ? (openable[openIndex] ?? null) : null;
+
     // Running 1-based number for active (non-removed) steps.
     let stepNo = 0;
 
     return (
+        <>
         <div className="flow-canvas rounded-none border bg-muted/20 p-4 md:p-6">
             <div className="mx-auto max-w-3xl">
                 {/* Start cap */}
@@ -144,6 +176,9 @@ export function FlowPipeline({
                                     onMoveDown={onMoveDown}
                                     onRemove={onRemove}
                                     onRevert={onRevert}
+                                    onOpen={() =>
+                                        num !== null && setOpenIndex(num - 1)
+                                    }
                                 />
                             </div>
                         </div>
@@ -170,5 +205,30 @@ export function FlowPipeline({
                 </div>
             </div>
         </div>
+
+        <FlowVariableDrawer
+            open={openStep !== null}
+            onOpenChange={(o) => {
+                if (!o) setOpenIndex(null);
+            }}
+            title={openStep?.title ?? ""}
+            text={openStep?.text ?? ""}
+            positionLabel={
+                openIndex !== null
+                    ? `${openIndex + 1} / ${openable.length}`
+                    : undefined
+            }
+            hasPrev={openIndex !== null && openIndex > 0}
+            hasNext={openIndex !== null && openIndex < openable.length - 1}
+            onPrev={() =>
+                setOpenIndex((i) => (i !== null && i > 0 ? i - 1 : i))
+            }
+            onNext={() =>
+                setOpenIndex((i) =>
+                    i !== null && i < openable.length - 1 ? i + 1 : i,
+                )
+            }
+        />
+        </>
     );
 }

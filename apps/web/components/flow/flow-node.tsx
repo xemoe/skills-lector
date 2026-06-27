@@ -20,7 +20,6 @@ import { extractVariables } from "@/lib/flow-variables";
 import type { ResolvedStep } from "@/lib/flow-resolve";
 import type { StepChange } from "@/lib/flow-step-diff";
 import type { FlowEnhancedStep } from "@lector/presets/types";
-import { FlowVariableDrawer } from "./flow-variable-drawer";
 
 const PREVIEW_MAX = 380;
 
@@ -45,6 +44,8 @@ interface FlowNodeProps {
     onMoveDown: (cheatId: number) => void;
     onRemove: (cheatId: number) => void;
     onRevert: (cheatId: number) => void;
+    /** Open the shared step drawer focused on this step. */
+    onOpen: () => void;
 }
 
 /** Left-border accent + the change ribbon label for each staged change kind. */
@@ -74,6 +75,7 @@ export function FlowNode({
     onMoveDown,
     onRemove,
     onRevert,
+    onOpen,
 }: FlowNodeProps) {
     const t = useT();
     const { cheat, cheatId } = step;
@@ -81,7 +83,6 @@ export function FlowNode({
     const totalLabel = String(total).padStart(2, "0");
     const hasEnhanced = Boolean(enhanced);
     const [showEnhanced, setShowEnhanced] = useState(true);
-    const [drawerOpen, setDrawerOpen] = useState(false);
     const variables = useMemo(
         () => (enhanced ? extractVariables(enhanced.enhanced) : []),
         [enhanced],
@@ -165,6 +166,7 @@ export function FlowNode({
 
     return (
         <div
+            data-flow-node
             className={cn(
                 "group relative flex w-full animate-in fade-in slide-in-from-bottom-1 flex-col rounded-md border bg-card shadow-sm transition-all hover:border-primary/60 hover:shadow-md",
                 change !== "unchanged"
@@ -174,6 +176,21 @@ export function FlowNode({
         >
             {ribbon}
             <div className="flex flex-col p-4 pb-3">
+                {/* Header + body open the shared step drawer on click; footer
+                    controls sit outside this region so their clicks don't. */}
+                <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={onOpen}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onOpen();
+                        }
+                    }}
+                    aria-label={`Open step ${numLabel}`}
+                    className="cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                 {/* Header: index ribbon + intent + enhanced badge + open-cheat */}
                 <div className="flex items-center gap-2.5">
                     <span className="font-mono text-xs uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
@@ -198,7 +215,10 @@ export function FlowNode({
                         className="ml-auto rounded-xl opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                         aria-label={`Open cheat #${cheatId}`}
                     >
-                        <Link href={`/cheats/${cheatId}`}>
+                        <Link
+                            href={`/cheats/${cheatId}`}
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <ExternalLink />
                         </Link>
                     </Button>
@@ -207,7 +227,7 @@ export function FlowNode({
                 {/* Body: prompt preview as a codeblock (enhanced or raw) */}
                 <pre
                     className={cn(
-                        "mt-2.5 whitespace-pre-wrap break-words rounded-none border bg-muted/30 p-3 font-mono text-[13px] leading-relaxed",
+                        "mt-2.5 whitespace-pre-wrap break-words rounded-none border bg-muted/30 p-3 font-mono text-[13px] leading-relaxed transition-colors group-hover:text-foreground",
                         showingEnhanced
                             ? "text-foreground"
                             : "text-muted-foreground",
@@ -232,6 +252,8 @@ export function FlowNode({
                         ))}
                     </div>
                 )}
+
+                </div>
 
                 {/* Footer: stage controls */}
                 <div className="mt-4 flex items-center gap-1 border-t-0 pt-3">
@@ -281,7 +303,7 @@ export function FlowNode({
                             variant="ghost"
                             size="sm"
                             className="h-7 gap-1 px-2 text-primary hover:text-primary rounded-lg"
-                            onClick={() => setDrawerOpen(true)}
+                            onClick={onOpen}
                         >
                             <Braces className="size-3.5" />
                             <span className="text-[11px] font-medium">
@@ -297,7 +319,7 @@ export function FlowNode({
                             variant="ghost"
                             size="sm"
                             className="h-7 gap-1 px-2 text-muted-foreground rounded-lg"
-                            onClick={() => setDrawerOpen(true)}
+                            onClick={onOpen}
                         >
                             <Eye className="size-3.5" />
                             <span className="text-[11px] font-medium">
@@ -317,13 +339,6 @@ export function FlowNode({
                     </Button>
                 </div>
             </div>
-
-            <FlowVariableDrawer
-                open={drawerOpen}
-                onOpenChange={setDrawerOpen}
-                title={`${numLabel} · ${cheat.intent ?? "step"}`}
-                text={bodyText}
-            />
         </div>
     );
 }

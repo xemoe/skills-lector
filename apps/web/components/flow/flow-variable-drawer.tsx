@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import {
     Sheet,
     SheetContent,
@@ -13,7 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/context";
-import { extractVariables, fillVariables, unfilledCount } from "@/lib/flow-variables";
+import {
+    extractVariables,
+    fillVariables,
+    unfilledCount,
+} from "@/lib/flow-variables";
 
 interface FlowVariableDrawerProps {
     open: boolean;
@@ -22,6 +26,12 @@ interface FlowVariableDrawerProps {
     title: string;
     /** The enhanced prompt containing `<placeholder>` variables. */
     text: string;
+    /** Position within the pipeline, e.g. "2 / 5". Enables prev/next nav. */
+    positionLabel?: string;
+    hasPrev?: boolean;
+    hasNext?: boolean;
+    onPrev?: () => void;
+    onNext?: () => void;
 }
 
 /**
@@ -35,8 +45,14 @@ export function FlowVariableDrawer({
     onOpenChange,
     title,
     text,
+    positionLabel,
+    hasPrev,
+    hasNext,
+    onPrev,
+    onNext,
 }: FlowVariableDrawerProps) {
     const t = useT();
+    const hasNav = Boolean(onPrev || onNext);
     const variables = useMemo(() => extractVariables(text), [text]);
     const [values, setValues] = useState<Record<string, string>>({});
     const [copied, setCopied] = useState(false);
@@ -67,13 +83,10 @@ export function FlowVariableDrawer({
                 className="w-full gap-0 data-[side=right]:sm:max-w-3xl"
             >
                 <SheetHeader className="border-b">
-                    <SheetTitle>
-                        {hasVars ? t.flowsPage.fillVariables : t.flowsPage.view}
-                    </SheetTitle>
-                    <SheetDescription>
+                    <SheetTitle className="text-foreground/50">
                         <span className="font-mono">{title}</span> ·{" "}
                         {hasVars ? t.flowsPage.fillHint : t.flowsPage.viewHint}
-                    </SheetDescription>
+                    </SheetTitle>
                 </SheetHeader>
 
                 <div className="flex-1 space-y-5 overflow-y-auto p-4">
@@ -97,6 +110,19 @@ export function FlowVariableDrawer({
                                     />
                                 </label>
                             ))}
+                            {/* In nav mode the footer is prev/copy/next, so the
+                                reset affordance lives next to the inputs. */}
+                            {hasNav && Object.keys(values).length > 0 && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-[11px] text-muted-foreground"
+                                    onClick={() => setValues({})}
+                                >
+                                    {t.flowsPage.reset}
+                                </Button>
+                            )}
                         </div>
                     )}
 
@@ -115,35 +141,79 @@ export function FlowVariableDrawer({
                         <pre className="whitespace-pre-wrap break-words rounded-none border bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
                             {filled}
                         </pre>
+                        {/* Copy lives at the foot of the prompt it acts on. */}
+                        <div className="flex justify-end pt-0.5">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5"
+                                onClick={handleCopy}
+                            >
+                                {copied ? (
+                                    <Check className="text-green-600" />
+                                ) : (
+                                    <Copy />
+                                )}
+                                {copied
+                                    ? t.actions.copied
+                                    : hasVars
+                                      ? t.flowsPage.copyFilled
+                                      : t.actions.copy}
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
-                <SheetFooter className="flex-row justify-end gap-2 border-t">
-                    {hasVars && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setValues({})}
-                            disabled={Object.keys(values).length === 0}
-                        >
-                            {t.flowsPage.reset}
-                        </Button>
+                <SheetFooter className="border-t">
+                    {hasNav ? (
+                        // Prev (left) · Copy + position (center) · Next (right)
+                        <div className="grid w-full grid-cols-3 items-center">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="justify-self-start gap-1"
+                                onClick={onPrev}
+                                disabled={!hasPrev}
+                                aria-label="Previous step"
+                            >
+                                <ChevronLeft className="size-4" />
+                            </Button>
+                            <div className="justify-self-center">
+                                {positionLabel && (
+                                    <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                                        {positionLabel}
+                                    </span>
+                                )}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="justify-self-end gap-1"
+                                onClick={onNext}
+                                disabled={!hasNext}
+                                aria-label="Next step"
+                            >
+                                <ChevronRight className="size-4" />
+                            </Button>
+                        </div>
+                    ) : (
+                        hasVars && (
+                            <div className="flex flex-row justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setValues({})}
+                                    disabled={Object.keys(values).length === 0}
+                                >
+                                    {t.flowsPage.reset}
+                                </Button>
+                            </div>
+                        )
                     )}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={handleCopy}
-                    >
-                        {copied ? <Check className="text-green-600" /> : <Copy />}
-                        {copied
-                            ? t.actions.copied
-                            : hasVars
-                              ? t.flowsPage.copyFilled
-                              : t.actions.copy}
-                    </Button>
                 </SheetFooter>
             </SheetContent>
         </Sheet>
