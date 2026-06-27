@@ -96,16 +96,33 @@ of the skill. Record, per step, the `cheatId`, the rewritten text, and the names
 of what you folded in. **Only include a step you actually enhanced** — a step
 with no relevant match is simply omitted (it renders un-enhanced on the page).
 
+**Format the rewrite as Markdown.** The flow detail page renders each step as
+Markdown (raw + rendered preview in the step drawer), so structure it for
+reading, not as one wall of text:
+
+- A short `##` or `###` heading or a bold lead line naming the step's goal.
+- Bullet or numbered lists for the actual steps, checks, and guardrails.
+- Fenced code blocks for any commands or snippets.
+- Keep paragraphs tight; let the structure carry the prompt.
+
+Leave the `<placeholder>` variables exactly as `<name>` (literal angle
+brackets) — **do not** wrap them in backticks or code spans yourself. The drawer
+already chips them for display and uses them to drive the "fill variables"
+inputs, so anything other than a bare `<name>` breaks that. Markdown is encouraged
+*around* the placeholders, not on them.
+
 ### 5. Save the result onto the flow (POST)
 
 Build the payload as JSON — one entry per enhanced step, keyed by `cheatId` —
 and `Write` it to `.flows/$ARGUMENTS-enhanced.json`:
 
+Each `enhanced` value is a Markdown string (newlines as `\n`):
+
 ```json
 {
   "steps": [
-    { "cheatId": 880, "enhanced": "<rewritten prompt>", "foldedIn": ["brainstorming", "planner"] },
-    { "cheatId": 881, "enhanced": "<rewritten prompt>", "foldedIn": ["tdd-guide"] }
+    { "cheatId": 880, "enhanced": "## Plan the feature\n\nBrainstorm before coding, then write the plan:\n\n- List the user-facing behaviour for <feature>.\n- Note risks and dependencies.\n- Break the work into phases.", "foldedIn": ["brainstorming", "planner"] },
+    { "cheatId": 881, "enhanced": "## Implement with TDD\n\n1. Write a failing test for <feature>.\n2. Make it pass with the minimal change.\n3. Refactor, keep tests green.", "foldedIn": ["tdd-guide"] }
   ]
 }
 ```

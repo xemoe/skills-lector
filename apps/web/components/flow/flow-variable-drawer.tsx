@@ -12,12 +12,16 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Markdown } from "@/components/markdown";
 import { useT } from "@/lib/i18n/context";
 import {
     extractVariables,
     fillVariables,
+    markdownSafe,
     unfilledCount,
 } from "@/lib/flow-variables";
+
+type PreviewView = "rendered" | "raw";
 
 interface FlowVariableDrawerProps {
     open: boolean;
@@ -56,6 +60,7 @@ export function FlowVariableDrawer({
     const variables = useMemo(() => extractVariables(text), [text]);
     const [values, setValues] = useState<Record<string, string>>({});
     const [copied, setCopied] = useState(false);
+    const [view, setView] = useState<PreviewView>("rendered");
 
     // Reset entered values when the drawer targets a different step.
     useEffect(() => {
@@ -126,21 +131,53 @@ export function FlowVariableDrawer({
                         </div>
                     )}
 
-                    {/* Live preview */}
+                    {/* Live preview — Markdown rendered or raw source */}
                     <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                             <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                                 {t.flowsPage.preview}
                             </span>
-                            {remaining > 0 && (
-                                <span className="font-mono text-[10px] text-muted-foreground">
-                                    {t.flowsPage.unfilled(remaining)}
-                                </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {remaining > 0 && (
+                                    <span className="font-mono text-[10px] text-muted-foreground">
+                                        {t.flowsPage.unfilled(remaining)}
+                                    </span>
+                                )}
+                                {/* Raw | Markdown segmented toggle */}
+                                <div className="inline-flex rounded-none border">
+                                    {(
+                                        [
+                                            ["rendered", t.flowsPage.viewMarkdown],
+                                            ["raw", t.flowsPage.viewRaw],
+                                        ] as const
+                                    ).map(([key, label]) => (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => setView(key)}
+                                            aria-pressed={view === key}
+                                            className={
+                                                "px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors " +
+                                                (view === key
+                                                    ? "bg-primary/10 text-primary"
+                                                    : "text-muted-foreground hover:text-foreground")
+                                            }
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                        <pre className="whitespace-pre-wrap break-words rounded-none border bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
-                            {filled}
-                        </pre>
+                        {view === "rendered" ? (
+                            <div className="rounded-none border bg-muted/30 p-3">
+                                <Markdown content={markdownSafe(filled)} />
+                            </div>
+                        ) : (
+                            <pre className="whitespace-pre-wrap break-words rounded-none border bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
+                                {filled}
+                            </pre>
+                        )}
                         {/* Copy lives at the foot of the prompt it acts on. */}
                         <div className="flex justify-end pt-0.5">
                             <Button
