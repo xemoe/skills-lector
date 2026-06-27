@@ -6,11 +6,19 @@ import { MainNav } from "@/components/main-nav";
 import { RescanButton } from "@/components/rescan-button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FontPicker } from "@/components/font-picker";
 import { useT } from "@/lib/i18n/context";
 import type { Theme } from "@/lib/theme";
+import type { FontChoice } from "@/lib/font";
 import {GitHubLink} from "@/components/github-link";
 
-export function SiteHeader({ initialTheme }: { initialTheme: Theme }) {
+export function SiteHeader({
+    initialTheme,
+    initialFont,
+}: {
+    initialTheme: Theme;
+    initialFont: FontChoice;
+}) {
     const t = useT();
     return (
         <header className="sticky top-0 z-40 border-b border-stone-500/30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95">
@@ -21,6 +29,7 @@ export function SiteHeader({ initialTheme }: { initialTheme: Theme }) {
                 </Link>
                 <MainNav />
                 <div className="ml-auto flex items-center gap-2">
+                    <FontPicker initialFont={initialFont} />
                     <LanguageSwitcher />
                     <ThemeToggle initialTheme={initialTheme} />
                     <RescanButton />

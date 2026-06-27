@@ -111,11 +111,50 @@
     --color-sidebar-ring: var(--sidebar-ring);
 
     --font-sans:
-        var(--font-raleway), var(--font-noto-thai), ui-sans-serif, system-ui,
+        var(--font-active), var(--font-noto-thai), ui-sans-serif, system-ui,
         sans-serif;
     --font-heading:
-        var(--font-raleway), var(--font-noto-thai), ui-sans-serif, system-ui,
+        var(--font-active), var(--font-noto-thai), ui-sans-serif, system-ui,
         sans-serif;
+    /* Codeblocks + every `font-mono` user follow the picker too; mono only as fallback. */
+    --font-mono:
+        var(--font-active), ui-monospace, SFMono-Regular, Menlo, Consolas,
+        monospace;
+}
+
+/*
+ * Whole-site font: every `font-sans` / `font-heading` user resolves through
+ * `--font-active`. The picker swaps one class on <html> to repoint it.
+ */
+:root {
+    --font-active: var(--font-raleway);
+}
+.font-inter {
+    --font-active: var(--font-inter);
+}
+.font-merriweather {
+    --font-active: var(--font-merriweather);
+}
+.font-jetbrains {
+    --font-active: var(--font-jetbrains);
+}
+.font-geist {
+    --font-active: var(--font-geist);
+}
+.font-poppins {
+    --font-active: var(--font-poppins);
+}
+.font-space-grotesk {
+    --font-active: var(--font-space-grotesk);
+}
+.font-lora {
+    --font-active: var(--font-lora);
+}
+.font-playfair {
+    --font-active: var(--font-playfair);
+}
+.font-ibm-plex-mono {
+    --font-active: var(--font-ibm-plex-mono);
 }
 
 @layer base {

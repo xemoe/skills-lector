@@ -31,6 +31,10 @@ export const th: Dictionary = {
         toDark: "สลับเป็นโหมดมืด",
     },
 
+    font: {
+        label: "ฟอนต์",
+    },
+
     actions: {
         rescan: "สแกนใหม่",
         scanning: "กำลังสแกน…",
@@ -328,6 +332,8 @@ export const th: Dictionary = {
         foldedIn: "รวมทักษะ",
         fillVariables: "เติมตัวแปร",
         fillHint: "เติมค่าตัวแปรเพื่อได้พรอมต์พร้อมใช้",
+        view: "ดู",
+        viewHint: "พรอมต์เต็มของขั้นตอนนี้",
         preview: "ตัวอย่าง",
         unfilled: (n: number) => `ยังไม่เติม ${n}`,
         copyFilled: "คัดลอกที่เติมแล้ว",

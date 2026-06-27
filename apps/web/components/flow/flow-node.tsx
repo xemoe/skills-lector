@@ -6,6 +6,7 @@ import {
     Braces,
     ChevronDown,
     ChevronUp,
+    Eye,
     ExternalLink,
     Sparkles,
     Undo2,
@@ -23,9 +24,12 @@ import { FlowVariableDrawer } from "./flow-variable-drawer";
 
 const PREVIEW_MAX = 380;
 
+// ponytail: keep newlines (codeblock renders them); only cap length.
 function truncate(text: string): string {
-    const flat = text.replace(/\s+/g, " ").trim();
-    return flat.length > PREVIEW_MAX ? `${flat.slice(0, PREVIEW_MAX).trimEnd()}…` : flat;
+    const trimmed = text.trim();
+    return trimmed.length > PREVIEW_MAX
+        ? `${trimmed.slice(0, PREVIEW_MAX).trimEnd()}…`
+        : trimmed;
 }
 
 interface FlowNodeProps {
@@ -193,15 +197,15 @@ export function FlowNode({
                     </Button>
                 </div>
 
-                {/* Body: prompt preview (enhanced or raw) */}
-                <p
+                {/* Body: prompt preview as a codeblock (enhanced or raw) */}
+                <pre
                     className={cn(
-                        "mt-2.5 text-sm leading-relaxed",
+                        "mt-2.5 whitespace-pre-wrap break-words rounded-none border bg-muted/30 p-3 font-mono text-[13px] leading-relaxed",
                         showingEnhanced ? "text-foreground" : "text-muted-foreground",
                     )}
                 >
                     {truncate(bodyText)}
-                </p>
+                </pre>
 
                 {/* Folded-in skill/command badges */}
                 {showingEnhanced && enhanced!.foldedIn.length > 0 && (
@@ -254,7 +258,7 @@ export function FlowNode({
                             {showingEnhanced ? t.flowsPage.original : t.flowsPage.enhanced}
                         </Button>
                     )}
-                    {variables.length > 0 && (
+                    {showingEnhanced && variables.length > 0 ? (
                         <Button
                             type="button"
                             variant="ghost"
@@ -270,6 +274,17 @@ export function FlowNode({
                                 {variables.length}
                             </span>
                         </Button>
+                    ) : (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 gap-1 px-2 text-muted-foreground"
+                            onClick={() => setDrawerOpen(true)}
+                        >
+                            <Eye className="size-3.5" />
+                            <span className="text-[11px] font-medium">{t.flowsPage.view}</span>
+                        </Button>
                     )}
                     <Button
                         type="button"
@@ -284,14 +299,12 @@ export function FlowNode({
                 </div>
             </div>
 
-            {enhanced && variables.length > 0 && (
-                <FlowVariableDrawer
-                    open={drawerOpen}
-                    onOpenChange={setDrawerOpen}
-                    title={`${numLabel} · ${cheat.intent ?? "step"}`}
-                    text={enhanced.enhanced}
-                />
-            )}
+            <FlowVariableDrawer
+                open={drawerOpen}
+                onOpenChange={setDrawerOpen}
+                title={`${numLabel} · ${cheat.intent ?? "step"}`}
+                text={bodyText}
+            />
         </div>
     );
 }

@@ -34,6 +34,10 @@ export const en = {
         toDark: "Switch to dark mode",
     },
 
+    font: {
+        label: "Font",
+    },
+
     actions: {
         rescan: "Rescan",
         scanning: "Scanning…",
@@ -336,6 +340,8 @@ export const en = {
         foldedIn: "Folded in",
         fillVariables: "Fill variables",
         fillHint: "fill the placeholders for a ready-to-use prompt",
+        view: "View",
+        viewHint: "the full prompt for this step",
         preview: "Preview",
         unfilled: (n: number) => `${n} unfilled`,
         copyFilled: "Copy filled",

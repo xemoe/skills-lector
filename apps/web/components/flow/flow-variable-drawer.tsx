@@ -48,6 +48,7 @@ export function FlowVariableDrawer({
 
     const filled = useMemo(() => fillVariables(text, values), [text, values]);
     const remaining = unfilledCount(variables, values);
+    const hasVars = variables.length > 0;
 
     const handleCopy = useCallback(async () => {
         try {
@@ -66,30 +67,38 @@ export function FlowVariableDrawer({
                 className="w-full gap-0 data-[side=right]:sm:max-w-3xl"
             >
                 <SheetHeader className="border-b">
-                    <SheetTitle>{t.flowsPage.fillVariables}</SheetTitle>
+                    <SheetTitle>
+                        {hasVars ? t.flowsPage.fillVariables : t.flowsPage.view}
+                    </SheetTitle>
                     <SheetDescription>
-                        <span className="font-mono">{title}</span> · {t.flowsPage.fillHint}
+                        <span className="font-mono">{title}</span> ·{" "}
+                        {hasVars ? t.flowsPage.fillHint : t.flowsPage.viewHint}
                     </SheetDescription>
                 </SheetHeader>
 
                 <div className="flex-1 space-y-5 overflow-y-auto p-4">
                     {/* Variable inputs */}
-                    <div className="space-y-2.5">
-                        {variables.map((v) => (
-                            <label key={v} className="block space-y-1">
-                                <span className="font-mono text-[11px] text-primary">
-                                    &lt;{v}&gt;
-                                </span>
-                                <Input
-                                    value={values[v] ?? ""}
-                                    onChange={(e) =>
-                                        setValues((prev) => ({ ...prev, [v]: e.target.value }))
-                                    }
-                                    placeholder={v}
-                                />
-                            </label>
-                        ))}
-                    </div>
+                    {hasVars && (
+                        <div className="space-y-2.5">
+                            {variables.map((v) => (
+                                <label key={v} className="block space-y-1">
+                                    <span className="font-mono text-[11px] text-primary">
+                                        &lt;{v}&gt;
+                                    </span>
+                                    <Input
+                                        value={values[v] ?? ""}
+                                        onChange={(e) =>
+                                            setValues((prev) => ({
+                                                ...prev,
+                                                [v]: e.target.value,
+                                            }))
+                                        }
+                                        placeholder={v}
+                                    />
+                                </label>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Live preview */}
                     <div className="space-y-1.5">
@@ -110,15 +119,17 @@ export function FlowVariableDrawer({
                 </div>
 
                 <SheetFooter className="flex-row justify-end gap-2 border-t">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setValues({})}
-                        disabled={Object.keys(values).length === 0}
-                    >
-                        {t.flowsPage.reset}
-                    </Button>
+                    {hasVars && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setValues({})}
+                            disabled={Object.keys(values).length === 0}
+                        >
+                            {t.flowsPage.reset}
+                        </Button>
+                    )}
                     <Button
                         type="button"
                         variant="outline"
@@ -127,7 +138,11 @@ export function FlowVariableDrawer({
                         onClick={handleCopy}
                     >
                         {copied ? <Check className="text-green-600" /> : <Copy />}
-                        {copied ? t.actions.copied : t.flowsPage.copyFilled}
+                        {copied
+                            ? t.actions.copied
+                            : hasVars
+                              ? t.flowsPage.copyFilled
+                              : t.actions.copy}
                     </Button>
                 </SheetFooter>
             </SheetContent>
