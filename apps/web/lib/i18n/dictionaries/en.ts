@@ -347,6 +347,8 @@ export const en = {
         view: "View",
         viewHint: "the full prompt for this step",
         preview: "Preview",
+        viewMarkdown: "Markdown",
+        viewRaw: "Raw",
         unfilled: (n: number) => `${n} unfilled`,
         copyFilled: "Copy filled",
         reset: "Reset",

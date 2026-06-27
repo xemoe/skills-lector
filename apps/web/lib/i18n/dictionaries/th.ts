@@ -338,6 +338,8 @@ export const th: Dictionary = {
         view: "ดู",
         viewHint: "พรอมต์เต็มของขั้นตอนนี้",
         preview: "ตัวอย่าง",
+        viewMarkdown: "Markdown",
+        viewRaw: "ดิบ",
         unfilled: (n: number) => `ยังไม่เติม ${n}`,
         copyFilled: "คัดลอกที่เติมแล้ว",
         reset: "ล้าง",

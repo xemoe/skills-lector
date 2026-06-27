@@ -37,6 +37,17 @@ export function fillVariables(
     return out;
 }
 
+/**
+ * Make text safe to render as Markdown. react-markdown (no rehype-raw) treats a
+ * bare `<placeholder>` as an unknown HTML tag and drops it, so wrap each in a
+ * backtick code span — it renders as a visible literal chip instead.
+ * ponytail: matches the same VAR_RE as extraction, so a stray `<foo>` in prose
+ * gets chipped too; acceptable since extraction already treats it as a variable.
+ */
+export function markdownSafe(text: string): string {
+    return text.replace(VAR_RE, (m) => "`" + m + "`");
+}
+
 /** Count of placeholders still unfilled (distinct names with no value). */
 export function unfilledCount(
     variables: string[],
