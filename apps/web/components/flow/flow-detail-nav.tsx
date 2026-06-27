@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
@@ -25,7 +26,13 @@ import {
  * the identical filtered, ordered set. Neighbours fall back to disabled while
  * the list is still loading (e.g. a cold direct hit on /flows/12).
  */
-export function FlowDetailNav({ flowId }: { flowId: number }) {
+export function FlowDetailNav({
+    flowId,
+    leftSlot,
+}: {
+    flowId: number;
+    leftSlot?: ReactNode;
+}) {
     const t = useT();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -47,16 +54,11 @@ export function FlowDetailNav({ flowId }: { flowId: number }) {
 
     return (
         <div
-            className="flex items-center justify-between gap-2"
+            className="flex items-center justify-between gap-3"
             aria-busy={isLoading}
         >
-            <Button asChild variant="ghost" size="sm" className="gap-1.5 px-2">
-                <Link href={backHref}>
-                    <ArrowLeft className="h-4 w-4" />
-                    {t.flowsPage.backToList}
-                </Link>
-            </Button>
-            <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">{leftSlot}</div>
+            <div className="flex shrink-0 items-center gap-2">
                 {index >= 0 && ordered.length > 0 && (
                     <span className="text-xs tabular-nums text-muted-foreground">
                         {t.flowsPage.itemPosition(index + 1, ordered.length)}
@@ -85,6 +87,17 @@ export function FlowDetailNav({ flowId }: { flowId: number }) {
                         {t.actions.previous}
                     </Button>
                 )}
+                <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 px-2"
+                >
+                    <Link href={backHref}>
+                        <ArrowLeft className="h-4 w-4" />
+                        {t.flowsPage.backToList}
+                    </Link>
+                </Button>
                 {index >= 0 && ordered.length > 0 && (
                     <Select
                         value={String(flowId)}

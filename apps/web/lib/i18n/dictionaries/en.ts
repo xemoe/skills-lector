@@ -338,6 +338,10 @@ export const en = {
         enhanced: "Enhanced",
         original: "Original",
         foldedIn: "Folded in",
+        enhanceHintTitle: "Not enhanced yet",
+        enhanceHintBody:
+            "Fold in guidance from your installed skills & commands — run",
+        enhanceHintCopy: "Copy command",
         fillVariables: "Fill variables",
         fillHint: "fill the placeholders for a ready-to-use prompt",
         view: "View",

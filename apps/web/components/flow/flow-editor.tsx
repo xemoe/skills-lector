@@ -26,6 +26,7 @@ import {
 import { CheatPicker } from "./cheat-picker";
 import { FlowPipeline } from "./flow-pipeline";
 import { FlowDetailNav } from "./flow-detail-nav";
+import { FlowEnhanceHint } from "./flow-enhance-hint";
 
 interface FlowEditorProps {
     flowId: number;
@@ -202,54 +203,56 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
 
     const applying = setSteps.isPending;
 
+    // Flow name lives in the nav row (left of the prev/next controls) so the
+    // header stays compact; editing it swaps the heading for an inline input.
+    const nameBlock = editingName ? (
+        <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveName();
+            }}
+        >
+            <Input
+                autoFocus
+                value={nameVal}
+                onChange={(e) => setNameVal(e.target.value)}
+                className="h-8 text-base font-semibold"
+                onBlur={handleSaveName}
+            />
+            <Button
+                type="submit"
+                variant="outline"
+                size="icon-sm"
+                aria-label="Save name"
+            >
+                <Check />
+            </Button>
+        </form>
+    ) : (
+        <h1 className="truncate text-lg font-semibold">
+            <button
+                type="button"
+                className="cursor-text rounded-none text-left hover:underline hover:underline-offset-2"
+                title="Click to edit name"
+                aria-label="Edit flow name"
+                onClick={() => {
+                    setNameVal(flow.name);
+                    setEditingName(true);
+                }}
+            >
+                {flow.name}
+            </button>
+        </h1>
+    );
+
     return (
         <div className="space-y-2.5">
-            <FlowDetailNav flowId={flowId} />
+            <FlowDetailNav flowId={flowId} leftSlot={nameBlock} />
 
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 mb-6">
+            {/* Sub-header: description + actions */}
+            <div className="flex items-start justify-between gap-4 mb-3">
                 <div className="min-w-0 flex-1 space-y-1">
-                    {editingName ? (
-                        <form
-                            className="flex items-center gap-2"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                handleSaveName();
-                            }}
-                        >
-                            <Input
-                                autoFocus
-                                value={nameVal}
-                                onChange={(e) => setNameVal(e.target.value)}
-                                className="h-8 text-base font-semibold"
-                                onBlur={handleSaveName}
-                            />
-                            <Button
-                                type="submit"
-                                variant="outline"
-                                size="icon-sm"
-                                aria-label="Save name"
-                            >
-                                <Check />
-                            </Button>
-                        </form>
-                    ) : (
-                        <h1 className="text-lg font-semibold">
-                            <button
-                                type="button"
-                                className="cursor-text rounded-none text-left hover:underline hover:underline-offset-2"
-                                title="Click to edit name"
-                                aria-label="Edit flow name"
-                                onClick={() => {
-                                    setNameVal(flow.name);
-                                    setEditingName(true);
-                                }}
-                            >
-                                {flow.name}
-                            </button>
-                        </h1>
-                    )}
-
                     {editingDesc ? (
                         <form
                             className="flex items-start gap-2"
@@ -374,6 +377,11 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                         </Button>
                     </div>
                 </div>
+            )}
+
+            {/* Nudge to enhance — only when the flow has steps but no rewrite yet */}
+            {current.length > 0 && enhancedByCheatId.size === 0 && (
+                <FlowEnhanceHint flowId={flowId} />
             )}
 
             {/* Pipeline canvas */}
