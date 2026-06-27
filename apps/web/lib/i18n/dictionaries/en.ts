@@ -227,7 +227,7 @@ export const en = {
             authAnonymous: "Unauthenticated fetch",
         },
         rateLimited:
-            "GitHub rate-limited at least one query during this run — the ranking may be partial. Authenticate with gh and re-run /discover-skills for a complete list.",
+            "GitHub rate-limited at least one query during this run — the ranking may be partial. Authenticate with gh and re-run /skill-lector:discover-skills for a complete list.",
         readErrors: "The manifest could not be fully parsed:",
         colRank: "#",
         colRepo: "Repository",
@@ -241,12 +241,12 @@ export const en = {
         actionsHeading: "What next",
         actionsBody:
             "Pick a repo above and vendor it as a git submodule from Claude Code, then install one of its skills into ~/.claude/skills/:",
-        cmdClone: "/discover-skills clone <repo-name>",
-        cmdInstall: "/vendor-install <skill-name>",
+        cmdClone: "/skill-lector:discover-skills clone <repo-name>",
+        cmdInstall: "/skill-lector:vendor-install <skill-name>",
         refreshHeading: "Refresh the ranking",
         refreshBody:
             "Star counts move. Re-run discover any time to overwrite the manifest with a fresh top 10:",
-        cmdSearch: "/discover-skills",
+        cmdSearch: "/skill-lector:discover-skills",
     },
 
     cheatsPage: {
@@ -441,11 +441,11 @@ The **Rescan** button in the top-right re-runs every disk scan — skills, comma
                 "Four concrete tasks you can do today, ranging from no-code (install) to a minimal authored skill or command.",
             installVendor: {
                 heading: "1. Install a vendored skill",
-                body: `This repository keeps third-party skills as **git submodules under \`vendor/\`**. The \`/vendor-install\` slash command (which lives in this repo's \`.claude/commands/\`) installs one of them into your personal skills directory, where Claude Code will pick it up.
+                body: `This repository keeps third-party skills as **git submodules under \`vendor/\`**. The \`/skill-lector:vendor-install\` slash command (which lives in this repo's \`.claude/commands/\`) installs one of them into your personal skills directory, where Claude Code will pick it up.
 
 Run it without arguments to list what is available:`,
-                listInvocation: "/vendor-install",
-                installInvocation: "/vendor-install debug-mantra",
+                listInvocation: "/skill-lector:vendor-install",
+                installInvocation: "/skill-lector:vendor-install debug-mantra",
                 after: `Pick a skill name from the listing and pass it as the argument. By default the skill is copied into \`~/.claude/skills/\` (personal scope, available everywhere); pass \`project\` as the second argument to install it into the current repo's \`.claude/skills/\` instead.
 
 Once installed, press **Rescan** in the Skills Lector header — the new skill appears in the Skills view.`,
@@ -487,9 +487,9 @@ Keep the explanation tight — three short paragraphs at most.`,
             },
             discover: {
                 heading: "4. Find popular skills to install",
-                body: `Not sure which skills are worth installing? The **Discover** view (\`/discover\`) ranks the most popular Claude-Skills repositories on GitHub. The ranking is produced by the \`/discover-skills\` Claude Code command (the \`discover-popular-skills\` skill); the page itself only reads the local manifest it writes, so Skills Lector still makes no network calls of its own.
+                body: `Not sure which skills are worth installing? The **Discover** view (\`/discover\`) ranks the most popular Claude-Skills repositories on GitHub. The ranking is produced by the \`/skill-lector:discover-skills\` Claude Code command (the \`discover-popular-skills\` skill); the page itself only reads the local manifest it writes, so Skills Lector still makes no network calls of its own.
 
-Run \`/discover-skills\` in Claude Code to refresh the list and, on confirmation, add a repo to this project as a git submodule under \`vendor/\`. From there, install any skill with the **install a vendored skill** flow above.`,
+Run \`/skill-lector:discover-skills\` in Claude Code to refresh the list and, on confirmation, add a repo to this project as a git submodule under \`vendor/\`. From there, install any skill with the **install a vendored skill** flow above.`,
             },
         },
         faq: {
@@ -517,7 +517,7 @@ Run \`/discover-skills\` in Claude Code to refresh the list and, on confirmation
                 },
                 {
                     q: "What are cheats, and where do they come from?",
-                    a: "Cheats are reusable prompts mined from your own Claude Code session history by the \`/cheats\` command. Each keeps the original prompt and an improved rewrite, and you can search and favourite them on the **Cheats** view. They live in a local SQLite database under \`~/.skills-lector/\` — nothing is uploaded.",
+                    a: "Cheats are reusable prompts mined from your own Claude Code session history by the \`/skill-lector:cheats\` command. Each keeps the original prompt and an improved rewrite, and you can search and favourite them on the **Cheats** view. They live in a local SQLite database under \`~/.skills-lector/\` — nothing is uploaded.",
                 },
                 {
                     q: "What is a preset, and how do I use it?",
@@ -782,7 +782,7 @@ Run \`/discover-skills\` in Claude Code to refresh the list and, on confirmation
         model: "Model",
         modelInvocation: "Model invocation",
         modelInvocationHint:
-            "Run the /model-invocation command in Claude Code to change it:",
+            "Run the /skill-lector:model-invocation command in Claude Code to change it:",
         modelInvocationEnable: "Enable — let Claude invoke it automatically",
         modelInvocationDisable: "Disable — make it slash-only",
         pipeline: "Pipeline",

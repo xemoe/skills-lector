@@ -62,14 +62,14 @@ The script prefers the **GitHub CLI** (`gh`) when it is installed and authentica
 
 4. **Hand off to `install-vendor-skill`** for the `vendor/` → `~/.claude/skills/` step:
    ```
-   /vendor-install <skill-name>
+   /skill-lector:vendor-install <skill-name>
    ```
 
 5. **Verify in the catalog** — open `npm run dev`, navigate to `/discover` to see the manifest, and the `Sources` view to see the new submodule listed.
 
-## The `/discover-skills` slash command
+## The `/skill-lector:discover-skills` slash command
 
-The `/discover-skills` slash command (`.claude/commands/discover-skills.md`) is a thin wrapper over this skill — running `/discover-skills` bare triggers a fresh search; arguments like `/discover-skills clone <name>` map to the script's clone subcommand. Use the slash command when the user is doing this interactively at the prompt; use this skill when Claude triggers the workflow itself from a higher-level request.
+The `/skill-lector:discover-skills` slash command (`.claude/commands/skill-lector/discover-skills.md`) is a thin wrapper over this skill — running `/skill-lector:discover-skills` bare triggers a fresh search; arguments like `/skill-lector:discover-skills clone <name>` map to the script's clone subcommand. Use the slash command when the user is doing this interactively at the prompt; use this skill when Claude triggers the workflow itself from a higher-level request.
 
 ## The results manifest
 

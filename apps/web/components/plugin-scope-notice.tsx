@@ -18,7 +18,7 @@ type Props = {
     dismissKey?: string;
 };
 
-const VENDOR_INSTALL_CMD = "/vendor-install <name>";
+const VENDOR_INSTALL_CMD = "/skill-lector:vendor-install <name>";
 
 export function PluginScopeNotice({ count, dismissKey }: Props) {
     const t = useT();

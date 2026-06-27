@@ -7,13 +7,13 @@ import { useT } from "@/lib/i18n/context";
 
 /**
  * Shown on a flow's detail page when it has steps but no skill-aware rewrite yet
- * — nudges the user to run the `/flow-enhance <id>` command, with a one-click
+ * — nudges the user to run the `/skill-lector:flow-enhance <id>` command, with a one-click
  * copy of the exact command.
  */
 export function FlowEnhanceHint({ flowId }: { flowId: number }) {
     const t = useT();
     const [copied, setCopied] = useState(false);
-    const command = `/flow-enhance ${flowId}`;
+    const command = `/skill-lector:flow-enhance ${flowId}`;
 
     const handleCopy = async () => {
         try {

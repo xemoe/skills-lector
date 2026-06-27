@@ -23,7 +23,7 @@ function EmptyState({ t }: { t: Dictionary }) {
             <h3 className="text-base font-medium">{d.emptyTitle}</h3>
             <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
                 {d.empty1}
-                <InlineCode>/discover-skills</InlineCode>
+                <InlineCode>/skill-lector:discover-skills</InlineCode>
                 {d.empty2}
                 <InlineCode>discover-popular-skills</InlineCode>
                 {d.empty3}
@@ -32,9 +32,9 @@ function EmptyState({ t }: { t: Dictionary }) {
             </p>
             <div className="mx-auto mt-6 flex max-w-xs items-center gap-2">
                 <code className="min-w-0 flex-1 break-all rounded-none bg-secondary p-2 text-left font-mono text-xs">
-                    /discover-skills
+                    /skill-lector:discover-skills
                 </code>
-                <CopyButton value="/discover-skills" />
+                <CopyButton value="/skill-lector:discover-skills" />
             </div>
         </div>
     );

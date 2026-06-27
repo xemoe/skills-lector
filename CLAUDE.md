@@ -84,8 +84,8 @@ Scan roots + OS-specific locations live in `claude-paths.ts` / `config.ts`.
 The mutating package. SQLite at `~/.skills-lector/presets.db` (override via `SKILLS_LECTOR_PRESETS_DB` env or `dbPath` in config; file + parent auto-created). Forward-only, idempotent migrations in `migrations/`.
 
 - **Presets** — `applyPreset()` scans personal-scope items, diffs with the pure `computeApplyDiff()`, then atomically writes each item's `disable-model-invocation` frontmatter (temp file + rename, exFAT-safe). Partial-success: per-file errors are logged and status set to `partial`; there's no global fs+DB transaction, so the next apply re-converges from the filesystem. Pinned items always stay enabled. Logged in `apply_log*`; `active_preset` is a singleton row. (Same frontmatter field as the `set-model-invocation` skill, but bulk/runtime vs per-item/authoring.)
-- **Cheats** — `cheats.ts` is the read side + the single `setFavorite` mutation; the bulk writer is `scripts/import-cheats.mjs`, run by the `cheats` skill / `/cheats` command (it mines reusable prompts from session history). Schema in migrations `002_cheats.sql`, `003_cheats_provenance.sql`.
-- **Flows** — `flows.ts` is read+write (this package is the only mutating surface): a flow is an ordered JSON array of cheat ids (`steps`) modelling a per-work pipeline. CRUD via `createFlow`/`updateFlow`/`setFlowSteps`/`deleteFlow`; `seedFlows()` auto-generates starters by grouping cheats on `intent` (idempotent — skips existing slugs, caps at 8 steps); `setFlowEnhanced()` persists the per-step skill-aware rewrite (`enhanced` JSON, keyed by `cheatId` so it survives reorder). Schema in migrations `004_flows.sql`, `005_flow_enhanced.sql`. Served by `/api/flows/*`; `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the installed skills/commands catalog for the `/flow-enhance` command to rewrite each step and POST back. No junction table — step→cheat integrity is app-level only.
+- **Cheats** — `cheats.ts` is the read side + the single `setFavorite` mutation; the bulk writer is `scripts/import-cheats.mjs`, run by the `cheats` skill / `/skill-lector:cheats` command (it mines reusable prompts from session history). Schema in migrations `002_cheats.sql`, `003_cheats_provenance.sql`.
+- **Flows** — `flows.ts` is read+write (this package is the only mutating surface): a flow is an ordered JSON array of cheat ids (`steps`) modelling a per-work pipeline. CRUD via `createFlow`/`updateFlow`/`setFlowSteps`/`deleteFlow`; `seedFlows()` auto-generates starters by grouping cheats on `intent` (idempotent — skips existing slugs, caps at 8 steps); `setFlowEnhanced()` persists the per-step skill-aware rewrite (`enhanced` JSON, keyed by `cheatId` so it survives reorder). Schema in migrations `004_flows.sql`, `005_flow_enhanced.sql`. Served by `/api/flows/*`; `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the installed skills/commands catalog for the `/skill-lector:flow-enhance` command to rewrite each step and POST back. No junction table — step→cheat integrity is app-level only.
 
 ### Web UI — `apps/web`
 
@@ -104,11 +104,11 @@ Targets Windows + macOS — always `os.homedir()` and `path`, never hardcoded se
 
 ## Vendored skills
 
-External skills are **git submodules under `vendor/`** — run `git submodule update --init --recursive` after cloning. The `install-vendor-skill` skill (and `/vendor-install` command) list/install them into `~/.claude/skills` or `.claude/skills`; installing **copies** the directory (exFAT has no symlinks). Helper: `node .claude/skills/install-vendor-skill/scripts/vendor-skills.mjs <list|install|installed>`.
+External skills are **git submodules under `vendor/`** — run `git submodule update --init --recursive` after cloning. The `install-vendor-skill` skill (and `/skill-lector:vendor-install` command) list/install them into `~/.claude/skills` or `.claude/skills`; installing **copies** the directory (exFAT has no symlinks). Helper: `node .claude/skills/install-vendor-skill/scripts/vendor-skills.mjs <list|install|installed>`.
 
 ## Discover popular skills
 
-Two halves joined only by `.discover/results.json` (git-ignored cache) — the web app makes **no** GitHub calls. The `discover-popular-skills` skill (`/discover-skills`, helper `scripts/discover.mjs`) queries GitHub for popular Claude-Skills repos, writes the ranked top 10, and on confirmation runs `git submodule add`. The `/discover` page just reads the manifest.
+Two halves joined only by `.discover/results.json` (git-ignored cache) — the web app makes **no** GitHub calls. The `discover-popular-skills` skill (`/skill-lector:discover-skills`, helper `scripts/discover.mjs`) queries GitHub for popular Claude-Skills repos, writes the ranked top 10, and on confirmation runs `git submodule add`. The `/discover` page just reads the manifest.
 
 ## Styling
 

@@ -390,7 +390,7 @@ function cmdClone(opts) {
     }
     console.log(`\nclone: ${added} added, ${skipped} skipped, ${failed} failed`);
     if (added > 0) {
-        console.log("Next: `git status` to review the staged changes. Install a skill from a vendored repo with `/vendor-install`.");
+        console.log("Next: `git status` to review the staged changes. Install a skill from a vendored repo with `/skill-lector:vendor-install`.");
     }
 }
 

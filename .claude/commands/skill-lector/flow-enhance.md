@@ -21,8 +21,8 @@ so that server must be up (`npm run dev` / `npm run dev:portless`).
 ### 1. Validate the argument
 
 `$ARGUMENTS` must be a single positive integer (the flow id). If it is empty or
-not a number, stop and tell the user the usage: `/flow-enhance <flow-id>`, and
-that they can find ids on the `/flows` page.
+not a number, stop and tell the user the usage: `/skill-lector:flow-enhance <flow-id>`,
+and that they can find ids on the `/flows` page.
 
 ### 2. Fetch the enhancement context (to a file — it is large)
 

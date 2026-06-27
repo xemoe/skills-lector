@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Namespaced the repo's slash commands under a single `skill-lector` directory
+  (`.claude/commands/skill-lector/`) so they invoke as `/skill-lector:cheats`,
+  `/skill-lector:discover-skills`, `/skill-lector:flow-enhance`,
+  `/skill-lector:model-invocation`, and `/skill-lector:vendor-install`. The
+  generic top-level names (`/cheats`, `/discover-skills`, …) no longer collide
+  with other installed plugins/skills. The `hello-world` template command stays
+  at the top level. Web UI copy hints, both i18n locales, skill cross-references,
+  and docs were updated to the namespaced forms.
+
 ## [0.5.0] - 2026-05-23
 
 Skills + Commands presets — the first mutating feature in the catalog.
