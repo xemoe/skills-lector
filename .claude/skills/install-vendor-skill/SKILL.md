@@ -34,7 +34,7 @@ Run the script with `--help` for the full option list. It needs no dependencies 
 
 ## Installing a skill from vendor/
 
-**Quick path:** the `/vendor-install [skill-name]` slash command (defined in `.claude/commands/vendor-install.md`) wraps this whole section — it lists the vendored skills and installs the one you name. Use the manual steps below when you need finer control, such as a custom `--target` path or `--as`.
+**Quick path:** the `/skill-lector:vendor-install [skill-name]` slash command (defined in `.claude/commands/skill-lector/vendor-install.md`) wraps this whole section — it lists the vendored skills and installs the one you name. Use the manual steps below when you need finer control, such as a custom `--target` path or `--as`.
 
 1. **List what is available** — run `list` first so you have exact skill names and paths:
    ```

@@ -220,7 +220,7 @@ export const th: Dictionary = {
             authAnonymous: "fetch แบบไม่ยืนยันตัวตน",
         },
         rateLimited:
-            "GitHub จำกัดอัตราการเรียกอย่างน้อยหนึ่งคำค้นในการรันครั้งนี้ — การจัดอันดับอาจไม่ครบ ลอง gh auth login แล้วรัน /discover-skills อีกครั้ง",
+            "GitHub จำกัดอัตราการเรียกอย่างน้อยหนึ่งคำค้นในการรันครั้งนี้ — การจัดอันดับอาจไม่ครบ ลอง gh auth login แล้วรัน /skill-lector:discover-skills อีกครั้ง",
         readErrors: "ไม่สามารถ parse manifest ได้ครบถ้วน:",
         colRank: "#",
         colRepo: "รีโพซิทอรี",
@@ -234,12 +234,12 @@ export const th: Dictionary = {
         actionsHeading: "ขั้นตอนถัดไป",
         actionsBody:
             "เลือกรีโพข้างบน แล้วเพิ่มเป็น git submodule จาก Claude Code จากนั้นติดตั้งสกิลของรีโพนั้นลงใน ~/.claude/skills/:",
-        cmdClone: "/discover-skills clone <repo-name>",
-        cmdInstall: "/vendor-install <skill-name>",
+        cmdClone: "/skill-lector:discover-skills clone <repo-name>",
+        cmdInstall: "/skill-lector:vendor-install <skill-name>",
         refreshHeading: "รีเฟรชการจัดอันดับ",
         refreshBody:
             "จำนวนดาวเปลี่ยนได้ รัน discover ใหม่เมื่อใดก็ได้เพื่อเขียนทับ manifest ด้วย top 10 ใหม่:",
-        cmdSearch: "/discover-skills",
+        cmdSearch: "/skill-lector:discover-skills",
     },
 
     cheatsPage: {
@@ -432,11 +432,11 @@ export const th: Dictionary = {
                 "สี่งานที่ทำได้ทันทีวันนี้ ตั้งแต่ไม่ต้องเขียนโค้ดเลย (ติดตั้ง) ไปจนถึงเขียนสกิลหรือคำสั่งขั้นต่ำเอง",
             installVendor: {
                 heading: "1. ติดตั้งสกิลจาก vendor",
-                body: `รีโพนี้เก็บสกิลจากภายนอกเป็น **git submodule ภายใต้ \`vendor/\`** คำสั่งสแลช \`/vendor-install\` (อยู่ใน \`.claude/commands/\` ของรีโพนี้) ใช้ติดตั้งสกิลใดสกิลหนึ่งเข้าไปยังไดเรกทอรีสกิลส่วนตัวของคุณ ซึ่ง Claude Code จะตรวจพบ
+                body: `รีโพนี้เก็บสกิลจากภายนอกเป็น **git submodule ภายใต้ \`vendor/\`** คำสั่งสแลช \`/skill-lector:vendor-install\` (อยู่ใน \`.claude/commands/\` ของรีโพนี้) ใช้ติดตั้งสกิลใดสกิลหนึ่งเข้าไปยังไดเรกทอรีสกิลส่วนตัวของคุณ ซึ่ง Claude Code จะตรวจพบ
 
 รันโดยไม่ใส่อาร์กิวเมนต์เพื่อดูรายการที่มี:`,
-                listInvocation: "/vendor-install",
-                installInvocation: "/vendor-install debug-mantra",
+                listInvocation: "/skill-lector:vendor-install",
+                installInvocation: "/skill-lector:vendor-install debug-mantra",
                 after: `เลือกชื่อสกิลจากรายการแล้วส่งเป็นอาร์กิวเมนต์ ค่าเริ่มต้นจะคัดลอกสกิลเข้า \`~/.claude/skills/\` (ขอบเขต personal ใช้ได้ทุกที่) ส่งคำว่า \`project\` เป็นอาร์กิวเมนต์ที่สองเพื่อติดตั้งเข้า \`.claude/skills/\` ของรีโพปัจจุบันแทน
 
 เมื่อติดตั้งเสร็จ กด **Rescan** ที่หัว Skills Lector — สกิลใหม่จะปรากฏในมุมมอง Skills`,
@@ -478,9 +478,9 @@ Keep the explanation tight — three short paragraphs at most.`,
             },
             discover: {
                 heading: "4. หาสกิลยอดนิยมเพื่อติดตั้ง",
-                body: `ยังไม่แน่ใจว่าควรติดตั้งสกิลใดดี? มุมมอง **Discover** (\`/discover\`) จัดอันดับรีโพ Claude-Skills ที่ได้รับความนิยมที่สุดบน GitHub อันดับนี้ผลิตโดยคำสั่ง \`/discover-skills\` ของ Claude Code (สกิล \`discover-popular-skills\`) ส่วนตัวหน้าเองอ่านเพียง manifest ในเครื่องที่สกิลเขียนไว้ ดังนั้น Skills Lector จึงยังไม่เรียกเครือข่ายด้วยตัวเอง
+                body: `ยังไม่แน่ใจว่าควรติดตั้งสกิลใดดี? มุมมอง **Discover** (\`/discover\`) จัดอันดับรีโพ Claude-Skills ที่ได้รับความนิยมที่สุดบน GitHub อันดับนี้ผลิตโดยคำสั่ง \`/skill-lector:discover-skills\` ของ Claude Code (สกิล \`discover-popular-skills\`) ส่วนตัวหน้าเองอ่านเพียง manifest ในเครื่องที่สกิลเขียนไว้ ดังนั้น Skills Lector จึงยังไม่เรียกเครือข่ายด้วยตัวเอง
 
-รัน \`/discover-skills\` ใน Claude Code เพื่อรีเฟรชรายการ และเมื่อยืนยันจะเพิ่มรีโพเข้าโปรเจ็กต์นี้เป็น git submodule ใต้ \`vendor/\` จากนั้นติดตั้งสกิลใดก็ได้ด้วยขั้นตอน **ติดตั้งสกิลจาก vendor** ข้างบน`,
+รัน \`/skill-lector:discover-skills\` ใน Claude Code เพื่อรีเฟรชรายการ และเมื่อยืนยันจะเพิ่มรีโพเข้าโปรเจ็กต์นี้เป็น git submodule ใต้ \`vendor/\` จากนั้นติดตั้งสกิลใดก็ได้ด้วยขั้นตอน **ติดตั้งสกิลจาก vendor** ข้างบน`,
             },
         },
         faq: {
@@ -508,7 +508,7 @@ Keep the explanation tight — three short paragraphs at most.`,
                 },
                 {
                     q: "โพย (cheats) คืออะไร และมาจากไหน",
-                    a: "โพยคือพรอมต์ที่นำกลับมาใช้ได้ซึ่งขุดจากประวัติเซสชัน Claude Code ของคุณเองโดยคำสั่ง \`/cheats\` แต่ละรายการเก็บทั้งพรอมต์ต้นฉบับและฉบับปรับปรุง คุณค้นหาและทำเครื่องหมายโปรดได้ในมุมมอง **Cheats** ข้อมูลเก็บในฐานข้อมูล SQLite ในเครื่องใต้ \`~/.skills-lector/\` — ไม่มีการอัปโหลดอะไร",
+                    a: "โพยคือพรอมต์ที่นำกลับมาใช้ได้ซึ่งขุดจากประวัติเซสชัน Claude Code ของคุณเองโดยคำสั่ง \`/skill-lector:cheats\` แต่ละรายการเก็บทั้งพรอมต์ต้นฉบับและฉบับปรับปรุง คุณค้นหาและทำเครื่องหมายโปรดได้ในมุมมอง **Cheats** ข้อมูลเก็บในฐานข้อมูล SQLite ในเครื่องใต้ \`~/.skills-lector/\` — ไม่มีการอัปโหลดอะไร",
                 },
                 {
                     q: "พรีเซ็ต (preset) คืออะไร และใช้อย่างไร",
@@ -759,7 +759,7 @@ Keep the explanation tight — three short paragraphs at most.`,
         model: "โมเดล",
         modelInvocation: "การเรียกใช้โดยโมเดล",
         modelInvocationHint:
-            "รันคำสั่ง /model-invocation ใน Claude Code เพื่อเปลี่ยนค่านี้:",
+            "รันคำสั่ง /skill-lector:model-invocation ใน Claude Code เพื่อเปลี่ยนค่านี้:",
         modelInvocationEnable: "เปิด — ให้ Claude เรียกใช้เองอัตโนมัติ",
         modelInvocationDisable: "ปิด — ให้เรียกผ่านสแลชเท่านั้น",
         pipeline: "ไปป์ไลน์",

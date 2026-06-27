@@ -30,6 +30,6 @@ The helper script is at `.claude/skills/discover-popular-skills/scripts/discover
 
 - **Other / unclear arguments** — pass them through to the script and surface its `--help` output if needed.
 
-When finished, point the user at the `/discover` page in the Skills Lector web app (`npm run dev`) to see the same manifest in the browser, and at `/vendor-install` to install a vendored skill into `~/.claude/skills/`.
+When finished, point the user at the `/discover` page in the Skills Lector web app (`npm run dev`) to see the same manifest in the browser, and at `/skill-lector:vendor-install` to install a vendored skill into `~/.claude/skills/`.
 
 For details on tuning queries, the manifest schema, and the GitHub auth behaviour, see the `discover-popular-skills` skill.

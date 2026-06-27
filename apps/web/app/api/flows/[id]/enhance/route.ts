@@ -92,7 +92,7 @@ export async function GET(
 }
 
 // POST /api/flows/:id/enhance — store the per-step skill-aware rewrite produced
-// by the /flow-enhance command, so the flow detail page can render it.
+// by the /skill-lector:flow-enhance command, so the flow detail page can render it.
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> },

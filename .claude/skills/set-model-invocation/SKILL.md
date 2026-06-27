@@ -120,7 +120,7 @@ preview; it prints a per-item before → after line and a summary count.
   "no change" for it and writes nothing.
 - **`set-all` is blunt.** `set-all unset` and `set-all false` also clear the flag
   from skills and commands that are *meant* to be slash-only — for example this
-  repo's own `/model-invocation` and `/vendor-install`. After a bulk re-enable, set
+  repo's own `/skill-lector:model-invocation` and `/skill-lector:vendor-install`. After a bulk re-enable, set
   those back with `set <name> true`; snapshotting first (step 1 above) makes the
   difference easy to spot.
 - The catalog (Skills Lector) reads this frontmatter directly and shows it as the

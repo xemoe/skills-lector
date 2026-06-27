@@ -15,7 +15,7 @@ import { useT } from "@/lib/i18n/context";
 
 /**
  * The "Model invocation" card for a skill/command detail page — the current
- * setting plus copy-pasteable `/model-invocation` commands to enable or disable
+ * setting plus copy-pasteable `/skill-lector:model-invocation` commands to enable or disable
  * it. Personal and project items are addressed by name, bundled (local) ones by
  * file path. Plugin items render nothing — the plugin owns the file, so a plugin
  * update would revert any change made here.
@@ -66,13 +66,13 @@ export function ModelInvocationExamples({
                         icon={Bot}
                         accentClass="text-teal-700 dark:text-teal-300"
                         label={t.detail.modelInvocationEnable}
-                        command={`/model-invocation ${arg} on`}
+                        command={`/skill-lector:model-invocation ${arg} on`}
                     />
                     <CommandExample
                         icon={SquareSlash}
                         accentClass="text-amber-700 dark:text-amber-300"
                         label={t.detail.modelInvocationDisable}
-                        command={`/model-invocation ${arg} off`}
+                        command={`/skill-lector:model-invocation ${arg} off`}
                     />
                 </div>
             </CardContent>

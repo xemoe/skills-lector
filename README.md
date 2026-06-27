@@ -117,7 +117,7 @@ The preset engine lives in `packages/presets`; the web UI is under `apps/web/app
 
 The `/cheats` catalog is a library of reusable prompts mined from your local Claude session history. The web app never reads transcripts or calls an LLM itself — a Claude Code skill does the mining offline and writes the results into the same SQLite database the presets use.
 
-The `cheats` skill (the `/cheats` command) runs a three-step pipeline:
+The `cheats` skill (the `/skill-lector:cheats` command) runs a three-step pipeline:
 
 1. **Extract** — `node .claude/skills/cheats/scripts/extract.mjs` walks the session transcripts under `~/.claude/projects`, keeps only genuine user-typed prompts (dropping subagent chains, hook/system injections, and command wrappers), deduplicates by hash, and writes `.cheats/raw.json`. By default it is *only-new* (skips hashes already curated); pass `--full` to rebuild.
 2. **Analyze** — Claude reads `.cheats/raw.json` and adds an improved rewrite, an intent label, tags, and a reuse score (0–100) per entry, writing `.cheats/analyzed.json`.
@@ -131,7 +131,7 @@ A **Flow** is a named, ordered sequence of Cheats — a prompt pipeline for one 
 
 - **Build** — create a flow at `/flows/new`, then add, reorder, and remove steps on its detail page (`/flows/[id]`). Step edits are staged as a local draft with an added / moved / removed diff and per-item revert; nothing is written until you hit **Apply**.
 - **Seed** — the **Seed** button auto-generates starter flows by grouping your cheats on their intent (idempotent, capped at 8 steps each).
-- **Skill-aware enhancement** — `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the catalog of your installed skills and commands; the `/flow-enhance` command rewrites each step folding in the relevant skill guidance and POSTs the result back. Enhanced steps render the rewritten text with folded-in skill badges and unlock a variable drawer for filling `<placeholder>` tokens.
+- **Skill-aware enhancement** — `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the catalog of your installed skills and commands; the `/skill-lector:flow-enhance` command rewrites each step folding in the relevant skill guidance and POSTs the result back. Enhanced steps render the rewritten text with folded-in skill badges and unlock a variable drawer for filling `<placeholder>` tokens.
 - **Navigate** — the `/flows` explorer offers text search and recent / name / steps sorting (URL-backed); the detail page has prev/next buttons and a flow-switcher dropdown that all walk the same filtered list (`lib/flow-filter.ts`).
 
 Like presets, the Flows store is read+write and lives in `packages/presets` — the project's only mutating package.
@@ -140,14 +140,14 @@ Like presets, the Flows store is read+write and lives in `packages/presets` — 
 
 External Claude Skills are pulled in as **git submodules under `vendor/`** (currently: `9arm-skills`, `anthropic-cybersecurity-skills`, `gstack`, `ui-ux-pro-max-skill`). After cloning this repo, run `git submodule update --init --recursive` to populate them.
 
-A project skill at `.claude/skills/install-vendor-skill/` owns the vendor workflow: list the skills in `vendor/`, install one into `~/.claude/skills/` (personal) or `.claude/skills/` (project), and add new submodules. Installing **copies** the directory — exFAT cannot store symlinks. The `/vendor-install` slash command is the shortcut.
+A project skill at `.claude/skills/install-vendor-skill/` owns the vendor workflow: list the skills in `vendor/`, install one into `~/.claude/skills/` (personal) or `.claude/skills/` (project), and add new submodules. Installing **copies** the directory — exFAT cannot store symlinks. The `/skill-lector:vendor-install` slash command is the shortcut.
 
 ## Discover popular skills
 
 A discovery loop with two halves that integrate only through a JSON file on disk — the web app makes no GitHub calls.
 
-- **Claude Code side** — the `.claude/skills/discover-popular-skills/` skill and its `/discover-skills` slash command. The helper script queries the GitHub search API for the most popular Claude Skills / slash-command repositories, writes the top 10 to `.discover/results.json` at the repo root, and (on confirmation) `git submodule add`s the chosen repos into `vendor/`. Uses `gh api` when available; falls back to unauthenticated `fetch` and reports rate-limiting in the manifest.
-- **Web side** — the `/discover` page reads the manifest and renders the ranked list with each entry marked _vendored_ / _not vendored_. Empty state on a fresh clone points the user at `/discover-skills`.
+- **Claude Code side** — the `.claude/skills/discover-popular-skills/` skill and its `/skill-lector:discover-skills` slash command. The helper script queries the GitHub search API for the most popular Claude Skills / slash-command repositories, writes the top 10 to `.discover/results.json` at the repo root, and (on confirmation) `git submodule add`s the chosen repos into `vendor/`. Uses `gh api` when available; falls back to unauthenticated `fetch` and reports rate-limiting in the manifest.
+- **Web side** — the `/discover` page reads the manifest and renders the ranked list with each entry marked _vendored_ / _not vendored_. Empty state on a fresh clone points the user at `/skill-lector:discover-skills`.
 
 `.discover/results.json` is git-ignored — it is a local discovery cache.
 
