@@ -327,3 +327,10 @@
     background-size: 18px 18px;
     background-position: -9px -9px;
 }
+
+/* Hover-focus: when a stage node is hovered, dim its siblings so the active
+   node (and its now-brighter prompt) reads as the focus. Nodes carry their own
+   transition-all, so opacity eases. */
+.flow-canvas:has([data-flow-node]:hover) [data-flow-node]:not(:hover) {
+    opacity: 0.4;
+}
