@@ -4,7 +4,7 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 ## Project
 
-Skills Lector — a local Next.js dashboard that scans the machine for everything Claude Code has deployed — **Skills** (`SKILL.md`), slash **Commands**, **Hooks**, and prompt **Cheats** mined from session history — showing what's installed, when it changed, and where it came from (GitHub repo or local dir). It also **manages** state: **Presets** toggle which skills/commands Claude may auto-invoke.
+Skills Lector — a local Next.js dashboard that scans the machine for everything Claude Code has deployed — **Skills** (`SKILL.md`), slash **Commands**, **Hooks**, and prompt **Cheats** mined from session history — showing what's installed, when it changed, and where it came from (GitHub repo or local dir). It also **manages** state: **Presets** toggle which skills/commands Claude may auto-invoke, and **Flows** chain Cheats into ordered prompt pipelines per kind of work.
 
 Monorepo = one app + two packages:
 
@@ -19,12 +19,12 @@ package.json            Root orchestrator — delegates dev/build/start/lint to 
 tsconfig.base.json      Shared compiler options (all packages extend it)
 apps/web/
   app/                  App Router pages + /api routes
-  components/           shadcn/ui primitives + app components (scanner/, presets/, cheats/)
-  lib/                  Client-safe helpers: utils, i18n, theme, analytics, relations, cheats-filter
+  components/           shadcn/ui primitives + app components (scanner/, presets/, cheats/, flow/)
+  lib/                  Client-safe helpers: utils, i18n, theme, analytics, relations, cheats-filter, flow-{filter,resolve,step-diff,variables}, preset-query, item-key, json-fetch
   sample-skills/        Bundled examples (dashboard is never empty)
   scripts/              exfat-readlink-fix.cjs (the exFAT build shim)
-packages/core/src/      scanner, command-scanner, hook-scanner, discover, parsers, git, usage, types
-packages/presets/src/   presets, pinned, cheats, activate, diff, membership, db, migrations/
+packages/core/src/      scanner, command-scanner, hook-scanner, discover, parsers, frontmatter, pipeline, git, usage, cache, activity, marketplace, types
+packages/presets/src/   presets, pinned, cheats, flows, activate, diff, enrich, events, frontmatter, identity, log, membership, db, types, util, schema.sql, migrations/
 .claude/                This repo's own skills + slash commands
 vendor/                 External skills repos as git submodules
 ```
@@ -48,7 +48,7 @@ npm run start:portless  # production server behind portless — https://lector-p
 
 After a fresh clone, run `npm run install:all` — a plain root `npm install` only covers the orchestrator, which has no dependencies.
 
-No test suite. `npm run build` is the type-correctness check; `npm run dev` is the feedback loop. (`npm run lint` exists but ESLint is not configured.)
+No test runner configured. `npm run build` is the type-correctness check; `npm run dev` is the feedback loop. (`npm run lint` exists but ESLint is not configured.) One self-contained assert test covers the flow-resolve helpers: `node --experimental-strip-types apps/web/lib/flow-resolve.test.mjs` (Node 22+).
 
 ### Portless (HTTPS local URLs)
 
@@ -79,18 +79,19 @@ Four readers, each cached in-process for 8s (`{ force: true }` bypasses) and ret
 
 Scan roots + OS-specific locations live in `claude-paths.ts` / `config.ts`.
 
-### Presets + Cheats — `packages/presets`
+### Presets, Cheats + Flows — `packages/presets`
 
 The mutating package. SQLite at `~/.skills-lector/presets.db` (override via `SKILLS_LECTOR_PRESETS_DB` env or `dbPath` in config; file + parent auto-created). Forward-only, idempotent migrations in `migrations/`.
 
 - **Presets** — `applyPreset()` scans personal-scope items, diffs with the pure `computeApplyDiff()`, then atomically writes each item's `disable-model-invocation` frontmatter (temp file + rename, exFAT-safe). Partial-success: per-file errors are logged and status set to `partial`; there's no global fs+DB transaction, so the next apply re-converges from the filesystem. Pinned items always stay enabled. Logged in `apply_log*`; `active_preset` is a singleton row. (Same frontmatter field as the `set-model-invocation` skill, but bulk/runtime vs per-item/authoring.)
 - **Cheats** — `cheats.ts` is the read side + the single `setFavorite` mutation; the bulk writer is `scripts/import-cheats.mjs`, run by the `cheats` skill / `/cheats` command (it mines reusable prompts from session history). Schema in migrations `002_cheats.sql`, `003_cheats_provenance.sql`.
+- **Flows** — `flows.ts` is read+write (this package is the only mutating surface): a flow is an ordered JSON array of cheat ids (`steps`) modelling a per-work pipeline. CRUD via `createFlow`/`updateFlow`/`setFlowSteps`/`deleteFlow`; `seedFlows()` auto-generates starters by grouping cheats on `intent` (idempotent — skips existing slugs, caps at 8 steps); `setFlowEnhanced()` persists the per-step skill-aware rewrite (`enhanced` JSON, keyed by `cheatId` so it survives reorder). Schema in migrations `004_flows.sql`, `005_flow_enhanced.sql`. Served by `/api/flows/*`; `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the installed skills/commands catalog for the `/flow-enhance` command to rewrite each step and POST back. No junction table — step→cheat integrity is app-level only.
 
 ### Web UI — `apps/web`
 
 Pages are `dynamic = "force-dynamic"` Server Components: they call the readers / SQLite directly, seed a per-request TanStack `QueryClient` (`setQueryData` + `<HydrationBoundary>`), and render client explorers — **no client fetch on first paint**. Client components then subscribe via `components/{scanner,presets,cheats}/use-*-queries.ts`; the matching `/api/*` routes back the `?force=1` Rescan and mutations (favorite, preset apply, pins), which optimistically patch the cache then invalidate.
 
-Catalogs (list + `/[id]` detail): **Skills** `/` & `/skills/[id]`, **Commands** `/commands`, **Hooks** `/hooks`, **Cheats** `/cheats`. Other pages: **Presets** `/presets` (+ `/presets/new`, `/presets/[id]`, `/presets/log`), **Discover** `/discover`, plus `/analytic`, `/graph`, `/sources`, `/usecase`. Explorer filter/sort/page state lives in the **URL** — the Cheats explorer shares `lib/cheats-filter.ts` between its list and the detail page's prev/next/back nav so both walk the identical filtered list.
+Catalogs (list + `/[id]` detail): **Skills** `/` & `/skills/[id]`, **Commands** `/commands`, **Hooks** `/hooks`, **Cheats** `/cheats`, **Flows** `/flows` (+ `/flows/[id]`, `/flows/new`). Other pages: **Presets** `/presets` (+ `/presets/new`, `/presets/[id]`, `/presets/log`), **Discover** `/discover`, plus `/analytic`, `/graph`, `/sources`, `/usecase`. Explorer filter/sort/page state lives in the **URL** — the Cheats and Flows explorers each share a pure filter module (`lib/cheats-filter.ts`, `lib/flow-filter.ts`) between their list and the detail page's prev/next/back nav (and the Flows detail's flow-switcher dropdown) so all surfaces walk the identical filtered list.
 
 ### Cross-platform
 

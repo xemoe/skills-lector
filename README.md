@@ -1,6 +1,6 @@
 # Skills Lector
 
-A local web app that scans your machine for deployed **Claude Skills**, **slash commands**, and **hooks**, and shows them in a browser dashboard — what is installed, where it came from, and when it last changed.
+A local web app that scans your machine for deployed **Claude Skills**, **slash commands**, and **hooks**, and shows them in a browser dashboard — what is installed, where it came from, and when it last changed. It also surfaces reusable **Cheats** (prompts mined from your session history) and lets you compose them into **Flows** — ordered prompt pipelines for a kind of work.
 
 Built with Next.js 15, React 19, Tailwind CSS, and shadcn/ui. Current version: **v0.5.0**. It runs entirely on your machine and makes no external calls — nothing leaves your computer. (The optional `discover-popular-skills` Claude Code skill does call GitHub, but that script runs outside the web app — see [Discover](#discover-popular-skills).)
 
@@ -15,17 +15,19 @@ This is a **monorepo**:
 ## Features
 
 - **Unified dashboard** — every `SKILL.md` discovered on the machine in one searchable, filterable, sortable table.
-- **Three parallel catalogs** — Skills, slash Commands, and Hooks. Each gets its own list view, detail view, and JSON API, all sharing the same scan/filter/source-resolution patterns.
+- **Five catalogs** — Skills, slash Commands, Hooks, Cheats, and Flows. Each gets its own list view, detail view, and JSON API, all sharing the same filter/sort/URL-state patterns.
 - **Knows where things come from** — classifies each item as personal, plugin, project, or local, and resolves its source to a GitHub repository or a local directory.
 - **Freshness & usage** — shows when each skill was last modified and how often it has been used (read from `~/.claude.json`).
 - **Skill / command / hook detail view** — renders the full `SKILL.md` (or command body / hook config) plus metadata: plugin info, source repository, branch, size, and file count.
+- **Prompt Cheats** — reusable prompts mined from your Claude session history, with an improved-prompt rewrite, intent label, tags, reuse score, and per-cheat favorites. Catalog at `/cheats`, detail at `/cheats/[id]`. See [Prompt Cheats](#prompt-cheats).
+- **Flows** — compose Cheats into ordered prompt pipelines per kind of work, with staged step edits, auto-seeded starters, and skill-aware step enhancement. Browse at `/flows`, build at `/flows/new`, detail at `/flows/[id]`. See [Flows](#flows).
 - **Sources view** — items grouped by plugin, repository, and directory (`/sources`).
 - **Analytics view** — usage and freshness charts with a preset filter (`/analytic`).
 - **Graph view** — interactive relationship graph between skills, commands, and their sources (`/graph`, powered by `@xyflow/react`).
 - **Skills + Commands presets** — bundle skills and commands per workflow ("debugging", "frontend-design", ...). Activating a preset toggles each item's `disable-model-invocation` frontmatter in the personal scope, with a full audit trail. See `/presets`.
 - **Discover popular skills** — a Claude Code skill ranks the most popular Claude Skills repositories on GitHub and writes a manifest the `/discover` page renders.
 - **Usecase guide** — long-form onboarding for newcomers at `/usecase`.
-- **JSON APIs** — `GET /api/skills`, `/api/commands`, `/api/hooks`, `/api/discover`, `/api/activity`, plus the preset endpoints under `/api/presets/*`. All honour `?force=1` to bypass the 8-second scan cache.
+- **JSON APIs** — `GET /api/skills`, `/api/commands`, `/api/hooks`, `/api/discover`, `/api/activity`, `/api/cheats`, plus the preset (`/api/presets/*`), cheats-favorite (`/api/cheats/[id]/favorite`), and flows (`/api/flows`, `/api/flows/[id]`, `/api/flows/[id]/steps`, `/api/flows/[id]/enhance`, `/api/flows/seed`) endpoints. The scan APIs honour `?force=1` to bypass the 8-second scan cache.
 - **Bilingual UI** — English and Thai (toggle in the header).
 - **Light / dark theme toggle**.
 - **Cross-platform** — Windows and macOS.
@@ -101,6 +103,8 @@ Three parallel server-side scanners in `packages/core/src/` walk the known locat
 
 A fourth reader, **`readDiscoverManifest()`** (`discover.ts`), reads the JSON manifest produced by the `discover-popular-skills` Claude Code skill — the web app makes no GitHub calls itself.
 
+The **Cheats** and **Flows** catalogs work differently: their data lives in SQLite and is served by `packages/presets` (`cheats.ts`, `flows.ts`), not by the core scanners. Cheats are mined from session history by the `cheats` skill (see [Prompt Cheats](#prompt-cheats)); Flows are built in the UI (see [Flows](#flows)).
+
 Pages in `apps/web` are dynamic Next.js Server Components that call the scanners directly and hand plain data to client components for in-browser search and filtering. Results are cached in-process for 8 seconds; the **Rescan** button forces a fresh scan of all four sources.
 
 ## Skills + Commands presets
@@ -108,6 +112,29 @@ Pages in `apps/web` are dynamic Next.js Server Components that call the scanners
 The `/presets` page is the only mutating feature in the catalog. A preset is a named bundle of skills and/or slash commands associated with a workflow ("debugging", "frontend-design", etc.). Activating a preset writes `disable-model-invocation: false` into the frontmatter of each bundled item in your personal scope and sets `disable-model-invocation: true` for items that were previously active but are not in the new preset. Pinned items override preset membership in both directions. Every activation is appended to an audit trail viewable at `/presets/log`.
 
 The preset engine lives in `packages/presets`; the web UI is under `apps/web/app/presets/`. State persists in SQLite at `~/.skills-lector/presets.db` (path overridable, see [Configuration](#configuration)). Writes are atomic (temp file + rename, exFAT-safe); crash recovery is implicit because the filesystem is the source of truth and the next apply re-converges. An onboarding wizard on the empty `/presets` page walks through creating a first preset.
+
+## Prompt Cheats
+
+The `/cheats` catalog is a library of reusable prompts mined from your local Claude session history. The web app never reads transcripts or calls an LLM itself — a Claude Code skill does the mining offline and writes the results into the same SQLite database the presets use.
+
+The `cheats` skill (the `/cheats` command) runs a three-step pipeline:
+
+1. **Extract** — `node .claude/skills/cheats/scripts/extract.mjs` walks the session transcripts under `~/.claude/projects`, keeps only genuine user-typed prompts (dropping subagent chains, hook/system injections, and command wrappers), deduplicates by hash, and writes `.cheats/raw.json`. By default it is *only-new* (skips hashes already curated); pass `--full` to rebuild.
+2. **Analyze** — Claude reads `.cheats/raw.json` and adds an improved rewrite, an intent label, tags, and a reuse score (0–100) per entry, writing `.cheats/analyzed.json`.
+3. **Store** — `node packages/presets/scripts/import-cheats.mjs .cheats/analyzed.json` upserts each entry on its prompt hash without touching your favorites.
+
+The `/cheats` page renders the catalog with full-text search, project and intent filters, a favorites tab, a typed-only provenance guard, table/card views, an original/improved toggle, and per-cheat favoriting. Filter and sort state lives in the URL (`lib/cheats-filter.ts`), shared with the detail page's prev/next navigation so both walk the same ordered list. `.cheats/` is a git-ignored local cache.
+
+## Flows
+
+A **Flow** is a named, ordered sequence of Cheats — a prompt pipeline for one kind of work (a `code-review` flow, for example, chains your code-review cheats in order). Flows live in the same SQLite database (`packages/presets/src/flows.ts`, migrations `004_flows.sql` / `005_flow_enhanced.sql`); the `steps` column is a JSON array of cheat ids.
+
+- **Build** — create a flow at `/flows/new`, then add, reorder, and remove steps on its detail page (`/flows/[id]`). Step edits are staged as a local draft with an added / moved / removed diff and per-item revert; nothing is written until you hit **Apply**.
+- **Seed** — the **Seed** button auto-generates starter flows by grouping your cheats on their intent (idempotent, capped at 8 steps each).
+- **Skill-aware enhancement** — `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the catalog of your installed skills and commands; the `/flow-enhance` command rewrites each step folding in the relevant skill guidance and POSTs the result back. Enhanced steps render the rewritten text with folded-in skill badges and unlock a variable drawer for filling `<placeholder>` tokens.
+- **Navigate** — the `/flows` explorer offers text search and recent / name / steps sorting (URL-backed); the detail page has prev/next buttons and a flow-switcher dropdown that all walk the same filtered list (`lib/flow-filter.ts`).
+
+Like presets, the Flows store is read+write and lives in `packages/presets` — the project's only mutating package.
 
 ## Vendored skills
 
@@ -129,16 +156,18 @@ A discovery loop with two halves that integrate only through a JSON file on disk
 ```
 apps/web/            The Next.js app
   app/               App Router pages and /api routes
-                     (skills, commands, hooks, presets, sources,
-                      analytic, graph, discover, usecase)
-  components/        shadcn/ui primitives and app-specific components
-  lib/               App-local helpers — i18n, theme, analytics, relations, utils
+                     (skills, commands, hooks, cheats, flows, presets,
+                      sources, analytic, graph, discover, usecase)
+  components/        shadcn/ui primitives and app components
+                     (scanner/, presets/, cheats/, flow/, ui/)
+  lib/               App-local helpers — i18n, theme, analytics, relations,
+                     utils, cheats-filter, flow-{filter,resolve,step-diff,variables}
   sample-skills/     Bundled example skills (so the dashboard is never empty)
   scripts/           The exFAT build shim
-packages/core/       Shared scanning engine — SKILL.md / command / hook
-  src/               parsers, git/source resolution, the data model
-packages/presets/    Preset engine — SQLite store, apply diff,
-  src/               atomic frontmatter writes
+packages/core/       Shared read engine — skill / command / hook scanners,
+  src/               parsers, pipeline, git/source resolution, cache, the data model
+packages/presets/    Mutating engine — SQLite store, presets + apply diff,
+  src/               cheats, Flows engine, atomic frontmatter writes
 .claude/             This repo's own project skills and slash commands
 vendor/              External skill repos as git submodules
 ```
