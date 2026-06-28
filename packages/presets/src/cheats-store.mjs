@@ -86,7 +86,7 @@ export function parseCheatText(text, id) {
     if (!match) throw new Error(`cheat ${id}: missing frontmatter`);
     const loaded = yaml.load(match[1]);
     const d = loaded && typeof loaded === "object" && !Array.isArray(loaded) ? loaded : {};
-    const original = text.slice(match[0].length).replace(/\n$/, "");
+    const original = text.slice(match[0].length).replace(/\n+$/, "");
     return {
         id,
         promptHash: String(d.promptHash ?? ""),
@@ -143,7 +143,8 @@ export function readCheat(id) {
     if (!existsSync(path)) return null;
     try {
         return parseCheatText(readFileSync(path, "utf8"), id);
-    } catch {
+    } catch (e) {
+        console.error(`[cheats] failed to parse ${path}: ${e instanceof Error ? e.message : String(e)}`);
         return null;
     }
 }

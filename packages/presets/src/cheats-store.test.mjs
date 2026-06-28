@@ -1,11 +1,11 @@
 // Run: node packages/presets/src/cheats-store.test.mjs
 import assert from "node:assert/strict";
-import { rmSync } from "node:fs";
+import { rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
     serializeCheat, parseCheatText, writeCheatAtomic, readCheat,
-    listCheatFiles, nextCheatId, upsertMany, listHashes, keyOf,
+    listCheatFiles, nextCheatId, upsertMany, listHashes, keyOf, cheatsDir,
 } from "./cheats-store.mjs";
 
 const tmp = join(homedir(), ".skills-lector", `cheats-store-test-${process.pid}`);
@@ -63,6 +63,18 @@ try {
     assert.equal(res3.imported, 1, "valid imported");
 
     assert.ok(listHashes().includes(keyOf("reuse me")), "listHashes includes stored row");
+
+    // graceful degradation: a malformed file goes to errors, valid files still parse
+    mkdirSync(cheatsDir(), { recursive: true });
+    writeFileSync(join(cheatsDir(), "999.md"), "no frontmatter here", "utf8");
+    const listed = listCheatFiles();
+    assert.equal(listed.errors.length, 1, "malformed file recorded in errors");
+    assert.ok(listed.cheats.every((c) => c.id !== 999), "malformed file not in cheats");
+
+    // reuseScore is clamped to [0,100] on upsert
+    const clamp = upsertMany([{ original: "clamp me", reuseScore: 150 }], now);
+    assert.equal(clamp.cheats[0].reuseScore, 100, "reuseScore clamped to 100");
+
     console.log("OK cheats-store");
 } finally {
     rmSync(tmp, { recursive: true, force: true });
