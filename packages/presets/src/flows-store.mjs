@@ -44,7 +44,7 @@ function normalizeEnhanced(v) {
 /** Coerce a parsed JSON object into a Flow (tolerant of legacy/partial data). */
 export function normalizeFlow(d) {
     return {
-        id: Number.isFinite(d.id) ? d.id : 0,
+        id: Number.isInteger(d.id) ? d.id : 0,
         slug: String(d.slug ?? ""),
         name: String(d.name ?? d.slug ?? ""),
         description: typeof d.description === "string" ? d.description : null,
@@ -90,7 +90,8 @@ export function readFlowBySlug(slug) {
     if (!existsSync(path)) return null;
     try {
         return normalizeFlow(JSON.parse(readFileSync(path, "utf8")));
-    } catch {
+    } catch (e) {
+        console.error(`[flows] failed to parse ${path}: ${e instanceof Error ? e.message : String(e)}`);
         return null;
     }
 }
