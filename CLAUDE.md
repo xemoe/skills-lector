@@ -10,7 +10,7 @@ Monorepo = one app + two packages:
 
 - **`apps/web`** — the Next.js app (UI, pages, `/api` routes, app-local helpers). Consumes the packages via TS path aliases `@lector/core/*` and `@lector/presets/*`.
 - **`packages/core`** — pure **read** engine: filesystem scanners, parsers, git/source resolution, shared types.
-- **`packages/presets`** — the **only mutating** surface: SQLite-backed presets, pins, and the Cheats store; writes skill frontmatter.
+- **`packages/presets`** — the **only mutating** surface: SQLite-backed presets, pins, and apply log; file-backed Cheats (markdown under `~/.skills-lector/store/cheats/`) and Flows (JSON under `~/.skills-lector/store/flows/`); writes skill frontmatter.
 
 ## Monorepo layout
 
@@ -24,7 +24,7 @@ apps/web/
   sample-skills/        Bundled examples (dashboard is never empty)
   scripts/              exfat-readlink-fix.cjs (the exFAT build shim)
 packages/core/src/      scanner, command-scanner, hook-scanner, discover, parsers, frontmatter, pipeline, git, usage, cache, activity, marketplace, types
-packages/presets/src/   presets, pinned, cheats, flows, activate, diff, enrich, events, frontmatter, identity, log, membership, db, types, util, schema.sql, migrations/
+packages/presets/src/   presets, pinned, cheats, cheats-store, flows, flows-store, now, activate, diff, enrich, events, frontmatter, identity, log, membership, db, types, util, schema.sql, migrations/ (001 only — cheats/flows tables removed)
 .claude/                This repo's own skills + slash commands
 vendor/                 External skills repos as git submodules
 ```
@@ -81,11 +81,11 @@ Scan roots + OS-specific locations live in `claude-paths.ts` / `config.ts`.
 
 ### Presets, Cheats + Flows — `packages/presets`
 
-The mutating package. SQLite at `~/.skills-lector/presets.db` (override via `SKILLS_LECTOR_PRESETS_DB` env or `dbPath` in config; file + parent auto-created). Forward-only, idempotent migrations in `migrations/`.
+The mutating package. SQLite at `~/.skills-lector/presets.db` (override via `SKILLS_LECTOR_PRESETS_DB` env or `dbPath` in config; file + parent auto-created) holds **presets, pins, and the apply log only**. Forward-only, idempotent migrations in `migrations/` (cheats/flows tables were removed; the one-time `packages/presets/scripts/migrate-to-files.mjs` moved those rows to files). Cheats and Flows are now plain files under `~/.skills-lector/store/`, written by `.mjs` store modules so offline scripts can use them without a running server.
 
 - **Presets** — `applyPreset()` scans personal-scope items, diffs with the pure `computeApplyDiff()`, then atomically writes each item's `disable-model-invocation` frontmatter (temp file + rename, exFAT-safe). Partial-success: per-file errors are logged and status set to `partial`; there's no global fs+DB transaction, so the next apply re-converges from the filesystem. Pinned items always stay enabled. Logged in `apply_log*`; `active_preset` is a singleton row. (Same frontmatter field as the `set-model-invocation` skill, but bulk/runtime vs per-item/authoring.)
-- **Cheats** — `cheats.ts` is the read side + the single `setFavorite` mutation; the bulk writer is `scripts/import-cheats.mjs`, run by the `cheats` skill / `/skill-lector:cheats` command (it mines reusable prompts from session history). Schema in migrations `002_cheats.sql`, `003_cheats_provenance.sql`.
-- **Flows** — `flows.ts` is read+write (this package is the only mutating surface): a flow is an ordered JSON array of cheat ids (`steps`) modelling a per-work pipeline. CRUD via `createFlow`/`updateFlow`/`setFlowSteps`/`deleteFlow`; `seedFlows()` auto-generates starters by grouping cheats on `intent` (idempotent — skips existing slugs, caps at 8 steps); `setFlowEnhanced()` persists the per-step skill-aware rewrite (`enhanced` JSON, keyed by `cheatId` so it survives reorder). Schema in migrations `004_flows.sql`, `005_flow_enhanced.sql`. Served by `/api/flows/*`; `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the installed skills/commands catalog for the `/skill-lector:flow-enhance` command to rewrite each step and POST back. No junction table — step→cheat integrity is app-level only.
+- **Cheats** — each cheat is a markdown file at `~/.skills-lector/store/cheats/<id>.md` (YAML frontmatter holds scalar fields + the short `improved`; the file body is the verbatim `original`; the numeric id is the filename). File format and I/O live in `cheats-store.mjs`, shared by `cheats.ts` (the typed read surface + `setFavorite` mutation) and `scripts/import-cheats.mjs` (bulk writer; no SQLite; run by the `cheats` skill / `/skill-lector:cheats` command).
+- **Flows** — each flow is a JSON file at `~/.skills-lector/store/flows/<slug>.json` (the full Flow object; numeric id preserved inside; filename is the slug). File format and I/O live in `flows-store.mjs`; `flows.ts` is the typed surface: CRUD via `createFlow`/`updateFlow`/`setFlowSteps`/`deleteFlow`; `seedFlows()` auto-generates starters by grouping cheats on `intent` (idempotent — skips existing slugs, caps at 8 steps); `setFlowEnhanced()` persists the per-step skill-aware rewrite (`enhanced` JSON, keyed by `cheatId` so it survives reorder). Served by `/api/flows/*`; `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the installed skills/commands catalog for the `/skill-lector:flow-enhance` command to rewrite each step and POST back. No junction table — step→cheat integrity is app-level only. (Existing DB rows are migrated once by `packages/presets/scripts/migrate-to-files.mjs`.)
 
 ### Web UI — `apps/web`
 

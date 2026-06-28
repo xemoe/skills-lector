@@ -417,13 +417,13 @@ A **hook** is a shell command Claude Code runs automatically on an event — bef
 | **project** | \`<repo>/.claude/skills/<name>/SKILL.md\` | \`<repo>/.claude/commands/<name>.md\` | Scoped to a project; usually committed |
 | **local** | bundled \`sample-skills/\` in this app | — | Examples shipped so the dashboard is never empty |
 
-**Hooks** are not their own files — they live in the \`hooks\` key of \`settings.json\` and \`settings.local.json\` (the \`local\` scope) at personal, plugin, and project level. **Cheats** have no path at all: they are mined from your Claude Code session transcripts and kept in a small local SQLite store under \`~/.skills-lector/\`.
+**Hooks** are not their own files — they live in the \`hooks\` key of \`settings.json\` and \`settings.local.json\` (the \`local\` scope) at personal, plugin, and project level. **Cheats** have no path at all: they are mined from your Claude Code session transcripts and kept as markdown files under \`~/.skills-lector/store/cheats/\`.
 
 You can point the scanner at extra directories with a \`skills-lector.config.json\` next to where you run the dev server, or with the \`SKILLS_SCAN_ROOTS\` environment variable. See the **Sources** view for the full list of locations being walked right now.`,
         },
         catalogTour: {
             heading: "Reading Skills Lector",
-            body: `Skills Lector exposes these views, all built from the same scans. Everything is read from your disk — only **Presets** writes back to your skill and command files (favouriting a cheat also persists, but to a local database, not your \`.md\` files).
+            body: `Skills Lector exposes these views, all built from the same scans. Everything is read from your disk — only **Presets** writes back to your skill and command files (favouriting a cheat writes back to the cheat's own \`.md\` file under \`~/.skills-lector/store/cheats/\`).
 
 - **Skills** (\`/\`) — every \`SKILL.md\` discovered, with search, filters, and a detail page that renders the body markdown and shows where the file came from.
 - **Commands** (\`/commands\`) — every slash command discovered, with the same search/filter/sort behaviour. The detail page shows the full invocation, frontmatter, and body.
@@ -519,7 +519,7 @@ Run \`/skill-lector:discover-skills\` in Claude Code to refresh the list and, on
                 },
                 {
                     q: "What are cheats, and where do they come from?",
-                    a: "Cheats are reusable prompts mined from your own Claude Code session history by the \`/skill-lector:cheats\` command. Each keeps the original prompt and an improved rewrite, and you can search and favourite them on the **Cheats** view. They live in a local SQLite database under \`~/.skills-lector/\` — nothing is uploaded.",
+                    a: "Cheats are reusable prompts mined from your own Claude Code session history by the \`/skill-lector:cheats\` command. Each keeps the original prompt and an improved rewrite, and you can search and favourite them on the **Cheats** view. They live as markdown files under \`~/.skills-lector/store/cheats/\` — nothing is uploaded.",
                 },
                 {
                     q: "What is a preset, and how do I use it?",
