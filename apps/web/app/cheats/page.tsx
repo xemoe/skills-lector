@@ -17,7 +17,7 @@ function EmptyState({ t }: { t: Dictionary }) {
                 {t.cheatsPage.empty1}
                 <InlineCode>/cheats</InlineCode>
                 {t.cheatsPage.empty2}
-                <InlineCode>presets.db</InlineCode>
+                <InlineCode>~/.skills-lector/store/cheats/</InlineCode>
                 {t.cheatsPage.empty3}
             </p>
         </div>
