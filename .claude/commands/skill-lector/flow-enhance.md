@@ -103,23 +103,33 @@ For each step, first name the **class of work** the example represents (e.g.
   with `<placeholder>`s a person fills in the "fill variables" drawer (e.g.
   `<async-operation>`, `<skill-name>`, `<target-dir>`, `<issue-number>`). Keep any
   placeholders already present in the original `body` verbatim.
-- **Fold the matched skill/command in as METHOD** — its workflow, checklist,
-  guardrails, the steps/properties to follow — **not a finished, copy-paste
-  solution.**
+- **Fold the matched skill/command in as a FEW method bullets** — the essential
+  steps/guardrails — **not a full checklist, not a code skeleton, not a finished
+  copy-paste solution.**
 - **No project-specific code.** Do not reference this repo's files, components,
-  hooks, or import paths (no real component names, no `@/components/...`). Code is
-  allowed only as a *tiny generic skeleton* driven by placeholders (a few lines);
-  prefer a checklist over a code dump.
-- **Keep it tight** — a reusable prompt template, not an essay. Aim well under
-  ~1500 chars where the class allows (multi-part steps may run longer).
+  hooks, or import paths (no real component names, no `@/components/...`). Tool /
+  pattern level only (e.g. "use the gh CLI").
+
+**Output shape — a concise, general, reusable prompt** (NOT a playbook or
+tutorial). Hard cap ~800 characters. Each enhanced step is exactly:
+
+1. One `##` heading naming the class of work.
+2. 1-2 sentences: the generalized, parameterized directive — what to do for *any*
+   instance.
+3. One `Folds in: <name>` line naming the matched catalog item(s).
+4. 2-5 short method bullets (a single-line command may be a bullet).
+
+If you find yourself writing a second `###` section or a long fenced code block,
+you're being too specific — cut it down.
 
 Record, per step, the `cheatId`, the rewritten text, and the names of what you
 folded in. **Only include a step you actually enhanced** — a step with no
 relevant match is simply omitted (it renders un-enhanced on the page).
 
-> Anti-pattern (rejected): emitting one concrete implementation — a literal React
-> component named for this repo, a hard-coded bash script, project-only paths.
-> That serves a single task, not the pipeline. Generalize instead.
+> Anti-pattern (rejected): a multi-section implementation guide for one concrete
+> realization — a literal React component named for this repo, a hard-coded bash
+> script, project-only paths, exhaustive checklists. That serves a single task,
+> not the reusable pipeline. Generalize and keep it short.
 
 **Format the rewrite as Markdown.** The flow detail page renders each step as
 Markdown (raw + rendered preview in the step drawer), so structure it for
@@ -135,6 +145,21 @@ brackets) — **do not** wrap them in backticks or code spans yourself. The draw
 already chips them for display and uses them to drive the "fill variables"
 inputs, so anything other than a bare `<name>` breaks that. Markdown is encouraged
 *around* the placeholders, not on them.
+
+**Placeholder hygiene (critical).** The page extracts *every* `<...>` as a
+fill-in variable via the regex `/<([^<>]{1,60})>/g`, so anything in angle
+brackets that isn't a real variable becomes a garbage chip:
+
+- A placeholder is only a simple lowercase kebab-case noun — `<[a-z][a-z0-9-]*>`
+  (e.g. `<async-operation>`, `<issue-number>`, `<skill-name>`). Nothing else
+  belongs inside angle brackets.
+- Never put spaces, `|`, `/`, `=`, quotes, parens, or code inside `<...>`. Write
+  enum/option examples as plain text *outside* brackets — `model: haiku | sonnet
+  | opus`, not `<haiku|sonnet|opus>`.
+- Never write JSX/HTML/XML tags in fenced code (`<div>`, `</div>`, `<Suspense>`,
+  `<MyComponent>`) — they pollute the variable list. Describe component structure
+  in prose/checklist or use angle-bracket-free pseudocode; if you can't avoid
+  tags, drop the code block and use a checklist instead.
 
 ### 5. Save the result onto the flow (POST)
 
