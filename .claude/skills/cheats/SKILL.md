@@ -44,14 +44,14 @@ three steps; you (Claude) are the middle step.
    `.cheats/analyzed.json` as `{ "schemaVersion": 2, "analyzedAt": "<ISO>",
    "cheats": [ ...entries ] }`.
 
-3. **Store** — upsert into the database:
+3. **Store** — upsert cheat markdown files under `~/.skills-lector/store/cheats/` via the shared `cheats-store.mjs`:
    `node packages/presets/scripts/import-cheats.mjs .cheats/analyzed.json`
-   The importer upserts on `hash` and NEVER touches `favorite` — re-running is
-   safe and preserves the user's pins. It prints `[cheats] imported N, skipped M → <db path>`.
+   The importer upserts on `hash` (filename = numeric id) and NEVER touches `favorite` — re-running is
+   safe and preserves the user's pins. It prints `[cheats] imported N, skipped M → <store path>`.
    After importing it refreshes `.cheats/known-hashes.json` with every hash now in
    the library, which is what makes step 1's only-new mode work on the next run.
 
-   Seeding an existing DB (first time only): if the library predates only-new mode
+   Seeding an existing store (first time only): if the library predates only-new mode
    and `known-hashes.json` doesn't exist yet, run
    `node packages/presets/scripts/import-cheats.mjs known-hashes` once to dump the
    current hashes — otherwise the next extract runs full and re-analyzes everything.

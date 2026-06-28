@@ -15,6 +15,7 @@ Argument: **$ARGUMENTS** (default `build`).
      `tags`, `reuseScore`; preserve `provenance`; cluster near-duplicates), and
      Write `.cheats/analyzed.json` using the schema in `.claude/skills/cheats/SKILL.md`.
   3. `node packages/presets/scripts/import-cheats.mjs .cheats/analyzed.json`
+     (upserts cheat markdown files under `~/.skills-lector/store/cheats/` via `cheats-store.mjs`; no SQLite)
   Then report how many prompts were imported and tell the user to open `/cheats`.
 
 - `status`: read `.cheats/raw.json` (if present) and report how many prompts were
