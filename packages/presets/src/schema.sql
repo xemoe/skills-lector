@@ -1,4 +1,5 @@
--- v1 initial schema for Skills Lector preset engine
+-- Reference snapshot of the presets.db schema (presets / pins / apply_log only).
+-- Cheats and Flows live in files under ~/.skills-lector/store (see cheats-store.mjs / flows-store.mjs).
 
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER PRIMARY KEY
