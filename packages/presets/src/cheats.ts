@@ -14,7 +14,7 @@ import type { Cheat } from "./types";
 /** All cheats, favorites first then most-recently-seen. */
 export function listCheats(): Cheat[] {
     const cheats = listCheatFiles().cheats as Cheat[];
-    return cheats.sort((a, b) => {
+    return [...cheats].sort((a, b) => {
         if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
         return b.lastSeenAt.localeCompare(a.lastSeenAt);
     });

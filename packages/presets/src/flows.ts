@@ -35,7 +35,7 @@ function requireFlow(id: number): Flow {
 /** All flows, most-recently-updated first. */
 export function listFlows(): Flow[] {
     const flows = listFlowFiles().flows as Flow[];
-    return flows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return [...flows].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 /** Single flow by numeric id, or null if not found. */
