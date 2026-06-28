@@ -8,7 +8,7 @@ import {
     readCheat,
     writeCheatAtomic,
 } from "./cheats-store.mjs";
-import { nowIso } from "./util";
+import { nowIso } from "./now.mjs";
 import type { Cheat } from "./types";
 
 /** All cheats, favorites first then most-recently-seen. */

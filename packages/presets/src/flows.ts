@@ -8,10 +8,8 @@ import {
     deleteFlowFile, nextFlowId, flowExists,
 } from "./flows-store.mjs";
 import { listCheatFiles } from "./cheats-store.mjs";
+import { nowIso } from "./now.mjs";
 import type { Flow, FlowEnhancedStep, FlowEnhancement, Cheat } from "./types";
-
-// Single source for timestamps within this module.
-const nowIso = () => new Date().toISOString();
 
 // ---------------------------------------------------------------------------
 // Slug collision error — mirrors presets.ts
