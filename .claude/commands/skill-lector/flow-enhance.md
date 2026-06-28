@@ -1,5 +1,5 @@
 ---
-description: Enhance a Flow by rewriting each step to fold in the guidance of the user's most relevant installed Claude Skills, Plugins, and Commands, then save the result onto the flow's detail page. Pass the numeric flow id.
+description: Enhance a Flow by rewriting each step into a GENERAL, reusable pipeline template (specifics abstracted into <placeholder> variables) that folds in the method of the user's most relevant installed Claude Skills, Plugins, and Commands, then save the result onto the flow's detail page. Pass the numeric flow id.
 argument-hint: "[flow-id]"
 allowed-tools: Bash(curl:*), Bash(node:*), Bash(mkdir:*), Bash(grep:*), Read, Write
 disable-model-invocation: true
@@ -87,14 +87,39 @@ the matches, then `Read` each chosen item's `path` (column 5 — the `SKILL.md` 
 command `.md`) for its actual guidance. **Only choose items that appear in the
 catalog — never invent one.** A step with no good match gets none; that is fine.
 
-### 4. Rewrite each step
+### 4. Rewrite each step — GENERALIZE, don't bake in specifics
 
-Rewrite each step's `body`, preserving the user's original instruction and
-intent, but folding in the concrete technique from the matched skills/commands
-(their workflow, checklists, guardrails). Keep it a usable prompt, not a summary
-of the skill. Record, per step, the `cheatId`, the rewritten text, and the names
-of what you folded in. **Only include a step you actually enhanced** — a step
-with no relevant match is simply omitted (it renders un-enhanced on the page).
+A flow is a **reusable pipeline template** the user re-runs for *any* task of
+that kind — not a record of one past task. The seeded step `body` is a **specific
+example** of a class of work. Your rewrite must lift it to the general case so
+the same step is useful for every instance.
+
+For each step, first name the **class of work** the example represents (e.g.
+"adding a loading state to a long-running async op", "authoring a Claude skill",
+"closing a GitHub issue via the gh CLI"). Then rewrite for that class:
+
+- **Parameterize the specifics into `<placeholder>` variables.** Replace the
+  one-off nouns — the thing being built, its target, its trigger, the repo/file —
+  with `<placeholder>`s a person fills in the "fill variables" drawer (e.g.
+  `<async-operation>`, `<skill-name>`, `<target-dir>`, `<issue-number>`). Keep any
+  placeholders already present in the original `body` verbatim.
+- **Fold the matched skill/command in as METHOD** — its workflow, checklist,
+  guardrails, the steps/properties to follow — **not a finished, copy-paste
+  solution.**
+- **No project-specific code.** Do not reference this repo's files, components,
+  hooks, or import paths (no real component names, no `@/components/...`). Code is
+  allowed only as a *tiny generic skeleton* driven by placeholders (a few lines);
+  prefer a checklist over a code dump.
+- **Keep it tight** — a reusable prompt template, not an essay. Aim well under
+  ~1500 chars where the class allows (multi-part steps may run longer).
+
+Record, per step, the `cheatId`, the rewritten text, and the names of what you
+folded in. **Only include a step you actually enhanced** — a step with no
+relevant match is simply omitted (it renders un-enhanced on the page).
+
+> Anti-pattern (rejected): emitting one concrete implementation — a literal React
+> component named for this repo, a hard-coded bash script, project-only paths.
+> That serves a single task, not the pipeline. Generalize instead.
 
 **Format the rewrite as Markdown.** The flow detail page renders each step as
 Markdown (raw + rendered preview in the step drawer), so structure it for
