@@ -5,8 +5,18 @@ import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import type { Cheat } from "@lector/presets/types";
 import { useCheatsList } from "@/components/cheats/use-cheat-queries";
+import { useT } from "@/lib/i18n/context";
+import { basename } from "@/lib/utils";
+import { distinctProjects } from "@/lib/project-options";
 
 const RESULT_CAP = 50;
 const PREVIEW_MAX = 100;
@@ -39,16 +49,25 @@ interface CheatPickerProps {
  * tags. Cheats already in the flow (excludeIds) are hidden.
  */
 export function CheatPicker({ excludeIds, onPick }: CheatPickerProps) {
+    const t = useT();
     const [query, setQuery] = useState("");
+    const [project, setProject] = useState("all");
     const { data } = useCheatsList();
-    const all = data?.cheats ?? [];
+    const all = useMemo(() => data?.cheats ?? [], [data]);
+
+    const projectOptions = useMemo(() => distinctProjects(all), [all]);
 
     const matches = useMemo(() => {
         const lower = query.trim().toLowerCase();
         return all
-            .filter((c) => !excludeIds.includes(c.id) && matchesQuery(c, lower))
+            .filter(
+                (c) =>
+                    !excludeIds.includes(c.id) &&
+                    (project === "all" || c.project === project) &&
+                    matchesQuery(c, lower),
+            )
             .slice(0, RESULT_CAP);
-    }, [all, excludeIds, query]);
+    }, [all, excludeIds, project, query]);
 
     function handlePick(cheatId: number) {
         onPick(cheatId);
@@ -57,15 +76,36 @@ export function CheatPicker({ excludeIds, onPick }: CheatPickerProps) {
 
     return (
         <div className="flex flex-col gap-2 rounded-sm border bg-card p-3">
-            <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    placeholder="Search prompts, intent, tags…"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="pl-8"
-                    autoFocus
-                />
+            <div className="flex items-center gap-2">
+                <div className="relative min-w-0 flex-1">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Search prompts, intent, tags…"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        className="pl-8"
+                        autoFocus
+                    />
+                </div>
+                {projectOptions.length > 0 && (
+                    <Select value={project} onValueChange={setProject}>
+                        <SelectTrigger
+                            size="sm"
+                            className="w-[160px] shrink-0"
+                            aria-label={t.flowsPage.filterProject}
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                            <SelectItem value="all">{t.flowsPage.allProjects}</SelectItem>
+                            {projectOptions.map((p) => (
+                                <SelectItem key={p} value={p} title={p}>
+                                    {basename(p)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
             <div className="max-h-64 overflow-y-auto space-y-0.5">
                 {matches.length === 0 ? (

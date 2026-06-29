@@ -42,6 +42,7 @@ import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatDate, basename } from "@/lib/utils";
+import { distinctProjects } from "@/lib/project-options";
 import { useT } from "@/lib/i18n/context";
 import { useCheatsList, useToggleFavorite } from "@/components/cheats/use-cheat-queries";
 import {
@@ -161,11 +162,7 @@ export function CheatsExplorer() {
         return () => clearTimeout(id);
     }, [queryInput, filters.query, update]);
 
-    const projects = useMemo(() => {
-        const set = new Set<string>();
-        for (const c of cheats) if (c.project) set.add(c.project);
-        return [...set].sort();
-    }, [cheats]);
+    const projects = useMemo(() => distinctProjects(cheats), [cheats]);
 
     const intents = useMemo(() => {
         const set = new Set<string>();

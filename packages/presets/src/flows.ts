@@ -128,6 +128,10 @@ export function deleteFlow(id: number): void {
 // ---------------------------------------------------------------------------
 
 export type SeedResult = { created: Flow[] };
+export type SeedOptions = {
+    /** Scope seeding to cheats from this project (raw cwd path). Omit for all. */
+    project?: string;
+};
 
 const MAX_SEEDED_STEPS = 8;
 
@@ -135,9 +139,14 @@ const MAX_SEEDED_STEPS = 8;
  * Auto-seed starter flows from existing cheats: group by intent (skip empty),
  * keep groups with ≥2 cheats, take the top MAX_SEEDED_STEPS by reuseScore desc
  * then occurrences desc. Idempotent: skips an intent whose slug file exists.
+ *
+ * With `opts.project`, only that project's cheats are grouped and the generated
+ * flows are namespaced by the project basename ("myrepo · debugging") so they
+ * don't collide with the global, intent-only flows.
  */
-export function seedFlows(): SeedResult {
-    const cheats = listCheatFiles().cheats as Cheat[];
+export function seedFlows(opts: SeedOptions = {}): SeedResult {
+    const all = listCheatFiles().cheats as Cheat[];
+    const cheats = opts.project ? all.filter((c) => c.project === opts.project) : all;
     const byIntent = new Map<string, Cheat[]>();
 
     for (const cheat of cheats) {
@@ -153,7 +162,7 @@ export function seedFlows(): SeedResult {
     for (const [intent, group] of byIntent) {
         if (group.length < 2) continue;
 
-        const slug = toFlowSlug(intent);
+        const slug = seededSlug(intent, opts.project);
         if (flowExists(slug)) continue; // already exists — skip (idempotent)
 
         const sorted = [...group].sort((a, b) => {
@@ -167,7 +176,7 @@ export function seedFlows(): SeedResult {
         const flow: Flow = {
             id: nextFlowId(),
             slug,
-            name: intent,
+            name: seededName(intent, opts.project),
             description: null,
             steps: sorted.slice(0, MAX_SEEDED_STEPS).map((c) => c.id),
             seeded: true,
@@ -180,6 +189,35 @@ export function seedFlows(): SeedResult {
     }
 
     return { created };
+}
+
+/**
+ * Slug for a seeded flow, namespaced when scoped. Includes a short hash of the
+ * full project path so two repos that share a basename (e.g. `/a/api` and
+ * `/b/api`) get distinct, stable slugs instead of the second being skipped as a
+ * collision. The hash is invisible to users — only the filename/slug carries it;
+ * the display name stays `basename · intent`.
+ */
+export function seededSlug(intent: string, project?: string): string {
+    if (!project) return toFlowSlug(intent);
+    return toFlowSlug(`${projectBasename(project)}-${shortHash(project)}-${intent}`);
+}
+
+/** Display name for a seeded flow, prefixed by project basename when scoped. */
+export function seededName(intent: string, project?: string): string {
+    return project ? `${projectBasename(project)} · ${intent}` : intent;
+}
+
+function projectBasename(p: string): string {
+    const segments = p.split(/[\\/]/);
+    return segments[segments.length - 1] || p;
+}
+
+/** Stable short base36 hash of a string — used to disambiguate same-basename paths. */
+function shortHash(s: string): string {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h.toString(36).slice(0, 6);
 }
 
 // ---------------------------------------------------------------------------

@@ -159,12 +159,25 @@ export function useDeleteFlow() {
     });
 }
 
-/** Auto-seed starter flows from existing cheats (POST /api/flows/seed). Invalidates list on settle. */
+/** Optional scope for seeding: a project path, or omitted for all projects. */
+export interface SeedFlowsVars {
+    project?: string;
+}
+
+/**
+ * Auto-seed starter flows from existing cheats (POST /api/flows/seed).
+ * Pass `{ project }` to scope seeding to one repo; omit for all.
+ * Invalidates list on settle.
+ */
 export function useSeedFlows() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: () =>
-            jsonFetch<FlowSeedResponse>("/api/flows/seed", { method: "POST" }),
+        mutationFn: (vars: SeedFlowsVars = {}) =>
+            jsonFetch<FlowSeedResponse>("/api/flows/seed", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(vars),
+            }),
         onSettled: () => {
             void qc.invalidateQueries({ queryKey: flowsQk.list() });
         },

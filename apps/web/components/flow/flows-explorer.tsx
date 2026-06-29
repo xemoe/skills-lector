@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ArrowUpDown, Play, Plus, Search, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpDown, FolderGit2, Play, Plus, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,21 @@ import {
 } from "@/components/ui/select";
 import { IconSelectTrigger } from "@/components/icon-select-trigger";
 import { useT } from "@/lib/i18n/context";
+import { basename } from "@/lib/utils";
+import { distinctProjects } from "@/lib/project-options";
 import {
     buildFlowQuery,
+    cheatProjectMap,
     filterSortFlows,
+    flowProjects,
     parseFlowFilters,
     type FlowFilters,
     type FlowSortKey,
 } from "@/lib/flow-filter";
+import { useCheatsList } from "@/components/cheats/use-cheat-queries";
 import { useFlowsList, useSeedFlows } from "./use-flow-queries";
+
+const PROJECT_BADGE_MAX = 2;
 
 const SEARCH_DEBOUNCE_MS = 250;
 const RAIL_MAX = 5;
@@ -64,6 +71,15 @@ export function FlowsExplorer() {
     const flows = useMemo(() => data?.flows ?? [], [data]);
     const seed = useSeedFlows();
 
+    // Cheats (prefetched on /flows) give each step its project, so a flow's
+    // projects are derived from its steps — flows never store a project.
+    const { data: cheatsData } = useCheatsList();
+    const cheats = useMemo(() => cheatsData?.cheats ?? [], [cheatsData]);
+    const cheatProj = useMemo(() => cheatProjectMap(cheats), [cheats]);
+    // Every project we have cheats for: the dropdown both filters and scopes
+    // seeding, so a repo with no flows yet still appears (pick it, then Seed).
+    const projectOptions = useMemo(() => distinctProjects(cheats), [cheats]);
+
     // URL is the source of truth; replace (not push) so filter tweaks don't
     // flood history.
     const update = useCallback(
@@ -83,7 +99,18 @@ export function FlowsExplorer() {
         return () => clearTimeout(id);
     }, [queryInput, filters.query, update]);
 
-    const filtered = useMemo(() => filterSortFlows(flows, filters), [flows, filters]);
+    const filtered = useMemo(
+        () => filterSortFlows(flows, filters, cheatProj),
+        [flows, filters, cheatProj],
+    );
+
+    const projectLabel = filters.project === "all" ? t.flowsPage.allProjects : basename(filters.project);
+    const scopedSeed = filters.project !== "all";
+    const seedLabel = seed.isPending
+        ? t.flowsPage.seeding
+        : scopedSeed
+          ? t.flowsPage.seedProject(basename(filters.project))
+          : t.flowsPage.seed;
 
     const sortLabel: Record<FlowSortKey, string> = {
         recent: t.flowsPage.sortRecent,
@@ -109,6 +136,26 @@ export function FlowsExplorer() {
                         className="pl-8"
                     />
                 </div>
+                {projectOptions.length > 0 && (
+                    <Select
+                        value={filters.project}
+                        onValueChange={(v) => update({ project: v })}
+                    >
+                        <IconSelectTrigger
+                            icon={<FolderGit2 />}
+                            label={t.flowsPage.filterProject}
+                            currentValue={projectLabel}
+                        />
+                        <SelectContent position="popper">
+                            <SelectItem value="all">{t.flowsPage.allProjects}</SelectItem>
+                            {projectOptions.map((p) => (
+                                <SelectItem key={p} value={p} title={p}>
+                                    {basename(p)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
                 <Select
                     value={filters.sort}
                     onValueChange={(v) => update({ sort: v as FlowSortKey })}
@@ -130,11 +177,12 @@ export function FlowsExplorer() {
                         variant="outline"
                         size="sm"
                         disabled={seed.isPending}
-                        onClick={() => seed.mutate()}
+                        onClick={() => seed.mutate(scopedSeed ? { project: filters.project } : {})}
                         className="gap-1.5"
+                        title={scopedSeed ? filters.project : undefined}
                     >
                         <Sparkles />
-                        {seed.isPending ? t.flowsPage.seeding : t.flowsPage.seed}
+                        {seedLabel}
                     </Button>
                     <Button asChild size="sm" className="gap-1.5">
                         <Link href="/flows/new">
@@ -163,7 +211,9 @@ export function FlowsExplorer() {
                 </div>
             ) : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {filtered.map((flow) => (
+                    {filtered.map((flow) => {
+                        const projects = [...flowProjects(flow, cheatProj)];
+                        return (
                         <Link key={flow.id} href={detailHref(flow.id)} className="group block">
                             <article className="flex h-full flex-col gap-3 rounded-none border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md">
                                 <div className="flex items-start justify-between gap-2">
@@ -188,16 +238,35 @@ export function FlowsExplorer() {
 
                                 <div className="mt-auto border-t pt-3">
                                     <MiniRail count={flow.steps.length} />
-                                    <div className="mt-2 flex items-center justify-between">
-                                        <span className="font-mono text-[10px] uppercase tracking-wider tabular-nums text-muted-foreground">
-                                            {flow.steps.length} {t.flowsPage.steps}
-                                        </span>
-                                        <ArrowRight className="size-3.5 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
+                                    <div className="mt-2 flex items-center justify-between gap-2">
+                                        <div className="flex min-w-0 items-center gap-1.5">
+                                            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider tabular-nums text-muted-foreground">
+                                                {flow.steps.length} {t.flowsPage.steps}
+                                            </span>
+                                            {projects.slice(0, PROJECT_BADGE_MAX).map((p) => (
+                                                <Badge
+                                                    key={p}
+                                                    variant="outline"
+                                                    title={p}
+                                                    className="min-w-0 gap-1 font-mono text-[9px] font-normal text-muted-foreground"
+                                                >
+                                                    <FolderGit2 className="size-2.5 shrink-0" />
+                                                    <span className="truncate">{basename(p)}</span>
+                                                </Badge>
+                                            ))}
+                                            {projects.length > PROJECT_BADGE_MAX && (
+                                                <span className="shrink-0 font-mono text-[9px] tabular-nums text-muted-foreground">
+                                                    +{projects.length - PROJECT_BADGE_MAX}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <ArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
                                     </div>
                                 </div>
                             </article>
                         </Link>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
