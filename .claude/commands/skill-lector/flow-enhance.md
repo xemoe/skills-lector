@@ -1,5 +1,5 @@
 ---
-description: Enhance a Flow by rewriting each step into a GENERAL, reusable pipeline template (specifics abstracted into <placeholder> variables) that folds in the method of the user's most relevant installed Claude Skills, Plugins, and Commands, then save the result onto the flow's detail page. Pass the numeric flow id.
+description: Enhance a Flow by rewriting each step into a GENERAL, reusable pipeline template at three lengths (short/long/precise) — specifics abstracted into <placeholder> variables — folding in the method of the user's most relevant installed Claude Skills, Plugins, and Commands, then save the result onto the flow's detail page. Pass the numeric flow id.
 argument-hint: "[flow-id]"
 allowed-tools: Bash(curl:*), Bash(node:*), Bash(mkdir:*), Bash(grep:*), Read, Write
 disable-model-invocation: true
@@ -87,7 +87,7 @@ the matches, then `Read` each chosen item's `path` (column 5 — the `SKILL.md` 
 command `.md`) for its actual guidance. **Only choose items that appear in the
 catalog — never invent one.** A step with no good match gets none; that is fine.
 
-### 4. Rewrite each step — GENERALIZE, don't bake in specifics
+### 4. Rewrite each step into THREE length variants — GENERALIZE, don't bake in specifics
 
 A flow is a **reusable pipeline template** the user re-runs for *any* task of
 that kind — not a record of one past task. The seeded step `body` is a **specific
@@ -96,49 +96,56 @@ the same step is useful for every instance.
 
 For each step, first name the **class of work** the example represents (e.g.
 "adding a loading state to a long-running async op", "authoring a Claude skill",
-"closing a GitHub issue via the gh CLI"). Then rewrite for that class:
+"closing a GitHub issue via the gh CLI"). Then write it at **three lengths** — a
+"length ladder". The three variants are the **same** generalized, parameterized
+directive at increasing depth; they share the **same `<placeholder>` variables**
+and the **same folded-in skills** — only the detail grows:
+
+- **`short`** — a 1-2 line terse directive. Name the class of work and the
+  parameterized action, nothing else. No heading, no bullets. ~140 characters.
+  This is what the pipeline cards show, so it must stand alone. e.g.
+  `Plan <feature>: list user-facing behaviour, risks, and phases before coding.`
+- **`long`** — the method, structured for reading. ~800 characters, exactly:
+  1. One `##` heading naming the class of work.
+  2. 1-2 sentences: the generalized, parameterized directive.
+  3. One `Folds in: <name>` line naming the matched catalog item(s).
+  4. 2-5 short method bullets (a single-line command may be a bullet).
+  5. A closing one-line *why it matters*.
+- **`precise`** — the exact, rigorous spec. ~1000 characters, exactly:
+  1. One `##` heading naming the class of work.
+  2. A short **Inputs:** line listing the `<placeholder>` variables to fill.
+  3. Numbered, exact steps — concrete actions, no hand-waving.
+  4. An explicit **Guardrails:** list of constraints/checks that must hold.
+
+These rules apply to **all three** variants:
 
 - **Parameterize the specifics into `<placeholder>` variables.** Replace the
   one-off nouns — the thing being built, its target, its trigger, the repo/file —
   with `<placeholder>`s a person fills in the "fill variables" drawer (e.g.
   `<async-operation>`, `<skill-name>`, `<target-dir>`, `<issue-number>`). Keep any
-  placeholders already present in the original `body` verbatim.
-- **Fold the matched skill/command in as a FEW method bullets** — the essential
-  steps/guardrails — **not a full checklist, not a code skeleton, not a finished
-  copy-paste solution.**
+  placeholders already present in the original `body` verbatim, and use the **same
+  set** of placeholders across short/long/precise.
+- **Fold the matched skill/command in as method** — the essential steps/guardrails
+  — **not a full checklist, not a code skeleton, not a finished copy-paste
+  solution.**
 - **No project-specific code.** Do not reference this repo's files, components,
   hooks, or import paths (no real component names, no `@/components/...`). Tool /
   pattern level only (e.g. "use the gh CLI").
 
-**Output shape — a concise, general, reusable prompt** (NOT a playbook or
-tutorial). Hard cap ~800 characters. Each enhanced step is exactly:
-
-1. One `##` heading naming the class of work.
-2. 1-2 sentences: the generalized, parameterized directive — what to do for *any*
-   instance.
-3. One `Folds in: <name>` line naming the matched catalog item(s).
-4. 2-5 short method bullets (a single-line command may be a bullet).
-
-If you find yourself writing a second `###` section or a long fenced code block,
-you're being too specific — cut it down.
-
-Record, per step, the `cheatId`, the rewritten text, and the names of what you
+Record, per step, the `cheatId`, the three `variants`, and the names of what you
 folded in. **Only include a step you actually enhanced** — a step with no
 relevant match is simply omitted (it renders un-enhanced on the page).
 
 > Anti-pattern (rejected): a multi-section implementation guide for one concrete
 > realization — a literal React component named for this repo, a hard-coded bash
 > script, project-only paths, exhaustive checklists. That serves a single task,
-> not the reusable pipeline. Generalize and keep it short.
+> not the reusable pipeline. Generalize.
 
-**Format the rewrite as Markdown.** The flow detail page renders each step as
-Markdown (raw + rendered preview in the step drawer), so structure it for
-reading, not as one wall of text:
-
-- A short `##` or `###` heading or a bold lead line naming the step's goal.
-- Bullet or numbered lists for the actual steps, checks, and guardrails.
-- Fenced code blocks for any commands or snippets.
-- Keep paragraphs tight; let the structure carry the prompt.
+**Format each variant as Markdown.** The flow detail page renders the variants as
+Markdown (raw + rendered preview, stacked in the step drawer), so structure them
+for reading — bullet/numbered lists for steps and checks, fenced code blocks for
+commands, tight paragraphs. (The terse `short` variant is the exception: keep it
+to plain text, no heading.)
 
 Leave the `<placeholder>` variables exactly as `<name>` (literal angle
 brackets) — **do not** wrap them in backticks or code spans yourself. The drawer
@@ -166,13 +173,30 @@ brackets that isn't a real variable becomes a garbage chip:
 Build the payload as JSON — one entry per enhanced step, keyed by `cheatId` —
 and `Write` it to `.flows/$ARGUMENTS-enhanced.json`:
 
-Each `enhanced` value is a Markdown string (newlines as `\n`):
+Each step carries a `variants` object with all three lengths; every value is a
+non-empty Markdown string (newlines as `\n`):
 
 ```json
 {
   "steps": [
-    { "cheatId": 880, "enhanced": "## Plan the feature\n\nBrainstorm before coding, then write the plan:\n\n- List the user-facing behaviour for <feature>.\n- Note risks and dependencies.\n- Break the work into phases.", "foldedIn": ["brainstorming", "planner"] },
-    { "cheatId": 881, "enhanced": "## Implement with TDD\n\n1. Write a failing test for <feature>.\n2. Make it pass with the minimal change.\n3. Refactor, keep tests green.", "foldedIn": ["tdd-guide"] }
+    {
+      "cheatId": 880,
+      "variants": {
+        "short": "Plan <feature>: list user-facing behaviour, risks, and phases before coding.",
+        "long": "## Plan the feature\n\nBrainstorm before coding, then write the plan for <feature>.\n\nFolds in: brainstorming, planner\n\n- List the user-facing behaviour.\n- Note risks and dependencies.\n- Break the work into phases.\n\nWhy: a shared plan catches scope and risk before any code is written.",
+        "precise": "## Plan the feature\n\nInputs: <feature>\n\n1. Enumerate every user-facing behaviour of <feature>.\n2. List dependencies and the risks each one carries.\n3. Split the work into ordered phases with a checkpoint per phase.\n\nGuardrails:\n- No code until the plan is written.\n- Each phase is independently shippable."
+      },
+      "foldedIn": ["brainstorming", "planner"]
+    },
+    {
+      "cheatId": 881,
+      "variants": {
+        "short": "Implement <feature> test-first: red, green, refactor.",
+        "long": "## Implement with TDD\n\nBuild <feature> test-first.\n\nFolds in: tdd-guide\n\n- Write a failing test for the next behaviour.\n- Make it pass with the minimal change.\n- Refactor, keep tests green.\n\nWhy: tests written first pin the behaviour and catch regressions for free.",
+        "precise": "## Implement with TDD\n\nInputs: <feature>\n\n1. Write one failing test for the next behaviour of <feature> (red).\n2. Make it pass with the minimal change (green).\n3. Refactor while keeping every test green.\n4. Repeat until <feature> is complete.\n\nGuardrails:\n- Never write implementation before a failing test.\n- Keep the suite green at every step."
+      },
+      "foldedIn": ["tdd-guide"]
+    }
   ]
 }
 ```
@@ -188,8 +212,9 @@ curl -s --fail -X POST -H "Content-Type: application/json" \
 ```
 
 A success returns `{"flow":{…}}`. A `400 invalid_body` means the payload shape is
-wrong — fix it (each step needs a numeric `cheatId` and a non-empty `enhanced`)
-and retry. A `404 not_found` means the flow was deleted meanwhile.
+wrong — fix it (each step needs a numeric `cheatId` and a `variants` object whose
+`short`, `long`, and `precise` are all non-empty strings) and retry. A
+`404 not_found` means the flow was deleted meanwhile.
 
 ### 6. Report
 

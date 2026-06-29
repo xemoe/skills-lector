@@ -83,8 +83,10 @@ export function FlowNode({
     const totalLabel = String(total).padStart(2, "0");
     const hasEnhanced = Boolean(enhanced);
     const [showEnhanced, setShowEnhanced] = useState(true);
+    // Pipeline cards always preview the terse `short` variant; the drawer shows
+    // all three. Variables are extracted from short for the fill-count chip.
     const variables = useMemo(
-        () => (enhanced ? extractVariables(enhanced.enhanced) : []),
+        () => (enhanced ? extractVariables(enhanced.variants.short) : []),
         [enhanced],
     );
 
@@ -162,7 +164,7 @@ export function FlowNode({
 
     const originalText = cheat.improved ?? cheat.original;
     const showingEnhanced = hasEnhanced && showEnhanced;
-    const bodyText = showingEnhanced ? enhanced!.enhanced : originalText;
+    const bodyText = showingEnhanced ? enhanced!.variants.short : originalText;
 
     return (
         <div

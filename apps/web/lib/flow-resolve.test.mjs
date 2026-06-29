@@ -121,4 +121,36 @@ const emptyFlow = { ...flow, steps: [] };
 const emptyPrompt = buildCombinedPrompt(emptyFlow, map);
 assert.equal(emptyPrompt, "# Ship a Feature", "empty flow should produce only the title");
 
+// ---- enhanced variants ------------------------------------------------------
+
+// Flow with a per-step rewrite on cheat 1 only (cheat 3 stays un-enhanced).
+const enhancedFlow = {
+    ...flow,
+    enhanced: {
+        generatedAt: "2024-01-01T00:00:00.000Z",
+        steps: [
+            {
+                cheatId: 1,
+                variants: { short: "S1 short", long: "L1 long", precise: "P1 precise" },
+                foldedIn: [],
+            },
+        ],
+    },
+};
+
+// Default variant is "short"; the enhanced text replaces the raw cheat body.
+const shortPrompt = buildCombinedPrompt(enhancedFlow, map);
+assert.ok(shortPrompt.includes("S1 short"), "step 1 uses the short variant by default");
+assert.ok(
+    !shortPrompt.includes("Perform thorough research and summarise findings"),
+    "enhanced step overrides the raw cheat text",
+);
+// Un-enhanced step (cheat 3) still falls back to its raw original.
+assert.ok(shortPrompt.includes("Write the code"), "un-enhanced step falls back to raw text");
+
+// Explicit variant selection picks the matching length.
+const precisePrompt = buildCombinedPrompt(enhancedFlow, map, "precise");
+assert.ok(precisePrompt.includes("P1 precise"), "precise variant selected");
+assert.ok(!precisePrompt.includes("S1 short"), "precise prompt does not include the short text");
+
 console.log("flow-resolve: all assertions passed ✓");

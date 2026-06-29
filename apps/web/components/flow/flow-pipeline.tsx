@@ -4,7 +4,11 @@ import { useMemo, useState } from "react";
 import { Play, Plus } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-import type { Cheat, FlowEnhancedStep } from "@lector/presets/types";
+import type {
+    Cheat,
+    FlowEnhancedStep,
+    FlowStepVariants,
+} from "@lector/presets/types";
 import type { StepChange } from "@/lib/flow-step-diff";
 import { FlowNode } from "./flow-node";
 import { FlowVariableDrawer } from "./flow-variable-drawer";
@@ -102,19 +106,21 @@ export function FlowPipeline({
         const list: {
             cheatId: number;
             title: string;
-            text: string;
+            /** All three rewrite variants when enhanced; null otherwise. */
+            variants: FlowStepVariants | null;
+            /** Raw step text shown when the step has no enhancement. */
+            fallbackText: string;
         }[] = [];
         let n = 0;
         for (const row of rows) {
             if (row.change === "removed" || !row.cheat) continue;
             n += 1;
             const enhanced = enhancedByCheatId?.get(row.cheatId);
-            const text =
-                enhanced?.enhanced ?? row.cheat.improved ?? row.cheat.original;
             list.push({
                 cheatId: row.cheatId,
                 title: `${String(n).padStart(2, "0")} · ${row.cheat.intent ?? "step"}`,
-                text,
+                variants: enhanced?.variants ?? null,
+                fallbackText: row.cheat.improved ?? row.cheat.original,
             });
         }
         return list;
@@ -212,7 +218,8 @@ export function FlowPipeline({
                 if (!o) setOpenIndex(null);
             }}
             title={openStep?.title ?? ""}
-            text={openStep?.text ?? ""}
+            variants={openStep?.variants ?? null}
+            fallbackText={openStep?.fallbackText ?? ""}
             positionLabel={
                 openIndex !== null
                     ? `${openIndex + 1} / ${openable.length}`

@@ -13,8 +13,13 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n/context";
-import type { FlowEnhancedStep } from "@lector/presets/types";
-import { buildCombinedPrompt, cheatsByIdMap } from "@/lib/flow-resolve";
+import type { FlowEnhancedStep, FlowVariantKey } from "@lector/presets/types";
+import {
+    buildCombinedPrompt,
+    cheatsByIdMap,
+    enhancedByCheatId,
+} from "@/lib/flow-resolve";
+import { FLOW_VARIANT_KEYS } from "@/lib/flow-variant";
 import { diffSteps, insertAtServerPosition } from "@/lib/flow-step-diff";
 import { useCheatsList } from "@/components/cheats/use-cheat-queries";
 import {
@@ -59,11 +64,10 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
     const current = draft ?? server;
 
     const diff = useMemo(() => diffSteps(server, current), [server, current]);
-    const enhancedByCheatId = useMemo(() => {
-        const map = new Map<number, FlowEnhancedStep>();
-        for (const s of flow?.enhanced?.steps ?? []) map.set(s.cheatId, s);
-        return map;
-    }, [flow]);
+    const enhancedSteps = useMemo<Map<number, FlowEnhancedStep>>(
+        () => (flow ? enhancedByCheatId(flow) : new Map()),
+        [flow],
+    );
     const rows = useMemo(
         () =>
             diff.rows.map((r) => ({
@@ -82,6 +86,8 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
     const [copied, setCopied] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
     const [applyError, setApplyError] = useState<string | null>(null);
+    // Which enhanced length the combined-prompt copy uses (pipeline shows short).
+    const [copyVariant, setCopyVariant] = useState<FlowVariantKey>("short");
 
     const handleSaveName = useCallback(() => {
         const trimmed = nameVal.trim();
@@ -104,6 +110,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
         const text = buildCombinedPrompt(
             { ...flow, steps: current },
             cheatsById,
+            copyVariant,
         );
         try {
             await navigator.clipboard.writeText(text);
@@ -112,7 +119,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
         } catch {
             /* clipboard unavailable */
         }
-    }, [flow, current, cheatsById]);
+    }, [flow, current, cheatsById, copyVariant]);
 
     // ---- staged step edits (local draft only) ----
     const handleMoveUp = useCallback(
@@ -302,6 +309,36 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
                         {t.flowsPage.title} · {current.length}{" "}
                         {t.flowsPage.steps}
                     </p>
+                    {/* Variant picker — which enhanced length the combined copy
+                        uses. Only meaningful once the flow has been enhanced. */}
+                    {enhancedSteps.size > 0 && (
+                        <div
+                            className="inline-flex rounded-none border"
+                            role="group"
+                            aria-label={t.flowsPage.copyVariant}
+                        >
+                            {FLOW_VARIANT_KEYS.map((key) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setCopyVariant(key)}
+                                    aria-pressed={copyVariant === key}
+                                    className={
+                                        "px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors " +
+                                        (copyVariant === key
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-muted-foreground hover:text-foreground")
+                                    }
+                                >
+                                    {key === "short"
+                                        ? t.flowsPage.variantShort
+                                        : key === "long"
+                                          ? t.flowsPage.variantLong
+                                          : t.flowsPage.variantPrecise}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <Button
                         type="button"
                         variant="outline"
@@ -380,7 +417,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
             )}
 
             {/* Nudge to enhance — only when the flow has steps but no rewrite yet */}
-            {current.length > 0 && enhancedByCheatId.size === 0 && (
+            {current.length > 0 && enhancedSteps.size === 0 && (
                 <FlowEnhanceHint flowId={flowId} />
             )}
 
@@ -388,7 +425,7 @@ export function FlowEditor({ flowId }: FlowEditorProps) {
             <FlowPipeline
                 rows={rows}
                 draftCount={current.length}
-                enhancedByCheatId={enhancedByCheatId}
+                enhancedByCheatId={enhancedSteps}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
                 onRemove={handleRemove}
