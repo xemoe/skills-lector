@@ -22,12 +22,18 @@ function parseFlowId(raw: string): number | null {
     return Number.isInteger(n) && n > 0 ? n : null;
 }
 
+const VariantsSchema = z.object({
+    short: z.string().min(1).max(20000),
+    long: z.string().min(1).max(20000),
+    precise: z.string().min(1).max(20000),
+});
+
 const EnhanceBody = z.object({
     steps: z
         .array(
             z.object({
                 cheatId: z.number().int(),
-                enhanced: z.string().min(1).max(20000),
+                variants: VariantsSchema,
                 foldedIn: z.array(z.string().max(120)).max(20).default([]),
             }),
         )

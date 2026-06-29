@@ -28,15 +28,40 @@ function flowPath(slug) {
     return join(flowsDir(), `${slug}.json`);
 }
 
+/**
+ * Coerce one step's rewrite into the three-variant shape, or null if unusable.
+ * Accepts the current `{ variants: { short, long, precise } }` shape and the
+ * legacy single-string `{ enhanced: "<text>" }` shape (pre-variants flows),
+ * which maps the one text onto all three variants so old flows still render.
+ */
+function normalizeVariants(s) {
+    if (s.variants && typeof s.variants === "object") {
+        const v = s.variants;
+        const short = typeof v.short === "string" ? v.short : "";
+        if (!short) return null;
+        const long = typeof v.long === "string" && v.long ? v.long : short;
+        const precise = typeof v.precise === "string" && v.precise ? v.precise : short;
+        return { short, long, precise };
+    }
+    if (typeof s.enhanced === "string" && s.enhanced) {
+        return { short: s.enhanced, long: s.enhanced, precise: s.enhanced };
+    }
+    return null;
+}
+
 function normalizeEnhanced(v) {
     if (!v || typeof v !== "object" || !Array.isArray(v.steps)) return null;
-    const steps = v.steps
-        .filter((s) => s && typeof s === "object" && Number.isInteger(s.cheatId) && typeof s.enhanced === "string")
-        .map((s) => ({
+    const steps = [];
+    for (const s of v.steps) {
+        if (!s || typeof s !== "object" || !Number.isInteger(s.cheatId)) continue;
+        const variants = normalizeVariants(s);
+        if (!variants) continue;
+        steps.push({
             cheatId: s.cheatId,
-            enhanced: s.enhanced,
+            variants,
             foldedIn: Array.isArray(s.foldedIn) ? s.foldedIn.filter((x) => typeof x === "string") : [],
-        }));
+        });
+    }
     if (steps.length === 0) return null;
     return { generatedAt: typeof v.generatedAt === "string" ? v.generatedAt : "", steps };
 }

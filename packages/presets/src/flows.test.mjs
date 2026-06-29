@@ -37,9 +37,25 @@ try {
     assert.equal(getFlow(f.id).name, "Renamed", "name updated");
     setFlowSteps(f.id, [10, 20, 30]);
     assert.deepEqual(getFlow(f.id).steps, [10, 20, 30], "steps set");
-    setFlowEnhanced(f.id, [{ cheatId: 10, enhanced: "do it", foldedIn: ["git"] }]);
-    assert.equal(getFlow(f.id).enhanced.steps[0].cheatId, 10, "enhanced set");
-    assert.equal(getFlow(f.id).enhanced.steps[0].foldedIn[0], "git", "foldedIn kept");
+    setFlowEnhanced(f.id, [
+        {
+            cheatId: 10,
+            variants: { short: "do it", long: "do it, carefully", precise: "do exactly it" },
+            foldedIn: ["git"],
+        },
+    ]);
+    let e = getFlow(f.id).enhanced;
+    assert.equal(e.steps[0].cheatId, 10, "enhanced set");
+    assert.equal(e.steps[0].variants.short, "do it", "short variant kept");
+    assert.equal(e.steps[0].variants.precise, "do exactly it", "precise variant kept");
+    assert.equal(e.steps[0].foldedIn[0], "git", "foldedIn kept");
+
+    // legacy single-string `enhanced` migrates to all three variants on read
+    setFlowEnhanced(f.id, [{ cheatId: 11, enhanced: "legacy text", foldedIn: [] }]);
+    e = getFlow(f.id).enhanced;
+    assert.equal(e.steps[0].variants.short, "legacy text", "legacy enhanced → short");
+    assert.equal(e.steps[0].variants.long, "legacy text", "legacy enhanced → long");
+    assert.equal(e.steps[0].variants.precise, "legacy text", "legacy enhanced → precise");
 
     // second flow → list sorts most-recently-updated first
     createFlow({ slug: "chore", name: "Chore" });

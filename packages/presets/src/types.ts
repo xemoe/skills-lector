@@ -142,6 +142,21 @@ export type Cheat = {
     updatedAt: string;
 };
 
+/** The three length variants every enhanced step is rewritten into. */
+export type FlowVariantKey = "short" | "long" | "precise";
+
+/**
+ * One step's rewrite at all three lengths (a "length ladder"):
+ * - `short`   — a 1-2 line terse directive (what the pipeline cards show).
+ * - `long`    — heading + directive + folded-in method bullets + why-it-matters.
+ * - `precise` — heading + exact parameters + numbered steps + explicit guardrails.
+ */
+export type FlowStepVariants = {
+    short: string;
+    long: string;
+    precise: string;
+};
+
 /**
  * One step's skill-aware rewrite. Keyed by `cheatId` (not position) so it stays
  * aligned to its step if the flow is reordered; a step whose cheat has no entry
@@ -150,7 +165,7 @@ export type Cheat = {
  */
 export type FlowEnhancedStep = {
     cheatId: number;
-    enhanced: string;
+    variants: FlowStepVariants;
     foldedIn: string[];
 };
 
