@@ -378,6 +378,9 @@ export const en = {
         sortSteps: "Most steps",
         itemPosition: (current: number, total: number) => `${current} of ${total}`,
         switchFlow: "Switch flow",
+        allProjects: "All projects",
+        filterProject: "Filter by project",
+        seedProject: (name: string) => `Seed ${name}`,
         matchCount: (shown: number, total: number) =>
             shown === total ? `${total} flows` : `${shown} of ${total} flows`,
     },

@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/select";
 import { useT } from "@/lib/i18n/context";
 import { useFlowsList } from "./use-flow-queries";
+import { useCheatsList } from "@/components/cheats/use-cheat-queries";
 import {
     buildFlowQuery,
+    cheatProjectMap,
     filterSortFlows,
     parseFlowFilters,
 } from "@/lib/flow-filter";
@@ -40,7 +42,11 @@ export function FlowDetailNav({
 
     const { data, isLoading } = useFlowsList();
     const flows = data?.flows ?? [];
-    const ordered = filterSortFlows(flows, filters);
+    // Same cheat→project map the explorer uses, so a project-filtered list walks
+    // the identical ordered set on the detail page.
+    const { data: cheatsData } = useCheatsList();
+    const cheatProj = cheatProjectMap(cheatsData?.cheats ?? []);
+    const ordered = filterSortFlows(flows, filters, cheatProj);
     const index = ordered.findIndex((f) => f.id === flowId);
 
     const qs = buildFlowQuery(filters);

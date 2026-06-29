@@ -369,6 +369,9 @@ export const th: Dictionary = {
         sortSteps: "ขั้นตอนมากสุด",
         itemPosition: (current: number, total: number) => `${current} จาก ${total}`,
         switchFlow: "สลับโฟลว์",
+        allProjects: "ทุกโปรเจ็กต์",
+        filterProject: "กรองตามโปรเจ็กต์",
+        seedProject: (name: string) => `สร้างจาก ${name}`,
         matchCount: (shown: number, total: number) =>
             shown === total ? `${total} โฟลว์` : `${shown} จาก ${total} โฟลว์`,
     },
