@@ -1,183 +1,120 @@
 # Skills Lector
 
-A local web app that scans your machine for deployed **Claude Skills**, **slash commands**, and **hooks**, and shows them in a browser dashboard — what is installed, where it came from, and when it last changed. It also surfaces reusable **Cheats** (prompts mined from your session history) and lets you compose them into **Flows** — ordered prompt pipelines for a kind of work.
+A local dashboard for everything Claude Code has installed on your machine — **Skills**, slash **Commands**, and **Hooks** — plus **Cheats** (reusable prompts mined from your session history) and **Flows** (cheats chained into prompt pipelines).
 
-Built with Next.js 15, React 19, Tailwind CSS, and shadcn/ui. Current version: **v0.5.0**. It runs entirely on your machine and makes no external calls — nothing leaves your computer. (The optional `discover-popular-skills` Claude Code skill does call GitHub, but that script runs outside the web app — see [Discover](#discover-popular-skills).)
+Runs entirely on your machine. Nothing leaves your computer.
 
-## Repository layout
+## Quick start
 
-This is a **monorepo**:
-
-- **`apps/web`** — the Next.js web app.
-- **`packages/core`** — the shared, server-side scanning engine (filesystem scanners, parsers, git/source resolution, the data model). Read-only.
-- **`packages/presets`** — the preset engine (SQLite-backed). The only mutating surface in the project.
-
-## Features
-
-- **Unified dashboard** — every `SKILL.md` discovered on the machine in one searchable, filterable, sortable table.
-- **Five catalogs** — Skills, slash Commands, Hooks, Cheats, and Flows. Each gets its own list view, detail view, and JSON API, all sharing the same filter/sort/URL-state patterns.
-- **Knows where things come from** — classifies each item as personal, plugin, project, or local, and resolves its source to a GitHub repository or a local directory.
-- **Freshness & usage** — shows when each skill was last modified and how often it has been used (read from `~/.claude.json`).
-- **Skill / command / hook detail view** — renders the full `SKILL.md` (or command body / hook config) plus metadata: plugin info, source repository, branch, size, and file count.
-- **Prompt Cheats** — reusable prompts mined from your Claude session history, with an improved-prompt rewrite, intent label, tags, reuse score, and per-cheat favorites. Catalog at `/cheats`, detail at `/cheats/[id]`. See [Prompt Cheats](#prompt-cheats).
-- **Flows** — compose Cheats into ordered prompt pipelines per kind of work, with staged step edits, auto-seeded starters, and skill-aware step enhancement. Browse at `/flows`, build at `/flows/new`, detail at `/flows/[id]`. See [Flows](#flows).
-- **Sources view** — items grouped by plugin, repository, and directory (`/sources`).
-- **Analytics view** — usage and freshness charts with a preset filter (`/analytic`).
-- **Graph view** — interactive relationship graph between skills, commands, and their sources (`/graph`, powered by `@xyflow/react`).
-- **Skills + Commands presets** — bundle skills and commands per workflow ("debugging", "frontend-design", ...). Activating a preset toggles each item's `disable-model-invocation` frontmatter in the personal scope, with a full audit trail. See `/presets`.
-- **Discover popular skills** — a Claude Code skill ranks the most popular Claude Skills repositories on GitHub and writes a manifest the `/discover` page renders.
-- **Usecase guide** — long-form onboarding for newcomers at `/usecase`.
-- **JSON APIs** — `GET /api/skills`, `/api/commands`, `/api/hooks`, `/api/discover`, `/api/activity`, `/api/cheats`, plus the preset (`/api/presets/*`), cheats-favorite (`/api/cheats/[id]/favorite`), and flows (`/api/flows`, `/api/flows/[id]`, `/api/flows/[id]/steps`, `/api/flows/[id]/enhance`, `/api/flows/seed`) endpoints. The scan APIs honour `?force=1` to bypass the 8-second scan cache.
-- **Bilingual UI** — English and Thai (toggle in the header).
-- **Light / dark theme toggle**.
-- **Cross-platform** — Windows and macOS.
-
-## What it scans
-
-| Location | Item type |
-|---|---|
-| `~/.claude/skills`, `~/.claude/commands` | Personal skills / commands |
-| `~/.claude/plugins/**` (skills, commands, `settings.json` hooks) | Plugin |
-| Agent / Cowork session skills | Plugin |
-| `<project>/.claude/{skills,commands,settings.json,settings.local.json}` (projects from `~/.claude.json`) | Project |
-| `~/.claude/settings.json` (hooks) | Personal hooks |
-| `<project>/.claude/settings.local.json` (hooks) | Local hooks |
-| `apps/web/sample-skills/` (bundled with this repo) | Local |
-| Any directory listed in `skills-lector.config.json` | Custom |
-
-## Requirements
-
-- Node.js 18.18 or newer
-- npm
-
-## Getting started
+Requires Node.js 18.18+ and npm.
 
 ```bash
 git clone https://github.com/xemoe/skills-lector.git
 cd skills-lector
-git submodule update --init --recursive   # pull vendored skills under vendor/
-npm run install:all                       # installs all three packages
+npm run install:all
 npm run dev
 ```
 
-Then open **http://localhost:4317**.
+Open **http://localhost:4317**.
 
-The submodule step is optional — the app still runs without it — but the `vendor/` directory will be empty and `/discover` will show no vendored entries.
+Optional — pull external skill repos into `vendor/` (used by `/discover` and the vendor-install command):
+
+```bash
+git submodule update --init --recursive
+```
+
+## What you get
+
+| Page | What it shows |
+|---|---|
+| `/` | Every Claude Skill on your machine — searchable, with source repo, freshness, and usage |
+| `/commands` | Every slash command |
+| `/hooks` | Every hook from your `settings.json` files |
+| `/cheats` | Reusable prompts mined from your Claude session history |
+| `/flows` | Cheats chained into ordered prompt pipelines, with skill-aware step enhancement |
+| `/presets` | Named bundles that toggle which skills/commands Claude may auto-invoke |
+| `/discover` | Popular Claude Skills repositories on GitHub, ranked |
+
+Plus `/sources`, `/analytic`, `/graph`, and a `/usecase` onboarding guide. Bilingual UI (English/Thai), light/dark theme, Windows + macOS.
+
+## Claude commands
+
+This repo ships five slash commands. Run them inside Claude Code from the repo root.
+
+### `/skill-lector:cheats`
+
+Build the prompt cheat sheet shown on `/cheats` from your session history.
+
+```text
+/skill-lector:cheats            # full pipeline: extract → analyze → import
+/skill-lector:cheats status     # show what was last extracted, without re-running
+```
+
+### `/skill-lector:discover-skills`
+
+Search GitHub for popular Claude Skills repositories and vendor the ones you pick.
+
+```text
+/skill-lector:discover-skills                # search and rank the top 10
+/skill-lector:discover-skills clone <name>   # add one under vendor/ as a git submodule
+/skill-lector:discover-skills status         # show the current manifest
+```
+
+### `/skill-lector:vendor-install`
+
+Install a skill from `vendor/` into your Claude setup (installs are copies, not symlinks).
+
+```text
+/skill-lector:vendor-install                      # list available vendored skills
+/skill-lector:vendor-install <skill-name>         # install to ~/.claude/skills (all projects)
+/skill-lector:vendor-install <skill-name> project # install to .claude/skills (this repo only)
+```
+
+### `/skill-lector:model-invocation`
+
+Control whether Claude may invoke a skill/command on its own, or only you via `/`.
+
+```text
+/skill-lector:model-invocation               # list every skill and command with its setting
+/skill-lector:model-invocation <name> off    # make it slash-only
+/skill-lector:model-invocation <name> on     # let Claude invoke it automatically
+/skill-lector:model-invocation all off       # bulk: everything slash-only (previews first)
+```
+
+### `/skill-lector:flow-enhance`
+
+Rewrite each step of a Flow into a reusable template that folds in your installed skills. Needs the dev server running; find flow ids on `/flows`.
+
+```text
+/skill-lector:flow-enhance <flow-id>
+```
 
 ## Scripts
 
-Run these from the repo root; the root `package.json` delegates each into `apps/web`.
-
 | Command | Description |
 |---|---|
-| `npm run install:all` | Install dependencies for `packages/core`, `packages/presets`, and `apps/web` |
-| `npm run dev` | Start the dev server (Turbopack) on port 4317 |
-| `npm run dev:autoport` | Same as `dev` but picks the next free port |
-| `npm run dev:portless` | Dev server behind [portless](https://github.com/vercel-labs/portless) at `https://lector-dev.local` |
-| `npm run build` | Production build — also runs the TypeScript type-check |
+| `npm run install:all` | Install dependencies for all three packages |
+| `npm run dev` | Dev server on http://localhost:4317 |
+| `npm run build` | Production build (also the TypeScript type-check) |
 | `npm start` | Serve the production build on port 4317 |
-| `npm run start:autoport` | Production server on the next free port |
-| `npm run start:portless` | Production server behind portless at `https://lector-prod.local` |
 
-The `dev:portless` / `start:portless` scripts require the `portless` proxy running on the machine (`portless proxy start`) and the local CA trusted (`portless trust`). They are an opt-in convenience; the autoport / fixed-port variants are the default.
+Variants: `dev:autoport` / `start:autoport` pick the next free port; `dev:portless` / `start:portless` serve stable HTTPS URLs via [portless](https://github.com/vercel-labs/portless).
 
 ## Configuration
 
-All configuration is optional.
+All optional.
 
-- **`skills-lector.config.json`** — copy `apps/web/skills-lector.config.example.json` to `apps/web/skills-lector.config.json` and edit it. Add directories to scan via `extraRoots`, toggle `includeProjectSkills` / `includeCoworkSkills`, and override `dbPath` for the preset SQLite file. This file is git-ignored.
-- **`SKILLS_SCAN_ROOTS`** — environment variable; a `;`- or `,`-separated list of extra directories to scan.
-- **`CLAUDE_CONFIG_DIR`** — environment variable; overrides the default `~/.claude` location.
-- **`SKILLS_LECTOR_PRESETS_DB`** — environment variable; overrides the default preset database path (`~/.skills-lector/presets.db`).
-- **`SKILLS_LECTOR_PERSONAL_ROOT`** — environment variable; overrides the personal-scope root that preset activations write into (defaults to `~/.claude`).
+- Copy `apps/web/skills-lector.config.example.json` to `apps/web/skills-lector.config.json` to add extra scan roots or override paths.
+- Env vars: `SKILLS_SCAN_ROOTS` (extra scan dirs), `CLAUDE_CONFIG_DIR` (overrides `~/.claude`), `SKILLS_LECTOR_PRESETS_DB` (presets database path), `SKILLS_LECTOR_PERSONAL_ROOT` (where preset activations write).
 
-## How it works
+## Project layout
 
-A Claude Skill is a directory containing a `SKILL.md` file — YAML frontmatter (`name`, `description`) followed by a Markdown body. A slash command is a single Markdown file under `commands/`. A hook is a `{ event, matcher, command }` entry inside a `settings.json` file.
+- **`apps/web`** — the Next.js app (pages, `/api` routes, UI).
+- **`packages/core`** — read-only scanning engine (skills, commands, hooks, discover manifest).
+- **`packages/presets`** — the only mutating surface (presets database, cheats and flows stores).
 
-Three parallel server-side scanners in `packages/core/src/` walk the known locations, parse each item, determine its scope and source (resolving git remotes to GitHub URLs where possible), read usage data from `~/.claude.json` where applicable, deduplicate items that appear in multiple places, and return a single result:
+Architecture details live in [CLAUDE.md](CLAUDE.md).
 
-- **`scanSkills()`** — `scanner.ts`
-- **`scanCommands()`** — `command-scanner.ts`
-- **`scanHooks()`** — `hook-scanner.ts`
+## Note: exFAT volumes
 
-A fourth reader, **`readDiscoverManifest()`** (`discover.ts`), reads the JSON manifest produced by the `discover-popular-skills` Claude Code skill — the web app makes no GitHub calls itself.
-
-The **Cheats** and **Flows** catalogs work differently: their data lives in SQLite and is served by `packages/presets` (`cheats.ts`, `flows.ts`), not by the core scanners. Cheats are mined from session history by the `cheats` skill (see [Prompt Cheats](#prompt-cheats)); Flows are built in the UI (see [Flows](#flows)).
-
-Pages in `apps/web` are dynamic Next.js Server Components that call the scanners directly and hand plain data to client components for in-browser search and filtering. Results are cached in-process for 8 seconds; the **Rescan** button forces a fresh scan of all four sources.
-
-## Skills + Commands presets
-
-The `/presets` page is the only mutating feature in the catalog. A preset is a named bundle of skills and/or slash commands associated with a workflow ("debugging", "frontend-design", etc.). Activating a preset writes `disable-model-invocation: false` into the frontmatter of each bundled item in your personal scope and sets `disable-model-invocation: true` for items that were previously active but are not in the new preset. Pinned items override preset membership in both directions. Every activation is appended to an audit trail viewable at `/presets/log`.
-
-The preset engine lives in `packages/presets`; the web UI is under `apps/web/app/presets/`. State persists in SQLite at `~/.skills-lector/presets.db` (path overridable, see [Configuration](#configuration)). Writes are atomic (temp file + rename, exFAT-safe); crash recovery is implicit because the filesystem is the source of truth and the next apply re-converges. An onboarding wizard on the empty `/presets` page walks through creating a first preset.
-
-## Prompt Cheats
-
-The `/cheats` catalog is a library of reusable prompts mined from your local Claude session history. The web app never reads transcripts or calls an LLM itself — a Claude Code skill does the mining offline and writes the results into the same SQLite database the presets use.
-
-The `cheats` skill (the `/skill-lector:cheats` command) runs a three-step pipeline:
-
-1. **Extract** — `node .claude/skills/cheats/scripts/extract.mjs` walks the session transcripts under `~/.claude/projects`, keeps only genuine user-typed prompts (dropping subagent chains, hook/system injections, and command wrappers), deduplicates by hash, and writes `.cheats/raw.json`. By default it is *only-new* (skips hashes already curated); pass `--full` to rebuild.
-2. **Analyze** — Claude reads `.cheats/raw.json` and adds an improved rewrite, an intent label, tags, and a reuse score (0–100) per entry, writing `.cheats/analyzed.json`.
-3. **Store** — `node packages/presets/scripts/import-cheats.mjs .cheats/analyzed.json` upserts each entry on its prompt hash without touching your favorites.
-
-The `/cheats` page renders the catalog with full-text search, project and intent filters, a favorites tab, a typed-only provenance guard, table/card views, an original/improved toggle, and per-cheat favoriting. Filter and sort state lives in the URL (`lib/cheats-filter.ts`), shared with the detail page's prev/next navigation so both walk the same ordered list. `.cheats/` is a git-ignored local cache.
-
-## Flows
-
-A **Flow** is a named, ordered sequence of Cheats — a prompt pipeline for one kind of work (a `code-review` flow, for example, chains your code-review cheats in order). Flows live in the same SQLite database (`packages/presets/src/flows.ts`, migrations `004_flows.sql` / `005_flow_enhanced.sql`); the `steps` column is a JSON array of cheat ids.
-
-- **Build** — create a flow at `/flows/new`, then add, reorder, and remove steps on its detail page (`/flows/[id]`). Step edits are staged as a local draft with an added / moved / removed diff and per-item revert; nothing is written until you hit **Apply**.
-- **Seed** — the **Seed** button auto-generates starter flows by grouping your cheats on their intent (idempotent, capped at 8 steps each).
-- **Skill-aware enhancement** — `GET /api/flows/[id]/enhance` assembles the flow's combined prompt plus the catalog of your installed skills and commands; the `/skill-lector:flow-enhance` command rewrites each step folding in the relevant skill guidance and POSTs the result back. Enhanced steps render the rewritten text with folded-in skill badges and unlock a variable drawer for filling `<placeholder>` tokens.
-- **Navigate** — the `/flows` explorer offers text search and recent / name / steps sorting (URL-backed); the detail page has prev/next buttons and a flow-switcher dropdown that all walk the same filtered list (`lib/flow-filter.ts`).
-
-Like presets, the Flows store is read+write and lives in `packages/presets` — the project's only mutating package.
-
-## Vendored skills
-
-External Claude Skills are pulled in as **git submodules under `vendor/`** (currently: `9arm-skills`, `anthropic-cybersecurity-skills`, `gstack`, `ui-ux-pro-max-skill`). After cloning this repo, run `git submodule update --init --recursive` to populate them.
-
-A project skill at `.claude/skills/install-vendor-skill/` owns the vendor workflow: list the skills in `vendor/`, install one into `~/.claude/skills/` (personal) or `.claude/skills/` (project), and add new submodules. Installing **copies** the directory — exFAT cannot store symlinks. The `/skill-lector:vendor-install` slash command is the shortcut.
-
-## Discover popular skills
-
-A discovery loop with two halves that integrate only through a JSON file on disk — the web app makes no GitHub calls.
-
-- **Claude Code side** — the `.claude/skills/discover-popular-skills/` skill and its `/skill-lector:discover-skills` slash command. The helper script queries the GitHub search API for the most popular Claude Skills / slash-command repositories, writes the top 10 to `.discover/results.json` at the repo root, and (on confirmation) `git submodule add`s the chosen repos into `vendor/`. Uses `gh api` when available; falls back to unauthenticated `fetch` and reports rate-limiting in the manifest.
-- **Web side** — the `/discover` page reads the manifest and renders the ranked list with each entry marked _vendored_ / _not vendored_. Empty state on a fresh clone points the user at `/skill-lector:discover-skills`.
-
-`.discover/results.json` is git-ignored — it is a local discovery cache.
-
-## Project structure
-
-```
-apps/web/            The Next.js app
-  app/               App Router pages and /api routes
-                     (skills, commands, hooks, cheats, flows, presets,
-                      sources, analytic, graph, discover, usecase)
-  components/        shadcn/ui primitives and app components
-                     (scanner/, presets/, cheats/, flow/, ui/)
-  lib/               App-local helpers — i18n, theme, analytics, relations,
-                     utils, cheats-filter, flow-{filter,resolve,step-diff,variables}
-  sample-skills/     Bundled example skills (so the dashboard is never empty)
-  scripts/           The exFAT build shim
-packages/core/       Shared read engine — skill / command / hook scanners,
-  src/               parsers, pipeline, git/source resolution, cache, the data model
-packages/presets/    Mutating engine — SQLite store, presets + apply diff,
-  src/               cheats, Flows engine, atomic frontmatter writes
-.claude/             This repo's own project skills and slash commands
-vendor/              External skill repos as git submodules
-```
-
-## Note: running on an exFAT volume
-
-This repository currently lives on an exFAT drive. exFAT cannot store symlinks and makes `fs.readlink` return a non-standard error, which crashes standard Node build tooling. The project works around this:
-
-- builds use **Turbopack** (the npm scripts already pass `--turbopack`);
-- `apps/web/scripts/exfat-readlink-fix.cjs` shims `fs.readlink` and is loaded via `NODE_OPTIONS`;
-- install dependencies with **npm**, not pnpm — and the monorepo avoids npm workspaces, since both rely on symlinks.
-
-On an NTFS drive or on macOS none of this is needed — the app just runs. See [CLAUDE.md](CLAUDE.md) for details.
+If the repo sits on an exFAT drive (no symlink support): build with Turbopack only (the npm scripts already do), use npm — not pnpm — and keep `apps/web/scripts/exfat-readlink-fix.cjs` in place. On other filesystems none of this matters. See [CLAUDE.md](CLAUDE.md).
